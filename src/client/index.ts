@@ -41,7 +41,7 @@ function getConfig(): ApiClientConfig {
     );
   }
 
-  const host = `https://${domain}/v1`;
+  const host = `https://${domain}`;
 
   return { token, domain, host };
 }

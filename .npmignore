@@ -1,0 +1,33 @@
+# Source files (only ship compiled output)
+src/
+
+# Test files
+*.test.ts
+*.test.js
+*.spec.ts
+*.spec.js
+coverage/
+
+# Configuration files
+.env*
+tsconfig.json
+eslint.config.js
+.prettierrc
+jest.config.js
+
+# Development files
+repos/
+execution/
+instructions.md
+EXECUTION_GUIDE.md
+
+# IDE files
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+
+# Git files
+.git/
+.gitignore

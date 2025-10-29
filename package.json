@@ -1,6 +1,6 @@
 {
   "name": "@qase/mcp-server",
-  "version": "1.0.0",
+  "version": "1.0.0-beta.1",
   "description": "Official MCP server for Qase Test Management Platform",
   "type": "module",
   "main": "build/index.js",
@@ -40,7 +40,7 @@
     "email": "support@qase.io"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=20.0.0"
   },
   "scripts": {
     "build": "tsc && chmod +x build/index.js",

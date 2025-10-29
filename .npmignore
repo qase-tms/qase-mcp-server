@@ -20,6 +20,16 @@ repos/
 execution/
 instructions.md
 EXECUTION_GUIDE.md
+examples/
+CLAUDE.md
+CONTRIBUTING.md
+
+# Git and CI/CD
+.git/
+.gitignore
+.github/
+.husky/
+.claude/
 
 # IDE files
 .vscode/
@@ -28,6 +38,5 @@ EXECUTION_GUIDE.md
 # OS files
 .DS_Store
 
-# Git files
-.git/
-.gitignore
+# Package manager
+node_modules/

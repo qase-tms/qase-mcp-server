@@ -10,7 +10,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/qase-tms/qase-mcp-server.git"
+    "url": "git+https://github.com/qase-tms/qase-mcp-server.git"
   },
   "keywords": [
     "mcp",

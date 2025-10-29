@@ -47,7 +47,7 @@ The server provides tools for managing:
 ### Option 1: Install from NPM (Recommended)
 
 ```bash
-npm install -g @qase/qase-mcp-server
+npm install -g @qase/mcp-server
 ```
 
 ### Option 2: Install from Source (Development)

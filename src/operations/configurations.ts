@@ -3,12 +3,15 @@
  *
  * Implements all MCP tools for managing test configurations in Qase.
  * Configurations represent test environment settings (browser, OS, device, etc.).
+ *
+ * The qaseio SDK does not expose the Configurations API in QaseApi class,
+ * so we use direct HTTP calls.
+ * https://developers.qase.io/reference/get-configurations
  */
 
 import { z } from 'zod';
-import { getApiClient } from '../client/index.js';
+import { apiRequest } from '../client/index.js';
 import { toolRegistry } from '../utils/registry.js';
-import { toResultAsync } from '../utils/errors.js';
 import { ProjectCodeSchema, IdSchema } from '../utils/validation.js';
 
 // ============================================================================
@@ -24,6 +27,8 @@ const ConfigurationItemSchema = z.object({
 
 /**
  * Schema for listing configurations in a project
+ * API: GET /v1/configuration/{code}
+ * https://developers.qase.io/reference/get-configurations
  */
 const ListConfigurationsSchema = z.object({
   code: ProjectCodeSchema,
@@ -31,6 +36,8 @@ const ListConfigurationsSchema = z.object({
 
 /**
  * Schema for creating a configuration group
+ * API: POST /v1/configuration/{code}/group
+ * https://developers.qase.io/reference/create-configuration-group
  */
 const CreateConfigurationGroupSchema = z.object({
   code: ProjectCodeSchema,
@@ -43,6 +50,8 @@ const CreateConfigurationGroupSchema = z.object({
 
 /**
  * Schema for deleting a configuration group
+ * API: DELETE /v1/configuration/{code}/group/{id}
+ * This endpoint is not documented in the official API docs but follows REST conventions.
  */
 const DeleteConfigurationGroupSchema = z.object({
   code: ProjectCodeSchema,
@@ -55,57 +64,43 @@ const DeleteConfigurationGroupSchema = z.object({
 
 /**
  * List all configurations in a project
+ * API: GET /v1/configuration/{code}
+ * https://developers.qase.io/reference/get-configurations
  */
 async function listConfigurations(args: z.infer<typeof ListConfigurationsSchema>) {
-  const client = getApiClient();
   const { code } = args;
-
-  const result = await toResultAsync((client as any).configurations.getConfigurations(code));
-
-  return result.match(
-    (response: any) => response.data.result,
-    (error) => {
-      throw new Error(error);
-    },
-  );
+  const response = await apiRequest<{ status: boolean; result: any }>(`/v1/configuration/${code}`);
+  return response.result;
 }
 
 /**
  * Create a new configuration group
+ * API: POST /v1/configuration/{code}/group
+ * https://developers.qase.io/reference/create-configuration-group
  */
 async function createConfigurationGroup(args: z.infer<typeof CreateConfigurationGroupSchema>) {
-  const client = getApiClient();
-  const { code, ...groupData } = args;
-
-  const result = await toResultAsync(
-    (client as any).configurations.createConfigurationGroup(code, groupData as any),
-  );
-
-  return result.match(
-    (response: any) => response.data.result,
-    (error) => {
-      throw new Error(error);
+  const { code, title, configurations } = args;
+  const response = await apiRequest<{ status: boolean; result: any }>(
+    `/v1/configuration/${code}/group`,
+    {
+      method: 'POST',
+      data: { title, configurations },
     },
   );
+  return response.result;
 }
 
 /**
  * Delete a configuration group
+ * API: DELETE /v1/configuration/{code}/group/{id}
+ * This endpoint is not documented in the official API docs but follows REST conventions.
  */
 async function deleteConfigurationGroup(args: z.infer<typeof DeleteConfigurationGroupSchema>) {
-  const client = getApiClient();
   const { code, id } = args;
-
-  const result = await toResultAsync(
-    (client as any).configurations.deleteConfigurationGroup(code, id),
-  );
-
-  return result.match(
-    (_response) => ({ success: true, id }),
-    (error) => {
-      throw new Error(error);
-    },
-  );
+  await apiRequest(`/v1/configuration/${code}/group/${id}`, {
+    method: 'DELETE',
+  });
+  return { success: true, id };
 }
 
 // ============================================================================

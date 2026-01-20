@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- `list_defects`: Corrected API call signature (status as single value, not array) and removed unsupported severity filter
+- `list_users`, `get_user`: Switched to direct HTTP calls (qaseio SDK doesn't expose Users API)
+- `list_shared_parameters`, `get_shared_parameter`: Switched to direct HTTP calls (qaseio SDK doesn't expose Shared Parameters API)
+- `list_system_fields`: Switched to direct HTTP calls (qaseio SDK doesn't expose System Fields API)
+- `list_configurations`: Switched to direct HTTP calls (qaseio SDK doesn't expose Configurations API)
+
 ## [1.0.0] - 2025-10-08
 
 ### Added

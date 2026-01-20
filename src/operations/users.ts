@@ -3,12 +3,14 @@
  *
  * Implements all MCP tools for managing users in Qase.
  * Users are team members with access to the Qase workspace.
+ *
+ * The qaseio SDK does not expose the Users API, so we use direct HTTP calls.
+ * https://developers.qase.io/reference/get-users
  */
 
 import { z } from 'zod';
-import { getApiClient } from '../client/index.js';
+import { apiRequest } from '../client/index.js';
 import { toolRegistry } from '../utils/registry.js';
-import { toResultAsync } from '../utils/errors.js';
 import { IdSchema } from '../utils/validation.js';
 
 // ============================================================================
@@ -17,14 +19,17 @@ import { IdSchema } from '../utils/validation.js';
 
 /**
  * Schema for listing users
+ * API: GET /v1/user
+ * https://developers.qase.io/reference/get-users
+ *
+ * The Qase API does not document pagination parameters for this endpoint.
  */
-const ListUsersSchema = z.object({
-  limit: z.number().int().positive().max(100).optional().describe('Maximum number of items'),
-  offset: z.number().int().nonnegative().optional().describe('Number of items to skip'),
-});
+const ListUsersSchema = z.object({});
 
 /**
  * Schema for getting a specific user
+ * API: GET /v1/user/{id}
+ * https://developers.qase.io/reference/get-user
  */
 const GetUserSchema = z.object({
   id: IdSchema,
@@ -36,36 +41,23 @@ const GetUserSchema = z.object({
 
 /**
  * List all users
+ * API: GET /v1/user
+ * https://developers.qase.io/reference/get-users
  */
-async function listUsers(args: z.infer<typeof ListUsersSchema>) {
-  const client = getApiClient();
-  const { limit, offset } = args;
-
-  const result = await toResultAsync((client as any).users.getUsers(limit, offset));
-
-  return result.match(
-    (response: any) => response.data.result,
-    (error) => {
-      throw new Error(error);
-    },
-  );
+async function listUsers(_args: z.infer<typeof ListUsersSchema>) {
+  const response = await apiRequest<{ status: boolean; result: any }>('/v1/user');
+  return response.result;
 }
 
 /**
  * Get a specific user
+ * API: GET /v1/user/{id}
+ * https://developers.qase.io/reference/get-user
  */
 async function getUser(args: z.infer<typeof GetUserSchema>) {
-  const client = getApiClient();
   const { id } = args;
-
-  const result = await toResultAsync((client as any).users.getUser(id));
-
-  return result.match(
-    (response: any) => response.data.result,
-    (error) => {
-      throw new Error(error);
-    },
-  );
+  const response = await apiRequest<{ status: boolean; result: any }>(`/v1/user/${id}`);
+  return response.result;
 }
 
 // ============================================================================
@@ -74,7 +66,7 @@ async function getUser(args: z.infer<typeof GetUserSchema>) {
 
 toolRegistry.register({
   name: 'list_users',
-  description: 'Get all users in the workspace with optional pagination',
+  description: 'Get all users in the workspace',
   schema: ListUsersSchema,
   handler: listUsers,
 });

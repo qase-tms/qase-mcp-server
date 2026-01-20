@@ -35,13 +35,28 @@ const DefectStatusEnum = z.enum(['open', 'in_progress', 'resolved', 'invalid']);
 
 /**
  * Schema for listing defects
+ * API: GET /v1/defect/{code}
+ * https://developers.qase.io/reference/get-defects
+ *
+ * The Qase API only supports filtering by a single status value.
+ * Severity filtering is not supported by the API.
  */
 const ListDefectsSchema = z.object({
   code: ProjectCodeSchema,
-  status: z.array(DefectStatusEnum).optional().describe('Filter by status'),
-  severity: z.array(DefectSeverityEnum).optional().describe('Filter by severity'),
-  limit: z.number().int().positive().max(100).optional().describe('Maximum number of items'),
-  offset: z.number().int().nonnegative().optional().describe('Number of items to skip'),
+  status: DefectStatusEnum.optional().describe('Filter by status'),
+  limit: z
+    .number()
+    .int()
+    .positive()
+    .max(100)
+    .optional()
+    .describe('Maximum number of items (default: 10)'),
+  offset: z
+    .number()
+    .int()
+    .nonnegative()
+    .optional()
+    .describe('Number of items to skip (default: 0)'),
 });
 
 /**
@@ -109,14 +124,14 @@ const UpdateDefectStatusSchema = z.object({
 
 /**
  * List all defects in a project
+ * API: GET /v1/defect/{code}
+ * https://developers.qase.io/reference/get-defects
  */
 async function listDefects(args: z.infer<typeof ListDefectsSchema>) {
   const client = getApiClient();
-  const { code, status, severity, limit, offset } = args;
+  const { code, status, limit, offset } = args;
 
-  const result = await toResultAsync(
-    client.defects.getDefects(code, { status, severity } as any, limit, offset),
-  );
+  const result = await toResultAsync(client.defects.getDefects(code, status, limit, offset));
 
   return result.match(
     (response) => response.data.result,

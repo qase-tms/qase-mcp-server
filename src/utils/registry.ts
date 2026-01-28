@@ -57,7 +57,11 @@ export class ToolRegistry {
     const { name, description, schema, handler } = definition;
 
     // Convert Zod schema to JSON Schema for MCP protocol
-    const jsonSchema = zodToJsonSchema(schema, {
+    // Using explicit type assertion to avoid TypeScript's deep type inference issues
+    // The zodToJsonSchema function can cause "excessively deep" type errors with complex schemas
+    // We cast both the input and output to avoid deep type inference
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const jsonSchema = (zodToJsonSchema as any)(schema, {
       name: `${name}Input`,
       $refStrategy: 'none', // Inline all definitions
     }) as any;
@@ -69,7 +73,10 @@ export class ToolRegistry {
     if (jsonSchema.$ref && jsonSchema.definitions) {
       // Extract from definitions
       const definitionKey = Object.keys(jsonSchema.definitions)[0];
-      inputSchema = jsonSchema.definitions[definitionKey] as { type: 'object'; [key: string]: unknown };
+      inputSchema = jsonSchema.definitions[definitionKey] as {
+        type: 'object';
+        [key: string]: unknown;
+      };
     } else if (jsonSchema.type === 'object') {
       // Use directly
       inputSchema = jsonSchema;

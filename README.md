@@ -365,6 +365,52 @@ npm run inspector
 
 Set your API token when prompted, then interact with tools in the inspector UI.
 
+### Transport Options
+
+The server supports multiple transport types for different use cases:
+
+#### Stdio Transport (Default)
+
+Used by MCP clients like Claude Desktop and Cursor:
+
+```bash
+npm start
+# or
+npm run start:stdio
+```
+
+#### SSE Transport
+
+Server-Sent Events for web-based clients:
+
+```bash
+npm run start:sse
+# Server runs on http://localhost:3000/sse
+# Health check: http://localhost:3000/health
+```
+
+#### Streamable HTTP Transport
+
+Full HTTP-based transport with session management:
+
+```bash
+npm run start:http
+# Server runs on http://localhost:3000/mcp
+# Health check: http://localhost:3000/health
+```
+
+#### Custom Configuration
+
+```bash
+# Custom port and host
+node build/index.js --transport streamable-http --port 8080 --host 0.0.0.0
+
+# Available options:
+# --transport: stdio | sse | streamable-http (default: stdio)
+# --port: Port number (default: 3000)
+# --host: Host address (default: 0.0.0.0)
+```
+
 ## Troubleshooting
 
 ### Authentication Errors

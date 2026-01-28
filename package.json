@@ -51,7 +51,11 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
-    "inspector": "npx @modelcontextprotocol/inspector node build/index.js"
+    "inspector": "npx @modelcontextprotocol/inspector node build/index.js",
+    "start": "node build/index.js",
+    "start:stdio": "node build/index.js --transport stdio",
+    "start:sse": "node build/index.js --transport sse --port 3000",
+    "start:http": "node build/index.js --transport streamable-http --port 3000"
   },
   "lint-staged": {
     "src/**/*.ts": [
@@ -59,14 +63,16 @@
     ]
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^0.6.0",
+    "@modelcontextprotocol/sdk": "^1.0.4",
     "axios": "^1.7.0",
+    "express": "^4.18.2",
     "neverthrow": "^8.2.0",
     "qaseio": "^2.4.1",
     "zod": "^3.24.2",
     "zod-to-json-schema": "^3.24.3"
   },
   "devDependencies": {
+    "@types/express": "^4.17.21",
     "@types/jest": "^29.5.12",
     "@types/node": "^20.11.24",
     "@typescript-eslint/eslint-plugin": "^8.26.1",

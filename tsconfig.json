@@ -17,7 +17,8 @@
     "noUnusedParameters": true,
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
-    "allowSyntheticDefaultImports": true
+    "allowSyntheticDefaultImports": true,
+    "noErrorTruncation": true
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "build", "**/*.test.ts", "src/operations/_template.ts"]

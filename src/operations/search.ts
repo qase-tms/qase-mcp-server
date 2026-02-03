@@ -68,7 +68,7 @@ async function qqlSearch(args: z.infer<typeof QqlSearchSchema>) {
   const { query, limit, offset } = args;
 
   const result = await toResultAsync(
-    (client as any).search({
+    (client as any).search.search({
       query,
       limit: limit || 10,
       offset: offset || 0,

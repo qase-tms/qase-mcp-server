@@ -3,12 +3,15 @@
  *
  * Implements all MCP tools for viewing system field configurations in Qase.
  * System fields are built-in fields that can be configured at the account level.
+ *
+ * The qaseio SDK does not expose the System Fields API in QaseApi class,
+ * so we use direct HTTP calls.
+ * https://developers.qase.io/reference/get-system-fields
  */
 
 import { z } from 'zod';
-import { getApiClient } from '../client/index.js';
+import { apiRequest } from '../client/index.js';
 import { toolRegistry } from '../utils/registry.js';
-import { toResultAsync } from '../utils/errors.js';
 
 // ============================================================================
 // SCHEMAS
@@ -16,6 +19,8 @@ import { toResultAsync } from '../utils/errors.js';
 
 /**
  * Schema for listing system fields (no parameters needed)
+ * API: GET /v1/system_field
+ * https://developers.qase.io/reference/get-system-fields
  */
 const ListSystemFieldsSchema = z.object({});
 
@@ -25,18 +30,12 @@ const ListSystemFieldsSchema = z.object({});
 
 /**
  * List all system fields and their configurations
+ * API: GET /v1/system_field
+ * https://developers.qase.io/reference/get-system-fields
  */
 async function listSystemFields(_args: z.infer<typeof ListSystemFieldsSchema>) {
-  const client = getApiClient();
-
-  const result = await toResultAsync((client as any).systemFields.getSystemFields());
-
-  return result.match(
-    (response: any) => response.data.result,
-    (error) => {
-      throw new Error(error);
-    },
-  );
+  const response = await apiRequest<{ status: boolean; result: any }>('/v1/system_field');
+  return response.result;
 }
 
 // ============================================================================

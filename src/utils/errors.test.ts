@@ -9,6 +9,8 @@ import {
   isNotFoundError,
   isValidationError,
   isRateLimitError,
+  ToolExecutionError,
+  createToolError,
 } from './errors.js';
 import { AxiosError } from 'axios';
 
@@ -212,6 +214,79 @@ describe('Error Utilities', () => {
         isAxiosError: true,
       } as AxiosError;
       expect(isRateLimitError(error)).toBe(false);
+    });
+  });
+
+  describe('ToolExecutionError', () => {
+    it('should create error with message only', () => {
+      const error = new ToolExecutionError('Operation failed');
+      expect(error.message).toBe('Operation failed');
+      expect(error.name).toBe('ToolExecutionError');
+      expect(error.suggestion).toBeUndefined();
+    });
+
+    it('should create error with message and suggestion', () => {
+      const error = new ToolExecutionError('Project not found', 'Use list_projects to check existing projects');
+      expect(error.message).toBe('Project not found');
+      expect(error.suggestion).toBe('Use list_projects to check existing projects');
+    });
+
+    it('should format user message without suggestion', () => {
+      const error = new ToolExecutionError('Operation failed');
+      expect(error.toUserMessage()).toBe('Operation failed');
+    });
+
+    it('should format user message with suggestion', () => {
+      const error = new ToolExecutionError('Project not found', 'Check the project code');
+      expect(error.toUserMessage()).toBe('Project not found\n\nSuggestion: Check the project code');
+    });
+
+    it('should be instanceof Error', () => {
+      const error = new ToolExecutionError('Test');
+      expect(error instanceof Error).toBe(true);
+      expect(error instanceof ToolExecutionError).toBe(true);
+    });
+  });
+
+  describe('createToolError', () => {
+    it('should create error with authentication suggestion', () => {
+      const error = createToolError('Authentication failed: Invalid token');
+      expect(error.suggestion).toContain('QASE_API_TOKEN');
+    });
+
+    it('should create error with permission suggestion for 403', () => {
+      const error = createToolError('Access forbidden: No access to project');
+      expect(error.suggestion).toContain('permission');
+    });
+
+    it('should create error with not found suggestion', () => {
+      const error = createToolError('Resource not found: Project DEMO');
+      expect(error.suggestion).toContain('Verify the resource exists');
+    });
+
+    it('should create error with validation suggestion for projects', () => {
+      const error = createToolError('Invalid request: Data is invalid', 'creating project');
+      expect(error.suggestion).toContain('project code may already exist');
+    });
+
+    it('should create error with validation suggestion for cases', () => {
+      const error = createToolError('Invalid request: Data is invalid', 'case operation');
+      expect(error.suggestion).toContain('project code exists');
+    });
+
+    it('should create error with rate limit suggestion', () => {
+      const error = createToolError('Rate limit exceeded: Too many requests');
+      expect(error.suggestion).toContain('Wait');
+    });
+
+    it('should create error with server error suggestion', () => {
+      const error = createToolError('Qase API server error: 500');
+      expect(error.suggestion).toContain('temporary');
+    });
+
+    it('should create error without suggestion for unknown errors', () => {
+      const error = createToolError('Some unknown error');
+      expect(error.suggestion).toBeUndefined();
     });
   });
 });

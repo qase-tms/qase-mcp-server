@@ -8,7 +8,7 @@
 import { z } from 'zod';
 import { getApiClient } from '../client/index.js';
 import { toolRegistry } from '../utils/registry.js';
-import { toResultAsync } from '../utils/errors.js';
+import { toResultAsync, createToolError } from '../utils/errors.js';
 import { ProjectCodeSchema, IdSchema } from '../utils/validation.js';
 
 // ============================================================================
@@ -136,7 +136,7 @@ async function listDefects(args: z.infer<typeof ListDefectsSchema>) {
   return result.match(
     (response) => response.data.result,
     (error) => {
-      throw new Error(error);
+      throw createToolError(error, 'defect operation');
     },
   );
 }
@@ -153,7 +153,7 @@ async function getDefect(args: z.infer<typeof GetDefectSchema>) {
   return result.match(
     (response) => response.data.result,
     (error) => {
-      throw new Error(error);
+      throw createToolError(error, 'defect operation');
     },
   );
 }
@@ -170,7 +170,7 @@ async function createDefect(args: z.infer<typeof CreateDefectSchema>) {
   return result.match(
     (response) => response.data.result,
     (error) => {
-      throw new Error(error);
+      throw createToolError(error, 'defect operation');
     },
   );
 }
@@ -187,7 +187,7 @@ async function updateDefect(args: z.infer<typeof UpdateDefectSchema>) {
   return result.match(
     (response) => response.data.result,
     (error) => {
-      throw new Error(error);
+      throw createToolError(error, 'defect operation');
     },
   );
 }
@@ -204,7 +204,7 @@ async function deleteDefect(args: z.infer<typeof DeleteDefectSchema>) {
   return result.match(
     (_response) => ({ success: true, id }),
     (error) => {
-      throw new Error(error);
+      throw createToolError(error, 'defect operation');
     },
   );
 }
@@ -221,7 +221,7 @@ async function resolveDefect(args: z.infer<typeof ResolveDefectSchema>) {
   return result.match(
     (response) => response.data.result,
     (error) => {
-      throw new Error(error);
+      throw createToolError(error, 'defect operation');
     },
   );
 }
@@ -238,7 +238,7 @@ async function updateDefectStatus(args: z.infer<typeof UpdateDefectStatusSchema>
   return result.match(
     (response) => response.data.result,
     (error) => {
-      throw new Error(error);
+      throw createToolError(error, 'defect operation');
     },
   );
 }

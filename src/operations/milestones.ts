@@ -8,7 +8,7 @@
 import { z } from 'zod';
 import { getApiClient } from '../client/index.js';
 import { toolRegistry } from '../utils/registry.js';
-import { toResultAsync } from '../utils/errors.js';
+import { toResultAsync, createToolError } from '../utils/errors.js';
 import { ProjectCodeSchema, IdSchema } from '../utils/validation.js';
 
 // ============================================================================
@@ -80,7 +80,7 @@ async function listMilestones(args: z.infer<typeof ListMilestonesSchema>) {
   return result.match(
     (response) => response.data.result,
     (error) => {
-      throw new Error(error);
+      throw createToolError(error, 'milestone operation');
     },
   );
 }
@@ -97,7 +97,7 @@ async function getMilestone(args: z.infer<typeof GetMilestoneSchema>) {
   return result.match(
     (response) => response.data.result,
     (error) => {
-      throw new Error(error);
+      throw createToolError(error, 'milestone operation');
     },
   );
 }
@@ -114,7 +114,7 @@ async function createMilestone(args: z.infer<typeof CreateMilestoneSchema>) {
   return result.match(
     (response) => response.data.result,
     (error) => {
-      throw new Error(error);
+      throw createToolError(error, 'milestone operation');
     },
   );
 }
@@ -133,7 +133,7 @@ async function updateMilestone(args: z.infer<typeof UpdateMilestoneSchema>) {
   return result.match(
     (response) => response.data.result,
     (error) => {
-      throw new Error(error);
+      throw createToolError(error, 'milestone operation');
     },
   );
 }
@@ -150,7 +150,7 @@ async function deleteMilestone(args: z.infer<typeof DeleteMilestoneSchema>) {
   return result.match(
     (_response) => ({ success: true, id }),
     (error) => {
-      throw new Error(error);
+      throw createToolError(error, 'milestone operation');
     },
   );
 }

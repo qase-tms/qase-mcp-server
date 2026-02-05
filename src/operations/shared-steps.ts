@@ -8,7 +8,7 @@
 import { z } from 'zod';
 import { getApiClient } from '../client/index.js';
 import { toolRegistry } from '../utils/registry.js';
-import { toResultAsync } from '../utils/errors.js';
+import { toResultAsync, createToolError } from '../utils/errors.js';
 import { ProjectCodeSchema, HashSchema } from '../utils/validation.js';
 
 // ============================================================================
@@ -88,7 +88,7 @@ async function listSharedSteps(args: z.infer<typeof ListSharedStepsSchema>) {
   return result.match(
     (response) => response.data.result,
     (error) => {
-      throw new Error(error);
+      throw createToolError(error, 'shared step operation');
     },
   );
 }
@@ -105,7 +105,7 @@ async function getSharedStep(args: z.infer<typeof GetSharedStepSchema>) {
   return result.match(
     (response) => response.data.result,
     (error) => {
-      throw new Error(error);
+      throw createToolError(error, 'shared step operation');
     },
   );
 }
@@ -122,7 +122,7 @@ async function createSharedStep(args: z.infer<typeof CreateSharedStepSchema>) {
   return result.match(
     (response) => response.data.result,
     (error) => {
-      throw new Error(error);
+      throw createToolError(error, 'shared step operation');
     },
   );
 }
@@ -141,7 +141,7 @@ async function updateSharedStep(args: z.infer<typeof UpdateSharedStepSchema>) {
   return result.match(
     (response) => response.data.result,
     (error) => {
-      throw new Error(error);
+      throw createToolError(error, 'shared step operation');
     },
   );
 }
@@ -158,7 +158,7 @@ async function deleteSharedStep(args: z.infer<typeof DeleteSharedStepSchema>) {
   return result.match(
     (_response) => ({ success: true, hash }),
     (error) => {
-      throw new Error(error);
+      throw createToolError(error, 'shared step operation');
     },
   );
 }

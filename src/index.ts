@@ -17,7 +17,7 @@ import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import { toolRegistry } from './utils/registry.js';
-import { formatApiError } from './utils/errors.js';
+import { formatApiError, ToolExecutionError } from './utils/errors.js';
 import { setupSSETransport } from './transports/sse.js';
 import { setupStreamableHttpTransport } from './transports/streamableHttp.js';
 
@@ -99,10 +99,36 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       ],
     };
   } catch (error) {
+    // Handle tool execution errors (expected failures like validation, API errors)
+    // These are returned with isError: true so the LLM can understand and recover
+    if (error instanceof ToolExecutionError) {
+      console.error(`[Server] Tool '${name}' execution error:`, error.message);
+      return {
+        content: [
+          {
+            type: 'text',
+            text: error.toUserMessage(),
+          },
+        ],
+        isError: true,
+      };
+    }
+
+    // Handle unexpected errors (protocol-level failures)
     // Format error message using our error utilities
     const errorMessage = formatApiError(error);
-    console.error(`[Server] Tool '${name}' failed:`, errorMessage);
-    throw new Error(`Tool '${name}' execution failed: ${errorMessage}`);
+    console.error(`[Server] Tool '${name}' unexpected error:`, errorMessage);
+
+    // Return as tool execution error with isError: true for better LLM recovery
+    return {
+      content: [
+        {
+          type: 'text',
+          text: errorMessage,
+        },
+      ],
+      isError: true,
+    };
   }
 });
 

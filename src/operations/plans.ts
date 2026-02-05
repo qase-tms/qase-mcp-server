@@ -8,7 +8,7 @@
 import { z } from 'zod';
 import { getApiClient } from '../client/index.js';
 import { toolRegistry } from '../utils/registry.js';
-import { toResultAsync } from '../utils/errors.js';
+import { toResultAsync, createToolError } from '../utils/errors.js';
 import { ProjectCodeSchema, IdSchema } from '../utils/validation.js';
 
 // ============================================================================
@@ -83,7 +83,7 @@ async function listPlans(args: z.infer<typeof ListPlansSchema>) {
   return result.match(
     (response) => response.data.result,
     (error) => {
-      throw new Error(error);
+      throw createToolError(error, 'plan operation');
     },
   );
 }
@@ -100,7 +100,7 @@ async function getPlan(args: z.infer<typeof GetPlanSchema>) {
   return result.match(
     (response) => response.data.result,
     (error) => {
-      throw new Error(error);
+      throw createToolError(error, 'plan operation');
     },
   );
 }
@@ -117,7 +117,7 @@ async function createPlan(args: z.infer<typeof CreatePlanSchema>) {
   return result.match(
     (response) => response.data.result,
     (error) => {
-      throw new Error(error);
+      throw createToolError(error, 'plan operation');
     },
   );
 }
@@ -134,7 +134,7 @@ async function updatePlan(args: z.infer<typeof UpdatePlanSchema>) {
   return result.match(
     (response) => response.data.result,
     (error) => {
-      throw new Error(error);
+      throw createToolError(error, 'plan operation');
     },
   );
 }
@@ -151,7 +151,7 @@ async function deletePlan(args: z.infer<typeof DeletePlanSchema>) {
   return result.match(
     (_response) => ({ success: true, id }),
     (error) => {
-      throw new Error(error);
+      throw createToolError(error, 'plan operation');
     },
   );
 }

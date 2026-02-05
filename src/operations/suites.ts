@@ -8,7 +8,7 @@
 import { z } from 'zod';
 import { getApiClient } from '../client/index.js';
 import { toolRegistry } from '../utils/registry.js';
-import { toResultAsync } from '../utils/errors.js';
+import { toResultAsync, createToolError } from '../utils/errors.js';
 import { ProjectCodeSchema, IdSchema } from '../utils/validation.js';
 
 // ============================================================================
@@ -96,7 +96,7 @@ async function listSuites(args: z.infer<typeof ListSuitesSchema>) {
   return result.match(
     (response) => response.data.result,
     (error) => {
-      throw new Error(error);
+      throw createToolError(error, 'suite operation');
     },
   );
 }
@@ -113,7 +113,7 @@ async function getSuite(args: z.infer<typeof GetSuiteSchema>) {
   return result.match(
     (response) => response.data.result,
     (error) => {
-      throw new Error(error);
+      throw createToolError(error, 'suite operation');
     },
   );
 }
@@ -130,7 +130,7 @@ async function createSuite(args: z.infer<typeof CreateSuiteSchema>) {
   return result.match(
     (response) => response.data.result,
     (error) => {
-      throw new Error(error);
+      throw createToolError(error, 'suite operation');
     },
   );
 }
@@ -147,7 +147,7 @@ async function updateSuite(args: z.infer<typeof UpdateSuiteSchema>) {
   return result.match(
     (response) => response.data.result,
     (error) => {
-      throw new Error(error);
+      throw createToolError(error, 'suite operation');
     },
   );
 }
@@ -164,7 +164,7 @@ async function deleteSuite(args: z.infer<typeof DeleteSuiteSchema>) {
   return result.match(
     (_response) => ({ success: true, id, delete_cases }),
     (error) => {
-      throw new Error(error);
+      throw createToolError(error, 'suite operation');
     },
   );
 }

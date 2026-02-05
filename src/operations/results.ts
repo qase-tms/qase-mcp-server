@@ -8,7 +8,7 @@
 import { z } from 'zod';
 import { getApiClient } from '../client/index.js';
 import { toolRegistry } from '../utils/registry.js';
-import { toResultAsync } from '../utils/errors.js';
+import { toResultAsync, createToolError } from '../utils/errors.js';
 import { ProjectCodeSchema, IdSchema, HashSchema } from '../utils/validation.js';
 
 // ============================================================================
@@ -136,7 +136,7 @@ async function listResults(args: z.infer<typeof ListResultsSchema>) {
   return result.match(
     (response) => response.data.result,
     (error) => {
-      throw new Error(error);
+      throw createToolError(error, 'result operation');
     },
   );
 }
@@ -153,7 +153,7 @@ async function getResult(args: z.infer<typeof GetResultSchema>) {
   return result.match(
     (response) => response.data.result,
     (error) => {
-      throw new Error(error);
+      throw createToolError(error, 'result operation');
     },
   );
 }
@@ -170,7 +170,7 @@ async function createResult(args: z.infer<typeof CreateResultSchema>) {
   return result.match(
     (response) => response.data.result,
     (error) => {
-      throw new Error(error);
+      throw createToolError(error, 'result operation');
     },
   );
 }
@@ -187,7 +187,7 @@ async function createResultsBulk(args: z.infer<typeof CreateResultsBulkSchema>) 
   return result.match(
     (_response) => ({ success: true, count: results.length }),
     (error) => {
-      throw new Error(error);
+      throw createToolError(error, 'result operation');
     },
   );
 }
@@ -206,7 +206,7 @@ async function updateResult(args: z.infer<typeof UpdateResultSchema>) {
   return result.match(
     (response) => response.data.result,
     (error) => {
-      throw new Error(error);
+      throw createToolError(error, 'result operation');
     },
   );
 }
@@ -223,7 +223,7 @@ async function deleteResult(args: z.infer<typeof DeleteResultSchema>) {
   return result.match(
     (response) => response.data.result,
     (error) => {
-      throw new Error(error);
+      throw createToolError(error, 'result operation');
     },
   );
 }

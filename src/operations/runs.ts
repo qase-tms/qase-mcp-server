@@ -8,7 +8,7 @@
 import { z } from 'zod';
 import { getApiClient } from '../client/index.js';
 import { toolRegistry } from '../utils/registry.js';
-import { toResultAsync } from '../utils/errors.js';
+import { toResultAsync, createToolError } from '../utils/errors.js';
 import { ProjectCodeSchema, IdSchema } from '../utils/validation.js';
 
 // ============================================================================
@@ -122,7 +122,7 @@ async function listRuns(args: z.infer<typeof ListRunsSchema>) {
   return result.match(
     (response) => response.data.result,
     (error) => {
-      throw new Error(error);
+      throw createToolError(error, 'run operation');
     },
   );
 }
@@ -139,7 +139,7 @@ async function getRun(args: z.infer<typeof GetRunSchema>) {
   return result.match(
     (response) => response.data.result,
     (error) => {
-      throw new Error(error);
+      throw createToolError(error, 'run operation');
     },
   );
 }
@@ -156,7 +156,7 @@ async function createRun(args: z.infer<typeof CreateRunSchema>) {
   return result.match(
     (response) => response.data.result,
     (error) => {
-      throw new Error(error);
+      throw createToolError(error, 'run operation');
     },
   );
 }
@@ -173,7 +173,7 @@ async function deleteRun(args: z.infer<typeof DeleteRunSchema>) {
   return result.match(
     (_response) => ({ success: true, id }),
     (error) => {
-      throw new Error(error);
+      throw createToolError(error, 'run operation');
     },
   );
 }
@@ -190,7 +190,7 @@ async function completeRun(args: z.infer<typeof CompleteRunSchema>) {
   return result.match(
     (_response) => ({ success: true, id, status: 'complete' }),
     (error) => {
-      throw new Error(error);
+      throw createToolError(error, 'run operation');
     },
   );
 }
@@ -209,7 +209,7 @@ async function getRunPublicLink(args: z.infer<typeof GetRunPublicLinkSchema>) {
   return result.match(
     (response) => response.data.result,
     (error) => {
-      throw new Error(error);
+      throw createToolError(error, 'run operation');
     },
   );
 }
@@ -228,7 +228,7 @@ async function deleteRunPublicLink(args: z.infer<typeof DeleteRunPublicLinkSchem
   return result.match(
     (_response) => ({ success: true, id, public_link_removed: true }),
     (error) => {
-      throw new Error(error);
+      throw createToolError(error, 'run operation');
     },
   );
 }

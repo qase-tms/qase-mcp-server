@@ -8,7 +8,7 @@
 import { z } from 'zod';
 import { getApiClient } from '../client/index.js';
 import { toolRegistry } from '../utils/registry.js';
-import { toResultAsync } from '../utils/errors.js';
+import { toResultAsync, createToolError } from '../utils/errors.js';
 import { ProjectCodeSchema, IdSchema } from '../utils/validation.js';
 
 // ============================================================================
@@ -170,7 +170,7 @@ async function listCases(args: z.infer<typeof ListCasesSchema>) {
   return result.match(
     (response) => response.data.result,
     (error) => {
-      throw new Error(error);
+      throw createToolError(error, 'case operation');
     },
   );
 }
@@ -187,7 +187,7 @@ async function getCase(args: z.infer<typeof GetCaseSchema>) {
   return result.match(
     (response) => response.data.result,
     (error) => {
-      throw new Error(error);
+      throw createToolError(error, 'case operation');
     },
   );
 }
@@ -204,7 +204,7 @@ async function createCase(args: z.infer<typeof CreateCaseSchema>) {
   return result.match(
     (response) => response.data.result,
     (error) => {
-      throw new Error(error);
+      throw createToolError(error, 'case operation');
     },
   );
 }
@@ -221,7 +221,7 @@ async function updateCase(args: z.infer<typeof UpdateCaseSchema>) {
   return result.match(
     (response) => response.data.result,
     (error) => {
-      throw new Error(error);
+      throw createToolError(error, 'case operation');
     },
   );
 }
@@ -238,7 +238,7 @@ async function deleteCase(args: z.infer<typeof DeleteCaseSchema>) {
   return result.match(
     (_response) => ({ success: true, id }),
     (error) => {
-      throw new Error(error);
+      throw createToolError(error, 'case operation');
     },
   );
 }
@@ -255,7 +255,7 @@ async function bulkCreateCases(args: z.infer<typeof BulkCreateCasesSchema>) {
   return result.match(
     (response) => response.data.result,
     (error) => {
-      throw new Error(error);
+      throw createToolError(error, 'case operation');
     },
   );
 }
@@ -277,7 +277,7 @@ async function attachExternalIssue(args: z.infer<typeof AttachExternalIssueSchem
   return result.match(
     (_response) => ({ success: true, id, issue_id }),
     (error) => {
-      throw new Error(error);
+      throw createToolError(error, 'case operation');
     },
   );
 }
@@ -299,7 +299,7 @@ async function detachExternalIssue(args: z.infer<typeof DetachExternalIssueSchem
   return result.match(
     (_response) => ({ success: true, id, issue_id }),
     (error) => {
-      throw new Error(error);
+      throw createToolError(error, 'case operation');
     },
   );
 }

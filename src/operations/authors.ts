@@ -8,7 +8,7 @@
 import { z } from 'zod';
 import { getApiClient } from '../client/index.js';
 import { toolRegistry } from '../utils/registry.js';
-import { toResultAsync } from '../utils/errors.js';
+import { toResultAsync, createToolError } from '../utils/errors.js';
 import { IdSchema } from '../utils/validation.js';
 
 // ============================================================================
@@ -46,7 +46,7 @@ async function listAuthors(args: z.infer<typeof ListAuthorsSchema>) {
   return result.match(
     (response) => response.data.result,
     (error) => {
-      throw new Error(error);
+      throw createToolError(error, 'author operation');
     },
   );
 }
@@ -63,7 +63,7 @@ async function getAuthor(args: z.infer<typeof GetAuthorSchema>) {
   return result.match(
     (response) => response.data.result,
     (error) => {
-      throw new Error(error);
+      throw createToolError(error, 'author operation');
     },
   );
 }

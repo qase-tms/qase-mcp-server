@@ -8,7 +8,7 @@
 import { z } from 'zod';
 import { getApiClient } from '../client/index.js';
 import { toolRegistry } from '../utils/registry.js';
-import { toResultAsync } from '../utils/errors.js';
+import { toResultAsync, createToolError } from '../utils/errors.js';
 import { QqlExamples } from '../utils/qql-helpers.js';
 
 // ============================================================================
@@ -83,7 +83,7 @@ async function qqlSearch(args: z.infer<typeof QqlSearchSchema>) {
       entities: response.data.result.entities,
     }),
     (error) => {
-      throw new Error(error);
+      throw createToolError(error, 'search operation');
     },
   );
 }

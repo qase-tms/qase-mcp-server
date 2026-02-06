@@ -9,7 +9,7 @@ import { z } from 'zod';
 import { ProjectCreateAccessEnum } from 'qaseio';
 import { getApiClient } from '../client/index.js';
 import { toolRegistry } from '../utils/registry.js';
-import { toResultAsync } from '../utils/errors.js';
+import { toResultAsync, createToolError } from '../utils/errors.js';
 import { PaginationSchema, ProjectCodeSchema } from '../utils/validation.js';
 
 // ============================================================================
@@ -83,7 +83,7 @@ async function listProjects(args: z.infer<typeof ListProjectsSchema>) {
   return result.match(
     (response) => response.data.result,
     (error) => {
-      throw new Error(error);
+      throw createToolError(error, 'listing projects');
     },
   );
 }
@@ -100,7 +100,7 @@ async function getProject(args: z.infer<typeof GetProjectSchema>) {
   return result.match(
     (response) => response.data.result,
     (error) => {
-      throw new Error(error);
+      throw createToolError(error, 'getting project');
     },
   );
 }
@@ -130,7 +130,7 @@ async function createProject(args: z.infer<typeof CreateProjectSchema>) {
   return result.match(
     (response) => response.data.result,
     (error) => {
-      throw new Error(error);
+      throw createToolError(error, 'creating project');
     },
   );
 }
@@ -147,7 +147,7 @@ async function deleteProject(args: z.infer<typeof DeleteProjectSchema>) {
   return result.match(
     (_response) => ({ success: true, code }),
     (error) => {
-      throw new Error(error);
+      throw createToolError(error, 'deleting project');
     },
   );
 }
@@ -168,7 +168,7 @@ async function grantProjectAccess(args: z.infer<typeof GrantProjectAccessSchema>
   return result.match(
     (_response) => ({ success: true, code, member_id, member_type }),
     (error) => {
-      throw new Error(error);
+      throw createToolError(error, 'granting project access');
     },
   );
 }
@@ -189,7 +189,7 @@ async function revokeProjectAccess(args: z.infer<typeof RevokeProjectAccessSchem
   return result.match(
     (_response) => ({ success: true, code, member_id, member_type }),
     (error) => {
-      throw new Error(error);
+      throw createToolError(error, 'revoking project access');
     },
   );
 }

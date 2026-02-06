@@ -8,7 +8,7 @@
 import { z } from 'zod';
 import { getApiClient } from '../client/index.js';
 import { toolRegistry } from '../utils/registry.js';
-import { toResultAsync } from '../utils/errors.js';
+import { toResultAsync, createToolError } from '../utils/errors.js';
 import { ProjectCodeSchema, IdSchema } from '../utils/validation.js';
 
 // ============================================================================
@@ -81,7 +81,7 @@ async function listEnvironments(args: z.infer<typeof ListEnvironmentsSchema>) {
   return result.match(
     (response) => response.data.result,
     (error) => {
-      throw new Error(error);
+      throw createToolError(error, 'environment operation');
     },
   );
 }
@@ -98,7 +98,7 @@ async function getEnvironment(args: z.infer<typeof GetEnvironmentSchema>) {
   return result.match(
     (response) => response.data.result,
     (error) => {
-      throw new Error(error);
+      throw createToolError(error, 'environment operation');
     },
   );
 }
@@ -117,7 +117,7 @@ async function createEnvironment(args: z.infer<typeof CreateEnvironmentSchema>) 
   return result.match(
     (response) => response.data.result,
     (error) => {
-      throw new Error(error);
+      throw createToolError(error, 'environment operation');
     },
   );
 }
@@ -136,7 +136,7 @@ async function updateEnvironment(args: z.infer<typeof UpdateEnvironmentSchema>) 
   return result.match(
     (response) => response.data.result,
     (error) => {
-      throw new Error(error);
+      throw createToolError(error, 'environment operation');
     },
   );
 }
@@ -153,7 +153,7 @@ async function deleteEnvironment(args: z.infer<typeof DeleteEnvironmentSchema>) 
   return result.match(
     (_response) => ({ success: true, id }),
     (error) => {
-      throw new Error(error);
+      throw createToolError(error, 'environment operation');
     },
   );
 }

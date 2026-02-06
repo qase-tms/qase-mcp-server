@@ -28,6 +28,36 @@ export class QaseApiError extends Error {
 }
 
 /**
+ * Error class for tool execution errors
+ *
+ * Use this for expected failures during tool execution (API errors, validation errors,
+ * business logic errors). These errors are returned to the LLM with isError: true,
+ * allowing the LLM to understand the failure and take corrective action.
+ *
+ * Protocol errors (unknown tool, invalid schema) should use regular Error instead.
+ */
+export class ToolExecutionError extends Error {
+  constructor(
+    message: string,
+    public suggestion?: string,
+  ) {
+    super(message);
+    this.name = 'ToolExecutionError';
+    Object.setPrototypeOf(this, ToolExecutionError.prototype);
+  }
+
+  /**
+   * Format the error message for LLM consumption
+   */
+  toUserMessage(): string {
+    if (this.suggestion) {
+      return `${this.message}\n\nSuggestion: ${this.suggestion}`;
+    }
+    return this.message;
+  }
+}
+
+/**
  * Format API error into a user-friendly message
  *
  * @param error - The error to format
@@ -151,4 +181,64 @@ export function isRateLimitError(error: unknown): boolean {
  */
 export function toResultAsync<T>(promise: Promise<T>): ResultAsync<T, string> {
   return ResultAsync.fromPromise(promise, formatApiError);
+}
+
+/**
+ * Create a ToolExecutionError from an API error with helpful suggestions
+ *
+ * @param error - The formatted error message
+ * @param context - Optional context about the operation (e.g., "creating project")
+ * @returns ToolExecutionError with suggestion for recovery
+ */
+export function createToolError(error: string, context?: string): ToolExecutionError {
+  const suggestion = getSuggestionForError(error, context);
+  return new ToolExecutionError(error, suggestion);
+}
+
+/**
+ * Get a helpful suggestion based on the error message
+ */
+function getSuggestionForError(error: string, context?: string): string | undefined {
+  const lowerError = error.toLowerCase();
+
+  // Authentication errors
+  if (lowerError.includes('authentication failed') || lowerError.includes('401')) {
+    return 'Check that QASE_API_TOKEN environment variable is set correctly.';
+  }
+
+  // Permission errors
+  if (lowerError.includes('forbidden') || lowerError.includes('403')) {
+    return 'Verify you have the required permissions for this operation.';
+  }
+
+  // Not found errors
+  if (lowerError.includes('not found') || lowerError.includes('404')) {
+    return 'Verify the resource exists. Use the appropriate list or get tool to check.';
+  }
+
+  // Validation errors - try to provide context-specific suggestions
+  if (lowerError.includes('invalid') || lowerError.includes('validation')) {
+    if (context?.includes('project')) {
+      return 'The project code may already exist, or the input data is invalid. Use list_projects or get_project to check existing projects.';
+    }
+    if (context?.includes('case')) {
+      return 'Verify the project code exists and the case data is valid. Use get_project to check the project.';
+    }
+    if (context?.includes('run')) {
+      return 'Verify the project code exists and the run configuration is valid.';
+    }
+    return 'Check that all required fields are provided and values are in the correct format.';
+  }
+
+  // Rate limiting
+  if (lowerError.includes('rate limit') || lowerError.includes('429')) {
+    return 'Wait a moment and try again, or reduce the frequency of requests.';
+  }
+
+  // Server errors
+  if (lowerError.includes('server error') || lowerError.includes('5')) {
+    return 'This is a temporary server issue. Please try again later.';
+  }
+
+  return undefined;
 }

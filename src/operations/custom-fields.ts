@@ -8,7 +8,7 @@
 import { z } from 'zod';
 import { getApiClient } from '../client/index.js';
 import { toolRegistry } from '../utils/registry.js';
-import { toResultAsync } from '../utils/errors.js';
+import { toResultAsync, createToolError } from '../utils/errors.js';
 import { IdSchema } from '../utils/validation.js';
 
 // ============================================================================
@@ -102,7 +102,7 @@ async function listCustomFields(args: z.infer<typeof ListCustomFieldsSchema>) {
   return result.match(
     (response) => response.data.result,
     (error) => {
-      throw new Error(error);
+      throw createToolError(error, 'custom field operation');
     },
   );
 }
@@ -119,7 +119,7 @@ async function getCustomField(args: z.infer<typeof GetCustomFieldSchema>) {
   return result.match(
     (response) => response.data.result,
     (error) => {
-      throw new Error(error);
+      throw createToolError(error, 'custom field operation');
     },
   );
 }
@@ -135,7 +135,7 @@ async function createCustomField(args: z.infer<typeof CreateCustomFieldSchema>) 
   return result.match(
     (response) => response.data.result,
     (error) => {
-      throw new Error(error);
+      throw createToolError(error, 'custom field operation');
     },
   );
 }
@@ -152,7 +152,7 @@ async function updateCustomField(args: z.infer<typeof UpdateCustomFieldSchema>) 
   return result.match(
     (response: any) => response.data.result,
     (error) => {
-      throw new Error(error);
+      throw createToolError(error, 'custom field operation');
     },
   );
 }
@@ -169,7 +169,7 @@ async function deleteCustomField(args: z.infer<typeof DeleteCustomFieldSchema>) 
   return result.match(
     (_response: any) => ({ success: true, id }),
     (error) => {
-      throw new Error(error);
+      throw createToolError(error, 'custom field operation');
     },
   );
 }

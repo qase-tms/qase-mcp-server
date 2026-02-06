@@ -8,7 +8,7 @@
 import { z } from 'zod';
 import { getApiClient } from '../client/index.js';
 import { toolRegistry } from '../utils/registry.js';
-import { toResultAsync } from '../utils/errors.js';
+import { toResultAsync, createToolError } from '../utils/errors.js';
 import { ProjectCodeSchema, HashSchema } from '../utils/validation.js';
 
 // ============================================================================
@@ -64,7 +64,7 @@ async function listAttachments(args: z.infer<typeof ListAttachmentsSchema>) {
   return result.match(
     (response) => response.data.result,
     (error) => {
-      throw new Error(error);
+      throw createToolError(error, 'attachment operation');
     },
   );
 }
@@ -81,7 +81,7 @@ async function getAttachment(args: z.infer<typeof GetAttachmentSchema>) {
   return result.match(
     (response) => response.data.result,
     (error) => {
-      throw new Error(error);
+      throw createToolError(error, 'attachment operation');
     },
   );
 }
@@ -108,7 +108,7 @@ async function uploadAttachment(args: z.infer<typeof UploadAttachmentSchema>) {
   return result.match(
     (response) => response.data.result,
     (error) => {
-      throw new Error(error);
+      throw createToolError(error, 'attachment operation');
     },
   );
 }
@@ -125,7 +125,7 @@ async function deleteAttachment(args: z.infer<typeof DeleteAttachmentSchema>) {
   return result.match(
     (_response) => ({ success: true, hash }),
     (error) => {
-      throw new Error(error);
+      throw createToolError(error, 'attachment operation');
     },
   );
 }

@@ -17,7 +17,7 @@
 import { z } from 'zod';
 import { getApiClient } from '../client/index.js';
 import { toolRegistry } from '../utils/registry.js';
-import { toResultAsync } from '../utils/errors.js';
+import { toResultAsync, createToolError } from '../utils/errors.js';
 import { PaginationSchema, ProjectCodeSchema, IdSchema } from '../utils/validation.js';
 
 // ============================================================================
@@ -101,7 +101,7 @@ async function listItems(args: z.infer<typeof ListItemsSchema>) {
       entities: response.data.result.entities,
     }),
     (error) => {
-      throw new Error(error);
+      throw createToolError(error, 'item operation');
     },
   );
 }
@@ -118,7 +118,7 @@ async function getItem(args: z.infer<typeof GetItemSchema>) {
   return result.match(
     (response) => response.data.result,
     (error) => {
-      throw new Error(error);
+      throw createToolError(error, 'item operation');
     },
   );
 }
@@ -135,7 +135,7 @@ async function createItem(args: z.infer<typeof CreateItemSchema>) {
   return result.match(
     (response) => response.data.result,
     (error) => {
-      throw new Error(error);
+      throw createToolError(error, 'item operation');
     },
   );
 }
@@ -152,7 +152,7 @@ async function updateItem(args: z.infer<typeof UpdateItemSchema>) {
   return result.match(
     (response) => response.data.result,
     (error) => {
-      throw new Error(error);
+      throw createToolError(error, 'item operation');
     },
   );
 }
@@ -169,7 +169,7 @@ async function deleteItem(args: z.infer<typeof DeleteItemSchema>) {
   return result.match(
     (response) => ({ success: true, id }),
     (error) => {
-      throw new Error(error);
+      throw createToolError(error, 'item operation');
     },
   );
 }
@@ -243,9 +243,10 @@ toolRegistry.register({
  *    - Group related operations together
  *
  * 4. Error Handling:
- *    - Let formatApiError() handle error formatting
- *    - Don't catch errors unnecessarily
- *    - Provide context in error messages
+ *    - Use createToolError() to throw errors with helpful suggestions
+ *    - Include context (e.g., 'creating project') for better suggestions
+ *    - Errors are returned with isError: true for LLM recovery
+ *    - Protocol errors (unknown tool) still throw regular Error
  *
  * 5. Type Safety:
  *    - Use z.infer<> for type inference from schemas

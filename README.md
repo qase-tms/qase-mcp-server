@@ -431,6 +431,38 @@ node build/index.js --transport streamable-http --port 8080 --host 0.0.0.0
 2. Verify the API domain is correct (especially for enterprise customers)
 3. Check if Qase is accessible: https://api.qase.io/v1/
 
+### SSL Certificate Errors
+
+**Error**: `unable to get local issuer certificate`
+
+This error typically occurs in corporate environments with:
+- SSL-intercepting proxy servers
+- Self-signed certificates
+- Internal Certificate Authorities (CA)
+
+**Solution**: Add the `NODE_EXTRA_CA_CERTS` environment variable pointing to your CA certificate file:
+
+```json
+{
+  "mcpServers": {
+    "qase": {
+      "command": "npx",
+      "args": ["-y", "@qase/mcp-server"],
+      "env": {
+        "QASE_API_TOKEN": "your_api_token_here",
+        "NODE_EXTRA_CA_CERTS": "/path/to/your/certificate.pem"
+      }
+    }
+  }
+}
+```
+
+To find your certificate:
+- **Corporate environments**: Contact your IT department for the CA certificate
+- **macOS**: Export from Keychain Access (System Roots → your CA → Export as .pem)
+- **Windows**: Export from Certificate Manager (certmgr.msc)
+- **Linux**: Usually in `/etc/ssl/certs/` or `/etc/pki/tls/certs/`
+
 ### Custom Domain Issues
 
 **Error**: `Invalid domain` or connection errors with custom domain

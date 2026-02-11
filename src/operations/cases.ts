@@ -29,6 +29,31 @@ const ListCasesSchema = z.object({
   behavior: z.string().optional().describe('Filter by behavior (e.g., "positive", "negative")'),
   automation: z.string().optional().describe('Filter by automation status'),
   status: z.string().optional().describe('Filter by status (e.g., "actual", "draft")'),
+  external_issues_type: z
+    .enum([
+      'asana',
+      'azure-devops',
+      'clickup-app',
+      'github-app',
+      'gitlab-app',
+      'jira-cloud',
+      'jira-server',
+      'linear',
+      'monday',
+      'redmine-app',
+      'trello-app',
+      'youtrack-app',
+    ])
+    .optional()
+    .describe('Filter by external integration type'),
+  external_issues_ids: z
+    .array(z.string())
+    .optional()
+    .describe('Filter by external issue IDs (e.g., Jira ticket keys)'),
+  include: z
+    .string()
+    .optional()
+    .describe('Comma-separated list of entities to include in response (e.g., "external_issues")'),
   limit: z.number().int().positive().max(100).optional().describe('Maximum number of items'),
   offset: z.number().int().nonnegative().optional().describe('Number of items to skip'),
 });
@@ -159,9 +184,9 @@ async function listCases(args: z.infer<typeof ListCasesSchema>) {
       filters.behavior,
       filters.automation,
       filters.status,
-      undefined, // externalIssuesType
-      undefined, // externalIssuesIds
-      undefined, // include
+      filters.external_issues_type,
+      filters.external_issues_ids,
+      filters.include,
       filters.limit,
       filters.offset,
     ),

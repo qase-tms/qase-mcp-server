@@ -105,12 +105,14 @@ export async function apiRequest<T = any>(
   options: AxiosRequestConfig = {},
 ): Promise<T> {
   const config = getConfig();
+  const requestToken = requestTokenStorage.getStore();
+  const token = requestToken || config.token;
 
   const response = await axios({
     method: options.method || 'GET',
     url: `${config.host}${path}`,
     headers: {
-      Token: config.token,
+      Token: token,
       'Content-Type': 'application/json',
       ...options.headers,
     },

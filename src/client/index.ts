@@ -11,6 +11,7 @@
 
 import { QaseApi } from 'qaseio';
 import axios, { AxiosRequestConfig } from 'axios';
+import { requestTokenStorage } from '../transports/streamableHttp.js';
 
 /**
  * Configuration for the Qase API client
@@ -50,24 +51,34 @@ function getConfig(): ApiClientConfig {
 }
 
 /**
- * Singleton API client instance
+ * Singleton API client instance (used for shared QASE_API_TOKEN fallback).
  */
 let clientInstance: QaseApi | null = null;
 
 /**
- * Get or create the Qase API client instance
+ * Get or create the Qase API client instance.
+ *
+ * Auth priority:
+ *   1. Per-request Bearer token from Authorization header (set via AsyncLocalStorage)
+ *      → creates a fresh QaseApi instance with the user's own token
+ *   2. Shared QASE_API_TOKEN env var (singleton, read-only fallback)
  *
  * @returns Configured QaseApi instance
- * @throws Error if QASE_API_TOKEN is not set
+ * @throws Error if neither a request token nor QASE_API_TOKEN is available
  */
 export function getApiClient(): QaseApi {
+  // Check for a per-request user token first
+  const requestToken = requestTokenStorage.getStore();
+  if (requestToken) {
+    const domain = process.env.QASE_API_DOMAIN || 'api.qase.io';
+    const host = `https://${domain}`;
+    return new QaseApi({ token: requestToken, host });
+  }
+
+  // Fall back to shared singleton with QASE_API_TOKEN
   if (!clientInstance) {
     const config = getConfig();
-
-    clientInstance = new QaseApi({
-      token: config.token,
-      host: config.host,
-    });
+    clientInstance = new QaseApi({ token: config.token, host: config.host });
   }
 
   return clientInstance;
@@ -94,12 +105,14 @@ export async function apiRequest<T = any>(
   options: AxiosRequestConfig = {},
 ): Promise<T> {
   const config = getConfig();
+  const requestToken = requestTokenStorage.getStore();
+  const token = requestToken || config.token;
 
   const response = await axios({
     method: options.method || 'GET',
     url: `${config.host}${path}`,
     headers: {
-      Token: config.token,
+      Token: token,
       'Content-Type': 'application/json',
       ...options.headers,
     },

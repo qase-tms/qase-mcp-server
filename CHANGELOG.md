@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Per-request authentication: clients can pass `Authorization: Bearer <token>` to use their own Qase API token instead of the shared `QASE_API_TOKEN` environment variable (supported on both Streamable HTTP and SSE transports)
+
 ### Fixed
 
 - `list_defects`: Corrected API call signature (status as single value, not array) and removed unsupported severity filter

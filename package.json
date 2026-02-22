@@ -63,8 +63,8 @@
     ]
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.0.4",
-    "axios": "^1.7.0",
+    "@modelcontextprotocol/sdk": "^1.26.0",
+    "axios": ">=1.13.5",
     "express": "^4.18.2",
     "neverthrow": "^8.2.0",
     "qaseio": "^2.4.1",

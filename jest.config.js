@@ -18,6 +18,7 @@ export default {
     '!src/**/*.test.ts',
     '!src/index.ts',
     '!src/operations/**/*.ts', // Exclude operation modules from coverage
+    '!src/transports/**/*.ts', // Exclude transport wiring (integration-level)
   ],
   coverageThreshold: {
     global: {

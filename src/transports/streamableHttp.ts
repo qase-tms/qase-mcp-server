@@ -25,7 +25,7 @@ function isInitializeRequest(body: unknown): boolean {
 }
 
 export function setupStreamableHttpTransport(
-  server: Server,
+  createServer: () => Server,
   config: StreamableHttpConfig,
 ): Express {
   const app = express();
@@ -136,8 +136,8 @@ export function setupStreamableHttpTransport(
       // Store session
       sessions.set(newSessionId, transport);
 
-      // Connect the MCP server to this transport
-      await server.connect(transport);
+      // Create a fresh Server instance per session — the SDK requires one Server per transport
+      await createServer().connect(transport);
 
       console.error(`[StreamableHTTP] New session created: ${newSessionId}`);
     } else {

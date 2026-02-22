@@ -42,95 +42,103 @@ import './operations/users.js';
 import './operations/search.js';
 
 /**
- * Create the MCP server instance
+ * Create and configure a new MCP Server instance.
+ *
+ * Called once for stdio/SSE (single connection) and once per session for
+ * Streamable HTTP (multiple concurrent connections). Each session needs its
+ * own Server instance because the SDK enforces one transport per server.
  */
-const server = new Server(
-  {
-    name: 'qase-mcp-server',
-    version: '1.0.0',
-  },
-  {
-    capabilities: {
-      tools: {},
+function createServer(): Server {
+  const server = new Server(
+    {
+      name: 'qase-mcp-server',
+      version: '1.1.0',
     },
-  },
-);
+    {
+      capabilities: {
+        tools: {},
+      },
+    },
+  );
 
-/**
- * Handler: List all available tools
- *
- * Returns all tools registered in the tool registry.
- * Called when the MCP client wants to discover available tools.
- */
-server.setRequestHandler(ListToolsRequestSchema, async () => {
-  const tools = toolRegistry.getTools();
-  console.error(`[Server] Listing ${tools.length} tools`);
-  return { tools };
-});
+  /**
+   * Handler: List all available tools
+   *
+   * Returns all tools registered in the tool registry.
+   * Called when the MCP client wants to discover available tools.
+   */
+  server.setRequestHandler(ListToolsRequestSchema, async () => {
+    const tools = toolRegistry.getTools();
+    console.error(`[Server] Listing ${tools.length} tools`);
+    return { tools };
+  });
 
-/**
- * Handler: Execute a tool
- *
- * Executes the specified tool with provided arguments.
- * Arguments are validated against the tool's schema before execution.
- */
-server.setRequestHandler(CallToolRequestSchema, async (request) => {
-  const { name, arguments: args } = request.params;
+  /**
+   * Handler: Execute a tool
+   *
+   * Executes the specified tool with provided arguments.
+   * Arguments are validated against the tool's schema before execution.
+   */
+  server.setRequestHandler(CallToolRequestSchema, async (request) => {
+    const { name, arguments: args } = request.params;
 
-  console.error(`[Server] Executing tool: ${name}`);
+    console.error(`[Server] Executing tool: ${name}`);
 
-  // Get tool handler from registry
-  const handler = toolRegistry.getHandler(name);
-  if (!handler) {
-    throw new Error(`Unknown tool: ${name}. Use list_tools to see available tools.`);
-  }
+    // Get tool handler from registry
+    const handler = toolRegistry.getHandler(name);
+    if (!handler) {
+      throw new Error(`Unknown tool: ${name}. Use list_tools to see available tools.`);
+    }
 
-  try {
-    // Execute the tool handler with provided arguments
-    const result = await handler(args || {});
+    try {
+      // Execute the tool handler with provided arguments
+      const result = await handler(args || {});
 
-    // Return result in MCP format
-    return {
-      content: [
-        {
-          type: 'text',
-          text: JSON.stringify(result, null, 2),
-        },
-      ],
-    };
-  } catch (error) {
-    // Handle tool execution errors (expected failures like validation, API errors)
-    // These are returned with isError: true so the LLM can understand and recover
-    if (error instanceof ToolExecutionError) {
-      console.error(`[Server] Tool '${name}' execution error:`, error.message);
+      // Return result in MCP format
       return {
         content: [
           {
             type: 'text',
-            text: error.toUserMessage(),
+            text: JSON.stringify(result, null, 2),
+          },
+        ],
+      };
+    } catch (error) {
+      // Handle tool execution errors (expected failures like validation, API errors)
+      // These are returned with isError: true so the LLM can understand and recover
+      if (error instanceof ToolExecutionError) {
+        console.error(`[Server] Tool '${name}' execution error:`, error.message);
+        return {
+          content: [
+            {
+              type: 'text',
+              text: error.toUserMessage(),
+            },
+          ],
+          isError: true,
+        };
+      }
+
+      // Handle unexpected errors (protocol-level failures)
+      // Format error message using our error utilities
+      const errorMessage = formatApiError(error);
+      console.error(`[Server] Tool '${name}' unexpected error:`, errorMessage);
+
+      // Return as tool execution error with isError: true for better LLM recovery
+      return {
+        content: [
+          {
+            type: 'text',
+            text: errorMessage,
           },
         ],
         isError: true,
       };
     }
+  });
 
-    // Handle unexpected errors (protocol-level failures)
-    // Format error message using our error utilities
-    const errorMessage = formatApiError(error);
-    console.error(`[Server] Tool '${name}' unexpected error:`, errorMessage);
-
-    // Return as tool execution error with isError: true for better LLM recovery
-    return {
-      content: [
-        {
-          type: 'text',
-          text: errorMessage,
-        },
-      ],
-      isError: true,
-    };
-  }
-});
+  return server;
+}
 
 /**
  * Parse command line arguments
@@ -188,7 +196,7 @@ async function main() {
         const stdioTransport = new StdioServerTransport();
 
         // Connect server to transport
-        await server.connect(stdioTransport);
+        await createServer().connect(stdioTransport);
 
         console.error(`✓ Server started successfully`);
         console.error(`✓ Transport: stdio`);
@@ -202,7 +210,7 @@ async function main() {
 
       case 'sse': {
         console.error(`✓ Starting server with SSE transport on http://${host}:${port}/sse`);
-        setupSSETransport(server, {
+        setupSSETransport(createServer(), {
           port,
           host,
           sseEndpoint: '/sse',
@@ -219,7 +227,7 @@ async function main() {
         console.error(
           `✓ Starting server with Streamable HTTP transport on http://${host}:${port}/mcp`,
         );
-        setupStreamableHttpTransport(server, {
+        setupStreamableHttpTransport(createServer, {
           port,
           host,
           endpoint: '/mcp',

@@ -6,6 +6,7 @@
  */
 
 import { z } from 'zod';
+import { TestCaseexternalIssuesTypeEnum } from 'qaseio';
 import { getApiClient } from '../client/index.js';
 import { toolRegistry } from '../utils/registry.js';
 import { toResultAsync, createToolError } from '../utils/errors.js';
@@ -150,6 +151,9 @@ const AttachExternalIssueSchema = z.object({
   code: ProjectCodeSchema,
   id: IdSchema,
   issue_id: z.string().describe('External issue ID (e.g., Jira issue key)'),
+  type: z
+    .enum(['jira-cloud', 'jira-server'])
+    .describe('Type of external issue integration (Jira Cloud or Jira Server)'),
 });
 
 /**
@@ -159,6 +163,9 @@ const DetachExternalIssueSchema = z.object({
   code: ProjectCodeSchema,
   id: IdSchema,
   issue_id: z.string().describe('External issue ID to detach'),
+  type: z
+    .enum(['jira-cloud', 'jira-server'])
+    .describe('Type of external issue integration (Jira Cloud or Jira Server)'),
 });
 
 // ============================================================================
@@ -290,13 +297,13 @@ async function bulkCreateCases(args: z.infer<typeof BulkCreateCasesSchema>) {
  */
 async function attachExternalIssue(args: z.infer<typeof AttachExternalIssueSchema>) {
   const client = getApiClient();
-  const { code, id, issue_id } = args;
+  const { code, id, issue_id, type } = args;
 
   const result = await toResultAsync(
     client.cases.caseAttachExternalIssue(code, {
-      id,
-      issue_id,
-    } as any),
+      type: type as TestCaseexternalIssuesTypeEnum,
+      links: [{ case_id: id, external_issues: [issue_id] }],
+    }),
   );
 
   return result.match(
@@ -312,13 +319,13 @@ async function attachExternalIssue(args: z.infer<typeof AttachExternalIssueSchem
  */
 async function detachExternalIssue(args: z.infer<typeof DetachExternalIssueSchema>) {
   const client = getApiClient();
-  const { code, id, issue_id } = args;
+  const { code, id, issue_id, type } = args;
 
   const result = await toResultAsync(
     client.cases.caseDetachExternalIssue(code, {
-      id,
-      issue_id,
-    } as any),
+      type: type as TestCaseexternalIssuesTypeEnum,
+      links: [{ case_id: id, external_issues: [issue_id] }],
+    }),
   );
 
   return result.match(

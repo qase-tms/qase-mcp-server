@@ -51,8 +51,30 @@ export function setupStreamableHttpTransport(
   const endpoint = config.endpoint || '/mcp';
   const host = config.host || '0.0.0.0';
 
-  // Session management - store transport per session
+  // Session management - store transport and last-seen timestamp per session
+  const SESSION_TTL_MS = 30 * 60 * 1000; // 30 minutes
   const sessions = new Map<string, StreamableHTTPServerTransport>();
+  const sessionLastSeen = new Map<string, number>();
+
+  // Periodically evict stale sessions that never sent a DELETE
+  const cleanupInterval = setInterval(
+    () => {
+      const now = Date.now();
+      for (const [id, ts] of sessionLastSeen) {
+        if (now - ts > SESSION_TTL_MS) {
+          const staleTransport = sessions.get(id);
+          if (staleTransport) {
+            staleTransport.close().catch(() => {});
+            sessions.delete(id);
+          }
+          sessionLastSeen.delete(id);
+          console.error(`[StreamableHTTP] Evicted stale session: ${id}`);
+        }
+      }
+    },
+    5 * 60 * 1000,
+  ); // check every 5 minutes
+  cleanupInterval.unref(); // don't keep the process alive just for cleanup
 
   // Health check endpoint
   app.get('/health', (_req, res) => {
@@ -75,6 +97,7 @@ export function setupStreamableHttpTransport(
     try {
       await transport.close();
       sessions.delete(sessionId);
+      sessionLastSeen.delete(sessionId);
       console.error(`[StreamableHTTP] Session closed: ${sessionId}`);
       res.status(200).json({ status: 'session closed' });
     } catch (error) {
@@ -123,8 +146,9 @@ export function setupStreamableHttpTransport(
     let transport: StreamableHTTPServerTransport;
 
     if (sessionId && sessions.has(sessionId)) {
-      // Reuse existing transport for this session
+      // Reuse existing transport for this session — bump last-seen
       transport = sessions.get(sessionId)!;
+      sessionLastSeen.set(sessionId, Date.now());
     } else if (isInitializeRequest(req.body)) {
       // This is an initialize request - create new session
       const newSessionId = randomUUID();
@@ -133,8 +157,9 @@ export function setupStreamableHttpTransport(
         enableJsonResponse: true,
       });
 
-      // Store session
+      // Store session and record creation time
       sessions.set(newSessionId, transport);
+      sessionLastSeen.set(newSessionId, Date.now());
 
       // Create a fresh Server instance per session — the SDK requires one Server per transport
       await createServer().connect(transport);

@@ -104,13 +104,25 @@ export async function apiRequest<T = any>(
   path: string,
   options: AxiosRequestConfig = {},
 ): Promise<T> {
-  const config = getConfig();
   const requestToken = requestTokenStorage.getStore();
-  const token = requestToken || config.token;
+  const domain = process.env.QASE_API_DOMAIN || 'api.qase.io';
+  const host = `https://${domain}`;
+  const token =
+    requestToken ||
+    (() => {
+      const envToken = process.env.QASE_API_TOKEN;
+      if (!envToken) {
+        throw new Error(
+          'QASE_API_TOKEN environment variable is required. ' +
+            'Get your token from: https://app.qase.io/user/api/token',
+        );
+      }
+      return envToken;
+    })();
 
   const response = await axios({
     method: options.method || 'GET',
-    url: `${config.host}${path}`,
+    url: `${host}${path}`,
     headers: {
       Token: token,
       'Content-Type': 'application/json',

@@ -1,6 +1,7 @@
 import express, { Express } from 'express';
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
+import { requestTokenStorage } from './streamableHttp.js';
 
 export interface SSETransportConfig {
   port: number;
@@ -33,11 +34,13 @@ export function setupSSETransport(server: Server, config: SSETransportConfig): E
 
   // Messages endpoint for receiving client messages
   app.post(messagesEndpoint, (req, res) => {
-    if (transport) {
-      transport.handlePostMessage(req, res);
-    } else {
+    if (!transport) {
       res.status(503).json({ error: 'No SSE connection established' });
+      return;
     }
+    const authHeader = (req.headers['authorization'] as string) || '';
+    const requestToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : '';
+    requestTokenStorage.run(requestToken, () => transport!.handlePostMessage(req, res));
   });
 
   // Start server

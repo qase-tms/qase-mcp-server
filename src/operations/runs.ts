@@ -55,8 +55,14 @@ const CreateRunSchema = z.object({
     .optional()
     .describe('Array of test case IDs to include in the run'),
   is_autotest: z.boolean().optional().describe('Mark as automated test run'),
-  start_time: z.number().optional().describe('Start time as unix timestamp'),
-  end_time: z.number().optional().describe('End time as unix timestamp'),
+  start_time: z
+    .string()
+    .optional()
+    .describe('Start time in RFC3339 format (e.g., "2024-01-15T10:00:00Z")'),
+  end_time: z
+    .string()
+    .optional()
+    .describe('End time in RFC3339 format (e.g., "2024-01-15T12:00:00Z")'),
   custom_field: z.record(z.any()).optional().describe('Custom field values'),
   tags: z.array(z.string()).optional().describe('Tags for categorization'),
 });

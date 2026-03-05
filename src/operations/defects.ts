@@ -16,17 +16,15 @@ import { ProjectCodeSchema, IdSchema } from '../utils/validation.js';
 // ============================================================================
 
 /**
- * Defect severity levels
+ * Defect severity as numeric ID matching the Qase API
  */
-const DefectSeverityEnum = z.enum([
-  'undefined',
-  'blocker',
-  'critical',
-  'major',
-  'normal',
-  'minor',
-  'trivial',
-]);
+const DefectSeveritySchema = z
+  .number()
+  .int()
+  .min(0)
+  .max(6)
+  .optional()
+  .describe('Severity: 0=undefined, 1=blocker, 2=critical, 3=major, 4=normal, 5=minor, 6=trivial');
 
 /**
  * Defect status values
@@ -74,7 +72,7 @@ const CreateDefectSchema = z.object({
   code: ProjectCodeSchema,
   title: z.string().min(1).max(255).describe('Defect title'),
   actual_result: z.string().optional().describe('Actual behavior observed'),
-  severity: DefectSeverityEnum.optional().describe('Defect severity'),
+  severity: DefectSeveritySchema.describe('Defect severity'),
   attachments: z.array(z.string()).optional().describe('Array of attachment hashes'),
   custom_field: z.record(z.any()).optional().describe('Custom field values'),
   tags: z.array(z.string()).optional().describe('Tags for categorization'),
@@ -88,7 +86,7 @@ const UpdateDefectSchema = z.object({
   id: IdSchema,
   title: z.string().min(1).max(255).optional().describe('Defect title'),
   actual_result: z.string().optional().describe('Actual behavior observed'),
-  severity: DefectSeverityEnum.optional().describe('Defect severity'),
+  severity: DefectSeveritySchema.describe('Defect severity'),
   attachments: z.array(z.string()).optional().describe('Array of attachment hashes'),
   tags: z.array(z.string()).optional().describe('Tags for categorization'),
 });

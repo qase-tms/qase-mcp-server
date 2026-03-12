@@ -2,15 +2,21 @@
  * Tool Registry Tests
  */
 
-import { describe, it, expect, beforeEach } from '@jest/globals';
+import { describe, it, expect, beforeEach, afterEach } from '@jest/globals';
 import { ToolRegistry } from './registry.js';
 import { z } from 'zod';
 
 describe('ToolRegistry', () => {
   let registry: ToolRegistry;
+  let consoleErrorSpy: jest.SpiedFunction<typeof console.error>;
 
   beforeEach(() => {
     registry = new ToolRegistry();
+    consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    consoleErrorSpy?.mockRestore();
   });
 
   it('should register a tool', () => {

@@ -306,6 +306,13 @@ Create a test run in project DEMO called "Sprint 24 Regression" including all te
 - `attach_external_issue` - Link external issue (Jira, etc.)
 - `detach_external_issue` - Unlink external issue
 
+### Case enum values
+
+`create_case`, `bulk_create_cases`, and `update_case` automatically normalize friendly labels to whatever numeric IDs your workspace currently configures for the built-in system fields (`priority`, `severity`, `type`, `behavior`, `status`, `layer`). The server fetches `/v1/system_field` and caches the available options so you can keep using the titles or slugs you see in Qase while still satisfying the API’s numeric requirements.
+
+The normalization does not touch `automation`/`is_flaky`, so pass those values as the API expects (strings or booleans).
+The server keeps any existing label in place when it does not match a known enum so invalid values still bubble up as errors from Qase.
+
 ### Test Runs (7 tools)
 - `list_runs` - List test runs
 - `get_run` - Get run details

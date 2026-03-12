@@ -2,14 +2,7 @@ import express, { Express } from 'express';
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { randomUUID } from 'crypto';
-import { AsyncLocalStorage } from 'async_hooks';
-
-/**
- * Per-request token storage.
- * Holds the Bearer token extracted from the Authorization header for the current request.
- * Empty string means no user token — fall back to shared QASE_API_TOKEN.
- */
-export const requestTokenStorage = new AsyncLocalStorage<string>();
+import { requestTokenStorage } from '../utils/auth-context.js';
 
 export interface StreamableHttpConfig {
   port: number;
@@ -32,7 +25,7 @@ export function setupStreamableHttpTransport(
 
   // CORS middleware for inspector
   app.use((req, res, next) => {
-    res.header('Access-Control-Allow-Origin', process.env.CORS_ORIGIN || 'https://claude.ai');
+    res.header('Access-Control-Allow-Origin', process.env.CORS_ORIGIN || '*');
     res.header('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
     res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, mcp-session-id');
 
@@ -178,9 +171,7 @@ export function setupStreamableHttpTransport(
     const requestToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : '';
 
     if (requestToken) {
-      console.error('[StreamableHTTP] Using user-provided token for this request');
-    } else {
-      console.error('[StreamableHTTP] No user token — will use shared QASE_API_TOKEN');
+      console.error('[StreamableHTTP] Using per-request Bearer token');
     }
 
     // Run the handler inside AsyncLocalStorage context so getApiClient() can read the token

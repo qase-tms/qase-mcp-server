@@ -5,8 +5,7 @@
 import { describe, it, expect, beforeEach, afterEach } from '@jest/globals';
 import { setTestEnv, clearTestEnv } from '../utils/test-helpers.js';
 
-// Avoid pulling in Express (streamableHttp) in this test file
-jest.mock('../transports/streamableHttp.js', () => ({
+jest.mock('../utils/auth-context.js', () => ({
   requestTokenStorage: { getStore: jest.fn(() => undefined) },
 }));
 
@@ -62,7 +61,7 @@ describe('API Client', () => {
   });
 
   it('should use per-request token when requestTokenStorage has a token', async () => {
-    const { requestTokenStorage } = await import('../transports/streamableHttp.js');
+    const { requestTokenStorage } = await import('../utils/auth-context.js');
     (requestTokenStorage.getStore as jest.Mock).mockReturnValueOnce('per-request-bearer-token');
 
     const { getApiClient } = await import('./index.js');

@@ -85,20 +85,25 @@ async function getSystemFieldMaps(): Promise<SystemFieldMap> {
 
   systemFieldCache = apiRequest<{ status: boolean; result: SystemFieldResponse[] }>(
     '/v1/system_field',
-  ).then((response) => {
-    const map: SystemFieldMap = {};
+  )
+    .then((response) => {
+      const map: SystemFieldMap = {};
 
-    for (const entry of response.result) {
-      const normalizedSlug = entry.slug.toLowerCase();
-      const fieldMap = createFieldMap(entry);
+      for (const entry of response.result) {
+        const normalizedSlug = entry.slug.toLowerCase();
+        const fieldMap = createFieldMap(entry);
 
-      if (fieldMap) {
-        map[normalizedSlug] = fieldMap;
+        if (fieldMap) {
+          map[normalizedSlug] = fieldMap;
+        }
       }
-    }
 
-    return map;
-  });
+      return map;
+    })
+    .catch((error) => {
+      systemFieldCache = null;
+      throw error;
+    });
 
   return systemFieldCache;
 }

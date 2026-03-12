@@ -182,9 +182,9 @@ async function main() {
   const { transport, port, host } = parseArgs();
 
   // Log server information to stderr (stdout is used for MCP protocol)
-  console.error('╔════════════════════════════════════════════════════════════════╗');
-  console.error('║           Qase MCP Server v1.1.0                               ║');
-  console.error('╚════════════════════════════════════════════════════════════════╝');
+  console.error('╔══════════════════════════════════════════════════════════════╗');
+  console.error('║              Qase MCP Server v1.1.0                         ║');
+  console.error('╚══════════════════════════════════════════════════════════════╝');
   console.error('');
   console.error(`✓ Registered ${toolRegistry.getToolCount()} tools`);
   console.error('');

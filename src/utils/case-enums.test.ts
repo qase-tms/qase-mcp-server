@@ -67,4 +67,22 @@ describe('normalizeCaseEnums', () => {
 
     expect(normalized).toEqual(payload);
   });
+
+  it('clears cache on fetch error and retries on next call', async () => {
+    resetCaseEnumCacheForTest();
+
+    // Simulate a failed fetch by setting cache to a rejected promise
+    // We need to access the internal cache, so we use the test helper
+    // to set it to a rejected promise
+    const rejectedPromise = Promise.reject(new Error('network error'));
+    rejectedPromise.catch(() => {}); // prevent unhandled rejection
+    __setCaseEnumCacheForTest(rejectedPromise as any);
+
+    await expect(normalizeCaseEnums({ priority: 'high' })).rejects.toThrow('network error');
+
+    // After failure, set valid cache — next call should succeed
+    __setCaseEnumCacheForTest(defaultFieldSnapshot);
+    const result = await normalizeCaseEnums({ priority: 'High' });
+    expect(result.priority).toBe(1);
+  });
 });

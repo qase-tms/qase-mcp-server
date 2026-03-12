@@ -1,7 +1,7 @@
 import express, { Express } from 'express';
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
-import { requestTokenStorage } from './streamableHttp.js';
+import { requestTokenStorage } from '../utils/auth-context.js';
 
 export interface SSETransportConfig {
   port: number;

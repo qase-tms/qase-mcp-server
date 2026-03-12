@@ -3,6 +3,7 @@
  *
  * Provides a singleton instance of the Qase API client with support for:
  * - Token-based authentication
+ * - Per-request Bearer token authentication
  * - Custom enterprise domains
  * - Environment-based configuration
  *
@@ -11,33 +12,22 @@
 
 import { QaseApi } from 'qaseio';
 import axios, { AxiosRequestConfig } from 'axios';
-import { requestTokenStorage } from '../transports/streamableHttp.js';
+import { requestTokenStorage } from '../utils/auth-context.js';
 
 /**
  * Configuration for the Qase API client
  */
 interface ApiClientConfig {
   token: string;
-  domain: string;
   host: string;
 }
 
 /**
- * Get API client configuration from environment variables
+ * Get validated API host from QASE_API_DOMAIN env var.
  */
-function getConfig(): ApiClientConfig {
-  const token = process.env.QASE_API_TOKEN;
-
-  if (!token) {
-    throw new Error(
-      'QASE_API_TOKEN environment variable is required. ' +
-        'Get your token from: https://app.qase.io/user/api/token',
-    );
-  }
-
+function getHost(): string {
   const domain = process.env.QASE_API_DOMAIN || 'api.qase.io';
 
-  // Validate domain format (should not include protocol or path)
   if (domain.includes('://') || domain.includes('/')) {
     throw new Error(
       'QASE_API_DOMAIN should only contain the domain name (e.g., api.qase.io), ' +
@@ -45,9 +35,37 @@ function getConfig(): ApiClientConfig {
     );
   }
 
-  const host = `https://${domain}`;
+  return `https://${domain}`;
+}
 
-  return { token, domain, host };
+/**
+ * Get the effective API token for the current request.
+ *
+ * Priority:
+ *   1. Per-request Bearer token from Authorization header (AsyncLocalStorage)
+ *   2. Shared QASE_API_TOKEN environment variable
+ */
+function getEffectiveToken(): string {
+  const requestToken = requestTokenStorage.getStore();
+  if (requestToken) {
+    return requestToken;
+  }
+
+  const envToken = process.env.QASE_API_TOKEN;
+  if (!envToken) {
+    throw new Error(
+      'QASE_API_TOKEN environment variable is required. ' +
+        'Get your token from: https://app.qase.io/user/api/token',
+    );
+  }
+  return envToken;
+}
+
+/**
+ * Get full API client config (token + host).
+ */
+function getConfig(): ApiClientConfig {
+  return { token: getEffectiveToken(), host: getHost() };
 }
 
 /**
@@ -67,15 +85,11 @@ let clientInstance: QaseApi | null = null;
  * @throws Error if neither a request token nor QASE_API_TOKEN is available
  */
 export function getApiClient(): QaseApi {
-  // Check for a per-request user token first
   const requestToken = requestTokenStorage.getStore();
   if (requestToken) {
-    const domain = process.env.QASE_API_DOMAIN || 'api.qase.io';
-    const host = `https://${domain}`;
-    return new QaseApi({ token: requestToken, host });
+    return new QaseApi({ token: requestToken, host: getHost() });
   }
 
-  // Fall back to shared singleton with QASE_API_TOKEN
   if (!clientInstance) {
     const config = getConfig();
     clientInstance = new QaseApi({ token: config.token, host: config.host });
@@ -104,21 +118,8 @@ export async function apiRequest<T = any>(
   path: string,
   options: AxiosRequestConfig = {},
 ): Promise<T> {
-  const requestToken = requestTokenStorage.getStore();
-  const domain = process.env.QASE_API_DOMAIN || 'api.qase.io';
-  const host = `https://${domain}`;
-  const token =
-    requestToken ||
-    (() => {
-      const envToken = process.env.QASE_API_TOKEN;
-      if (!envToken) {
-        throw new Error(
-          'QASE_API_TOKEN environment variable is required. ' +
-            'Get your token from: https://app.qase.io/user/api/token',
-        );
-      }
-      return envToken;
-    })();
+  const token = getEffectiveToken();
+  const host = getHost();
 
   const response = await axios({
     method: options.method || 'GET',

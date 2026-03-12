@@ -6,7 +6,7 @@
  */
 
 import { z } from 'zod';
-import { TestCaseexternalIssuesTypeEnum } from 'qaseio';
+import { TestCaseExternalIssuesTypeEnum } from 'qase-api-client';
 import { getApiClient } from '../client/index.js';
 import { toolRegistry } from '../utils/registry.js';
 import { toResultAsync, createToolError } from '../utils/errors.js';
@@ -336,7 +336,7 @@ async function attachExternalIssue(args: z.infer<typeof AttachExternalIssueSchem
 
   const result = await toResultAsync(
     client.cases.caseAttachExternalIssue(code, {
-      type: type as TestCaseexternalIssuesTypeEnum,
+      type: type as TestCaseExternalIssuesTypeEnum,
       links: [{ case_id: id, external_issues: [issue_id] }],
     }),
   );
@@ -358,7 +358,7 @@ async function detachExternalIssue(args: z.infer<typeof DetachExternalIssueSchem
 
   const result = await toResultAsync(
     client.cases.caseDetachExternalIssue(code, {
-      type: type as TestCaseexternalIssuesTypeEnum,
+      type: type as TestCaseExternalIssuesTypeEnum,
       links: [{ case_id: id, external_issues: [issue_id] }],
     }),
   );

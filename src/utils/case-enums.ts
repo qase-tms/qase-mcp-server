@@ -1,4 +1,4 @@
-import { apiRequest } from '../client/index.js';
+import { getApiClient } from '../client/index.js';
 
 type CaseEnumField = 'priority' | 'type' | 'behavior' | 'severity' | 'status' | 'layer';
 
@@ -83,13 +83,13 @@ async function getSystemFieldMaps(): Promise<SystemFieldMap> {
     return systemFieldCache;
   }
 
-  systemFieldCache = apiRequest<{ status: boolean; result: SystemFieldResponse[] }>(
-    '/v1/system_field',
-  )
+  const client = getApiClient();
+  systemFieldCache = client.systemFields
+    .getSystemFields()
     .then((response) => {
       const map: SystemFieldMap = {};
 
-      for (const entry of response.result) {
+      for (const entry of response.data.result as SystemFieldResponse[]) {
         const normalizedSlug = entry.slug.toLowerCase();
         const fieldMap = createFieldMap(entry);
 

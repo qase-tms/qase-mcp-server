@@ -6,11 +6,29 @@
  * - Per-request Bearer token authentication
  * - Custom enterprise domains
  * - Environment-based configuration
- *
- * Also provides direct API call helper for endpoints not exposed by the SDK.
  */
 
-import { QaseApi } from 'qaseio';
+import {
+  Configuration,
+  ProjectsApi,
+  CasesApi,
+  SuitesApi,
+  RunsApi,
+  ResultsApi,
+  PlansApi,
+  MilestonesApi,
+  DefectsApi,
+  EnvironmentsApi,
+  AttachmentsApi,
+  SharedStepsApi,
+  AuthorsApi,
+  CustomFieldsApi,
+  SearchApi,
+  ConfigurationsApi,
+  SystemFieldsApi,
+  UsersApi,
+  SharedParametersApi,
+} from 'qase-api-client';
 import axios, { AxiosRequestConfig } from 'axios';
 import { requestTokenStorage } from '../utils/auth-context.js';
 
@@ -20,6 +38,80 @@ import { requestTokenStorage } from '../utils/auth-context.js';
 interface ApiClientConfig {
   token: string;
   host: string;
+}
+
+/**
+ * Wrapper around qase-api-client that preserves the `client.resource.method()` interface.
+ */
+class QaseApiClient {
+  readonly projects: ProjectsApi;
+  readonly cases: CasesApi;
+  readonly suites: SuitesApi;
+  readonly runs: RunsApi;
+  readonly results: ResultsApi;
+  readonly plans: PlansApi;
+  readonly milestones: MilestonesApi;
+  readonly defects: DefectsApi;
+  readonly environment: EnvironmentsApi;
+  readonly attachments: AttachmentsApi;
+  readonly sharedSteps: SharedStepsApi;
+  readonly authors: AuthorsApi;
+  readonly customFields: CustomFieldsApi;
+  readonly search: SearchApi;
+  readonly configurations: ConfigurationsApi;
+  readonly systemFields: SystemFieldsApi;
+  readonly users: UsersApi;
+  readonly sharedParameters: SharedParametersApi;
+
+  private readonly token: string;
+  private readonly host: string;
+
+  constructor(config: ApiClientConfig) {
+    this.token = config.token;
+    this.host = config.host;
+
+    const cfg = new Configuration({
+      apiKey: config.token,
+      basePath: `${config.host}/v1`,
+    });
+
+    this.projects = new ProjectsApi(cfg);
+    this.cases = new CasesApi(cfg);
+    this.suites = new SuitesApi(cfg);
+    this.runs = new RunsApi(cfg);
+    this.results = new ResultsApi(cfg);
+    this.plans = new PlansApi(cfg);
+    this.milestones = new MilestonesApi(cfg);
+    this.defects = new DefectsApi(cfg);
+    this.environment = new EnvironmentsApi(cfg);
+    this.attachments = new AttachmentsApi(cfg);
+    this.sharedSteps = new SharedStepsApi(cfg);
+    this.authors = new AuthorsApi(cfg);
+    this.customFields = new CustomFieldsApi(cfg);
+    this.search = new SearchApi(cfg);
+    this.configurations = new ConfigurationsApi(cfg);
+    this.systemFields = new SystemFieldsApi(cfg);
+    this.users = new UsersApi(cfg);
+    this.sharedParameters = new SharedParametersApi(cfg);
+  }
+
+  /**
+   * Make a direct API call for endpoints not fully covered by the SDK.
+   */
+  async request<T = any>(path: string, options: AxiosRequestConfig = {}): Promise<T> {
+    const response = await axios({
+      method: options.method || 'GET',
+      url: `${this.host}${path}`,
+      headers: {
+        Token: this.token,
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+      ...options,
+    });
+
+    return response.data;
+  }
 }
 
 /**
@@ -71,28 +163,28 @@ function getConfig(): ApiClientConfig {
 /**
  * Singleton API client instance (used for shared QASE_API_TOKEN fallback).
  */
-let clientInstance: QaseApi | null = null;
+let clientInstance: QaseApiClient | null = null;
 
 /**
  * Get or create the Qase API client instance.
  *
  * Auth priority:
  *   1. Per-request Bearer token from Authorization header (set via AsyncLocalStorage)
- *      → creates a fresh QaseApi instance with the user's own token
+ *      → creates a fresh QaseApiClient instance with the user's own token
  *   2. Shared QASE_API_TOKEN env var (singleton, read-only fallback)
  *
- * @returns Configured QaseApi instance
+ * @returns Configured QaseApiClient instance
  * @throws Error if neither a request token nor QASE_API_TOKEN is available
  */
-export function getApiClient(): QaseApi {
+export function getApiClient(): QaseApiClient {
   const requestToken = requestTokenStorage.getStore();
   if (requestToken) {
-    return new QaseApi({ token: requestToken, host: getHost() });
+    return new QaseApiClient({ token: requestToken, host: getHost() });
   }
 
   if (!clientInstance) {
     const config = getConfig();
-    clientInstance = new QaseApi({ token: config.token, host: config.host });
+    clientInstance = new QaseApiClient({ token: config.token, host: config.host });
   }
 
   return clientInstance;
@@ -106,34 +198,4 @@ export function resetClientInstance(): void {
   clientInstance = null;
 }
 
-/**
- * Make a direct API call to Qase API for endpoints not exposed by the SDK.
- * Use this for: /user, /shared_parameter, /configuration, /system_field
- *
- * @param path - API path (e.g., '/v1/user' or '/v1/user/123')
- * @param options - Optional axios request config (for query params, etc.)
- * @returns Promise with the API response data
- */
-export async function apiRequest<T = any>(
-  path: string,
-  options: AxiosRequestConfig = {},
-): Promise<T> {
-  const token = getEffectiveToken();
-  const host = getHost();
-
-  const response = await axios({
-    method: options.method || 'GET',
-    url: `${host}${path}`,
-    headers: {
-      Token: token,
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-    ...options,
-  });
-
-  return response.data;
-}
-
-// Re-export types from qaseio for convenience
-export type { QaseApi } from 'qaseio';
+export type { QaseApiClient };

@@ -67,7 +67,7 @@
     "axios": "^1.13.5",
     "express": "^4.18.2",
     "neverthrow": "^8.2.0",
-    "qaseio": "^2.4.1",
+    "qase-api-client": "^1.1.2",
     "zod": "^3.24.2",
     "zod-to-json-schema": "^3.24.3"
   },

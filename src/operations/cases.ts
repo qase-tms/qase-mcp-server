@@ -6,10 +6,11 @@
  */
 
 import { z } from 'zod';
-import { TestCaseexternalIssuesTypeEnum } from 'qaseio';
+import { TestCaseExternalIssuesTypeEnum } from 'qase-api-client';
 import { getApiClient } from '../client/index.js';
 import { toolRegistry } from '../utils/registry.js';
 import { toResultAsync, createToolError } from '../utils/errors.js';
+import { normalizeCaseEnums } from '../utils/case-enums.js';
 import { ProjectCodeSchema, IdSchema } from '../utils/validation.js';
 
 // ============================================================================
@@ -70,6 +71,8 @@ const GetCaseSchema = z.object({
 /**
  * Schema for test case steps
  */
+const CaseEnumValueSchema = z.union([z.string(), z.number().int()]);
+
 const TestStepSchema = z.object({
   action: z.string().describe('Step action description'),
   expected_result: z.string().optional().describe('Expected result for this step'),
@@ -86,16 +89,28 @@ const CreateCaseSchema = z.object({
   description: z.string().optional().describe('Test case description'),
   preconditions: z.string().optional().describe('Preconditions for the test'),
   postconditions: z.string().optional().describe('Postconditions after the test'),
-  severity: z.string().optional().describe('Test severity (e.g., "blocker", "critical", "major")'),
-  priority: z.string().optional().describe('Test priority (e.g., "high", "medium", "low")'),
-  type: z.string().optional().describe('Test type (e.g., "functional", "smoke", "regression")'),
-  layer: z.string().optional().describe('Test layer (e.g., "api", "ui", "unit")'),
+  severity: CaseEnumValueSchema.optional().describe(
+    'Test severity (label or numeric ID from the current workspace configuration)',
+  ),
+  priority: CaseEnumValueSchema.optional().describe(
+    'Test priority (label or numeric ID: 0=not set, 1=high, 2=medium, 3=low)',
+  ),
+  type: CaseEnumValueSchema.optional().describe(
+    'Test type (label or numeric ID: 1=functional, 2=smoke, 3=regression, 4=security, 5=usability, 6=performance, 7=acceptance)',
+  ),
+  layer: CaseEnumValueSchema.optional().describe(
+    'Test layer (label or numeric ID from workspace configuration)',
+  ),
   is_flaky: z.boolean().optional().describe('Mark test case as flaky'),
   suite_id: z.number().int().positive().optional().describe('Suite ID to organize test case'),
   milestone_id: z.number().int().positive().optional().describe('Milestone ID'),
-  behavior: z.string().optional().describe('Test behavior (e.g., "positive", "negative")'),
+  behavior: CaseEnumValueSchema.optional().describe(
+    'Test behavior (label or numeric ID from workspace configuration)',
+  ),
   automation: z.string().optional().describe('Automation status'),
-  status: z.string().optional().describe('Test case status (e.g., "actual", "draft")'),
+  status: CaseEnumValueSchema.optional().describe(
+    'Test case status (label or numeric ID from workspace configuration)',
+  ),
   steps: z.array(TestStepSchema).optional().describe('Array of test steps'),
   tags: z.array(z.string()).optional().describe('Tags for categorization'),
   attachments: z.array(z.string()).optional().describe('Array of attachment hashes'),
@@ -112,16 +127,28 @@ const UpdateCaseSchema = z.object({
   description: z.string().optional().describe('Test case description'),
   preconditions: z.string().optional().describe('Preconditions for the test'),
   postconditions: z.string().optional().describe('Postconditions after the test'),
-  severity: z.string().optional().describe('Test severity'),
-  priority: z.string().optional().describe('Test priority'),
-  type: z.string().optional().describe('Test type'),
-  layer: z.string().optional().describe('Test layer'),
+  severity: CaseEnumValueSchema.optional().describe(
+    'Test severity (label or numeric ID from workspace configuration)',
+  ),
+  priority: CaseEnumValueSchema.optional().describe(
+    'Test priority (label or numeric ID: 0=not set, 1=high, 2=medium, 3=low)',
+  ),
+  type: CaseEnumValueSchema.optional().describe(
+    'Test type (label or numeric ID: 1=functional, 2=smoke, 3=regression, 4=security, 5=usability, 6=performance, 7=acceptance)',
+  ),
+  layer: CaseEnumValueSchema.optional().describe(
+    'Test layer (label or numeric ID from workspace configuration)',
+  ),
   is_flaky: z.boolean().optional().describe('Mark test case as flaky'),
   suite_id: z.number().int().positive().optional().describe('Suite ID'),
   milestone_id: z.number().int().positive().optional().describe('Milestone ID'),
-  behavior: z.string().optional().describe('Test behavior'),
+  behavior: CaseEnumValueSchema.optional().describe(
+    'Test behavior (label or numeric ID from workspace configuration)',
+  ),
   automation: z.string().optional().describe('Automation status'),
-  status: z.string().optional().describe('Test case status'),
+  status: CaseEnumValueSchema.optional().describe(
+    'Test case status (label or numeric ID from workspace configuration)',
+  ),
   steps: z.array(TestStepSchema).optional().describe('Array of test steps'),
   tags: z.array(z.string()).optional().describe('Tags for categorization'),
   attachments: z.array(z.string()).optional().describe('Array of attachment hashes'),
@@ -231,7 +258,9 @@ async function createCase(args: z.infer<typeof CreateCaseSchema>) {
   const client = getApiClient();
   const { code, ...caseData } = args;
 
-  const result = await toResultAsync(client.cases.createCase(code, caseData as any));
+  const normalizedCaseData = await normalizeCaseEnums(caseData);
+
+  const result = await toResultAsync(client.cases.createCase(code, normalizedCaseData as any));
 
   return result.match(
     (response) => response.data.result,
@@ -248,7 +277,11 @@ async function updateCase(args: z.infer<typeof UpdateCaseSchema>) {
   const client = getApiClient();
   const { code, id, ...updateData } = args;
 
-  const result = await toResultAsync(client.cases.updateCase(code, id, updateData as any));
+  const normalizedUpdateData = await normalizeCaseEnums(updateData);
+
+  const result = await toResultAsync(
+    client.cases.updateCase(code, id, normalizedUpdateData as any),
+  );
 
   return result.match(
     (response) => response.data.result,
@@ -282,7 +315,9 @@ async function bulkCreateCases(args: z.infer<typeof BulkCreateCasesSchema>) {
   const client = getApiClient();
   const { code, cases } = args;
 
-  const result = await toResultAsync(client.cases.bulk(code, { cases } as any));
+  const normalizedCases = await Promise.all(cases.map((caseData) => normalizeCaseEnums(caseData)));
+
+  const result = await toResultAsync(client.cases.bulk(code, { cases: normalizedCases } as any));
 
   return result.match(
     (response) => response.data.result,
@@ -301,7 +336,7 @@ async function attachExternalIssue(args: z.infer<typeof AttachExternalIssueSchem
 
   const result = await toResultAsync(
     client.cases.caseAttachExternalIssue(code, {
-      type: type as TestCaseexternalIssuesTypeEnum,
+      type: type as TestCaseExternalIssuesTypeEnum,
       links: [{ case_id: id, external_issues: [issue_id] }],
     }),
   );
@@ -323,7 +358,7 @@ async function detachExternalIssue(args: z.infer<typeof DetachExternalIssueSchem
 
   const result = await toResultAsync(
     client.cases.caseDetachExternalIssue(code, {
-      type: type as TestCaseexternalIssuesTypeEnum,
+      type: type as TestCaseExternalIssuesTypeEnum,
       links: [{ case_id: id, external_issues: [issue_id] }],
     }),
   );

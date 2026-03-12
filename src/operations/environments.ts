@@ -75,7 +75,7 @@ async function listEnvironments(args: z.infer<typeof ListEnvironmentsSchema>) {
   const { code, limit, offset } = args;
 
   const result = await toResultAsync(
-    client.environment.getEnvironments(code, limit as any, offset as any),
+    client.environment.getEnvironments(code, undefined, undefined, limit, offset),
   );
 
   return result.match(

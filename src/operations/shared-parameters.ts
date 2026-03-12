@@ -4,13 +4,13 @@
  * Implements all MCP tools for managing shared parameters in Qase.
  * Shared parameters are reusable parameters for data-driven testing.
  *
- * The qaseio SDK does not expose the Shared Parameters API, so we use direct HTTP calls.
  * https://developers.qase.io/reference/get-shared-parameters
  */
 
 import { z } from 'zod';
-import { apiRequest } from '../client/index.js';
+import { getApiClient } from '../client/index.js';
 import { toolRegistry } from '../utils/registry.js';
+import { toResultAsync, createToolError } from '../utils/errors.js';
 import { IdSchema } from '../utils/validation.js';
 
 // ============================================================================
@@ -59,17 +59,17 @@ const GetSharedParameterSchema = z.object({
  * https://developers.qase.io/reference/get-shared-parameters
  */
 async function listSharedParameters(args: z.infer<typeof ListSharedParametersSchema>) {
+  const client = getApiClient();
   const { limit, offset } = args;
 
-  const params = new URLSearchParams();
-  if (limit !== undefined) params.append('limit', String(limit));
-  if (offset !== undefined) params.append('offset', String(offset));
+  const result = await toResultAsync(client.sharedParameters.getSharedParameters(limit, offset));
 
-  const queryString = params.toString();
-  const path = queryString ? `/v1/shared_parameter?${queryString}` : '/v1/shared_parameter';
-
-  const response = await apiRequest<{ status: boolean; result: any }>(path);
-  return response.result;
+  return result.match(
+    (response) => response.data.result,
+    (error) => {
+      throw createToolError(error, 'listing shared parameters');
+    },
+  );
 }
 
 /**
@@ -78,9 +78,17 @@ async function listSharedParameters(args: z.infer<typeof ListSharedParametersSch
  * https://developers.qase.io/reference/get-shared-parameter
  */
 async function getSharedParameter(args: z.infer<typeof GetSharedParameterSchema>) {
+  const client = getApiClient();
   const { id } = args;
-  const response = await apiRequest<{ status: boolean; result: any }>(`/v1/shared_parameter/${id}`);
-  return response.result;
+
+  const result = await toResultAsync(client.sharedParameters.getSharedParameter(String(id)));
+
+  return result.match(
+    (response) => response.data.result,
+    (error) => {
+      throw createToolError(error, 'getting shared parameter');
+    },
+  );
 }
 
 // ============================================================================

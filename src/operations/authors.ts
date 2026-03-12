@@ -41,7 +41,9 @@ async function listAuthors(args: z.infer<typeof ListAuthorsSchema>) {
   const client = getApiClient();
   const { limit, offset } = args;
 
-  const result = await toResultAsync(client.authors.getAuthors(limit as any, offset as any));
+  const result = await toResultAsync(
+    client.authors.getAuthors(undefined, undefined, limit, offset),
+  );
 
   return result.match(
     (response) => response.data.result,

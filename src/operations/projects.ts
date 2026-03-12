@@ -6,7 +6,7 @@
  */
 
 import { z } from 'zod';
-import { ProjectCreateAccessEnum } from 'qaseio';
+import { ProjectCreateAccessEnum } from 'qase-api-client';
 import { getApiClient } from '../client/index.js';
 import { toolRegistry } from '../utils/registry.js';
 import { toResultAsync, createToolError } from '../utils/errors.js';

@@ -4,7 +4,7 @@
  * Provides mock objects and helper functions for testing.
  */
 
-import { QaseApi } from 'qaseio';
+import type { QaseApiClient } from '../client/index.js';
 
 /**
  * Mock successful API response
@@ -51,7 +51,7 @@ export function clearTestEnv() {
 /**
  * Create mock API client for testing
  */
-export function createMockApiClient(): jest.Mocked<Partial<QaseApi>> {
+export function createMockApiClient(): jest.Mocked<Partial<QaseApiClient>> {
   return {
     projects: {
       getProjects: jest.fn(),
@@ -82,6 +82,22 @@ export function createMockApiClient(): jest.Mocked<Partial<QaseApi>> {
       createRun: jest.fn(),
       deleteRun: jest.fn(),
       completeRun: jest.fn(),
+    } as any,
+    configurations: {
+      getConfigurations: jest.fn(),
+      createConfigurationGroup: jest.fn(),
+      deleteConfigurationGroup: jest.fn(),
+    } as any,
+    systemFields: {
+      getSystemFields: jest.fn(),
+    } as any,
+    users: {
+      getUsers: jest.fn(),
+      getUser: jest.fn(),
+    } as any,
+    sharedParameters: {
+      getSharedParameters: jest.fn(),
+      getSharedParameter: jest.fn(),
     } as any,
   } as any;
 }

@@ -29,6 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `list_environments`: Fixed argument order — was passing `(code, limit, offset)` where SDK expects `(code, search, slug, limit, offset)`
 - `list_authors`: Fixed argument order — was passing `(limit, offset)` where SDK expects `(search, type, limit, offset)`
 - `TestCaseexternalIssuesTypeEnum` → `TestCaseExternalIssuesTypeEnum`: Fixed enum name casing for the new SDK
+- `upload_attachment`: Fixed "file.forEach is not a function" crash — now correctly converts base64 string or file path into the `[{name, value}]` array format expected by the SDK's multipart upload
 
 ## [1.0.0] - 2025-10-08
 

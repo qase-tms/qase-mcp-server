@@ -30,6 +30,7 @@ import {
   SharedParametersApi,
 } from 'qase-api-client';
 import axios, { AxiosRequestConfig } from 'axios';
+import FormData from 'form-data';
 import { requestTokenStorage } from '../utils/auth-context.js';
 
 /**
@@ -73,6 +74,7 @@ class QaseApiClient {
     const cfg = new Configuration({
       apiKey: config.token,
       basePath: `${config.host}/v1`,
+      formDataCtor: FormData as any,
     });
 
     this.projects = new ProjectsApi(cfg);

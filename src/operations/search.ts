@@ -71,11 +71,9 @@ async function qqlSearch(args: z.infer<typeof QqlSearchSchema>) {
 
   return result.match(
     (response) => {
-      const r = response.data.result as any;
+      const r = response.data.result;
       return {
         total: r?.total,
-        filtered: r?.filtered,
-        count: r?.count,
         entities: r?.entities,
       };
     },

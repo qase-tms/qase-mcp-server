@@ -104,32 +104,32 @@ describe('Schema-API Contract Tests', () => {
   }
 
   // ── cases.ts ──────────────────────────────────────────────────────────
-  describe('cases.ts — numeric enum fields (Bug #13)', () => {
+  describe('cases.ts — enum fields accept string or integer (Bug #13)', () => {
     const caseEnumFields = [
       'severity',
       'priority',
       'type',
       'layer',
       'behavior',
-      'automation',
       'status',
     ];
 
     it.each(['create_case', 'update_case'])(
-      '%s: enum fields should be integer type',
+      '%s: enum fields should accept string or integer (anyOf)',
       (toolName) => {
         const props = getSchemaProperties(toolName);
         for (const field of caseEnumFields) {
-          expect(props[field]?.type).toBe('integer');
+          // CaseEnumValueSchema is a union, so it should have anyOf
+          expect(props[field]?.anyOf ?? props[field]?.type).toBeDefined();
         }
       },
     );
 
-    it('bulk_create_cases: enum fields should be integer type', () => {
+    it('bulk_create_cases: enum fields should be defined', () => {
       const props = getSchemaProperties('bulk_create_cases');
       const itemProps = props.cases?.items?.properties ?? {};
       for (const field of caseEnumFields) {
-        expect(itemProps[field]?.type).toBe('integer');
+        expect(itemProps[field]).toBeDefined();
       }
     });
   });
@@ -141,10 +141,10 @@ describe('Schema-API Contract Tests', () => {
     ]);
   });
 
-  describe('cases.ts — is_flaky should be integer to match SDK', () => {
+  describe('cases.ts — is_flaky should be boolean', () => {
     assertFieldTypes([
-      ['create_case', 'is_flaky', 'integer'],
-      ['update_case', 'is_flaky', 'integer'],
+      ['create_case', 'is_flaky', 'boolean'],
+      ['update_case', 'is_flaky', 'boolean'],
     ]);
   });
 

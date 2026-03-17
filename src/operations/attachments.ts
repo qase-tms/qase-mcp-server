@@ -20,7 +20,14 @@ import { ProjectCodeSchema, HashSchema } from '../utils/validation.js';
  * Schema for listing attachments
  */
 const ListAttachmentsSchema = z.object({
-  limit: z.number().int().positive().max(100).optional().describe('Maximum number of items'),
+  limit: z
+    .number()
+    .int()
+    .positive()
+    .max(100)
+    .optional()
+    .default(10)
+    .describe('Maximum number of items (default: 10, max: 100)'),
   offset: z.number().int().nonnegative().optional().describe('Number of items to skip'),
 });
 

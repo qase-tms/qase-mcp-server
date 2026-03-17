@@ -112,6 +112,12 @@ const CreateCaseSchema = z.object({
     'Test case status (label or numeric ID from workspace configuration)',
   ),
   steps: z.array(TestStepSchema).optional().describe('Array of test steps'),
+  steps_type: z
+    .enum(['classic', 'gherkin'])
+    .optional()
+    .describe(
+      "Step format: 'classic' for structured steps, 'gherkin' for Given/When/Then scenarios",
+    ),
   tags: z.array(z.string()).optional().describe('Tags for categorization'),
   attachments: z.array(z.string()).optional().describe('Array of attachment hashes'),
   custom_field: z.record(z.any()).optional().describe('Custom field values'),
@@ -150,6 +156,12 @@ const UpdateCaseSchema = z.object({
     'Test case status (label or numeric ID from workspace configuration)',
   ),
   steps: z.array(TestStepSchema).optional().describe('Array of test steps'),
+  steps_type: z
+    .enum(['classic', 'gherkin'])
+    .optional()
+    .describe(
+      "Step format: 'classic' for structured steps, 'gherkin' for Given/When/Then scenarios",
+    ),
   tags: z.array(z.string()).optional().describe('Tags for categorization'),
   attachments: z.array(z.string()).optional().describe('Array of attachment hashes'),
   custom_field: z.record(z.any()).optional().describe('Custom field values'),

@@ -6,6 +6,7 @@
  */
 
 import { z } from 'zod';
+import { createReadStream, existsSync } from 'fs';
 import { getApiClient } from '../client/index.js';
 import { toolRegistry } from '../utils/registry.js';
 import { toResultAsync, createToolError } from '../utils/errors.js';
@@ -19,7 +20,14 @@ import { ProjectCodeSchema, HashSchema } from '../utils/validation.js';
  * Schema for listing attachments
  */
 const ListAttachmentsSchema = z.object({
-  limit: z.number().int().positive().max(100).optional().describe('Maximum number of items'),
+  limit: z
+    .number()
+    .int()
+    .positive()
+    .max(100)
+    .optional()
+    .default(10)
+    .describe('Maximum number of items (default: 10, max: 100)'),
   offset: z.number().int().nonnegative().optional().describe('Number of items to skip'),
 });
 
@@ -34,10 +42,8 @@ const GetAttachmentSchema = z.object({
  * Schema for uploading an attachment
  */
 const UploadAttachmentSchema = z.object({
-  code: ProjectCodeSchema.optional().describe(
-    'Project code (optional, for project-specific attachments)',
-  ),
-  file: z.string().describe('File content as base64 encoded string or file path'),
+  code: ProjectCodeSchema.describe('Project code'),
+  file: z.string().describe('File content as base64 encoded string or absolute file path'),
   filename: z.string().describe('Original filename with extension'),
 });
 
@@ -87,23 +93,37 @@ async function getAttachment(args: z.infer<typeof GetAttachmentSchema>) {
 }
 
 /**
+ * Prepare file data for upload.
+ * Accepts a base64-encoded string or an absolute file path.
+ * Returns an object compatible with the SDK's FormData append: { name, value }.
+ */
+function prepareFileData(
+  file: string,
+  filename: string,
+): { name: string; value: Buffer | ReturnType<typeof createReadStream> } {
+  // If the string looks like a file path and exists on disk, stream it
+  if (file.startsWith('/') && existsSync(file)) {
+    return { name: filename, value: createReadStream(file) };
+  }
+
+  // Otherwise treat it as base64 content
+  const isBase64 = /^[A-Za-z0-9+/=\s]+$/.test(file);
+  return {
+    name: filename,
+    value: Buffer.from(file, isBase64 ? 'base64' : undefined),
+  };
+}
+
+/**
  * Upload a new attachment
  */
 async function uploadAttachment(args: z.infer<typeof UploadAttachmentSchema>) {
   const client = getApiClient();
   const { code, file, filename } = args;
 
-  // Create upload data with file content
-  const uploadData = {
-    file,
-    filename,
-  };
+  const fileData = prepareFileData(file, filename);
 
-  const result = await toResultAsync(
-    code
-      ? client.attachments.uploadAttachment(code, uploadData as any)
-      : client.attachments.uploadAttachment(uploadData as any),
-  );
+  const result = await toResultAsync(client.attachments.uploadAttachment(code, [fileData] as any));
 
   return result.match(
     (response) => response.data.result,

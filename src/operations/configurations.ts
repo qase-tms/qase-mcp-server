@@ -4,14 +4,13 @@
  * Implements all MCP tools for managing test configurations in Qase.
  * Configurations represent test environment settings (browser, OS, device, etc.).
  *
- * The qaseio SDK does not expose the Configurations API in QaseApi class,
- * so we use direct HTTP calls.
  * https://developers.qase.io/reference/get-configurations
  */
 
 import { z } from 'zod';
-import { apiRequest } from '../client/index.js';
+import { getApiClient } from '../client/index.js';
 import { toolRegistry } from '../utils/registry.js';
+import { toResultAsync, createToolError } from '../utils/errors.js';
 import { ProjectCodeSchema, IdSchema } from '../utils/validation.js';
 
 // ============================================================================
@@ -68,38 +67,59 @@ const DeleteConfigurationGroupSchema = z.object({
  * https://developers.qase.io/reference/get-configurations
  */
 async function listConfigurations(args: z.infer<typeof ListConfigurationsSchema>) {
+  const client = getApiClient();
   const { code } = args;
-  const response = await apiRequest<{ status: boolean; result: any }>(`/v1/configuration/${code}`);
-  return response.result;
+
+  const result = await toResultAsync(client.configurations.getConfigurations(code));
+
+  return result.match(
+    (response) => response.data.result,
+    (error) => {
+      throw createToolError(error, 'listing configurations');
+    },
+  );
 }
 
 /**
  * Create a new configuration group
  * API: POST /v1/configuration/{code}/group
  * https://developers.qase.io/reference/create-configuration-group
+ *
+ * Note: The SDK type `ConfigurationGroupCreate` only declares `title`,
+ * but the API also accepts a `configurations` array. We cast to `any`
+ * to pass the full payload.
  */
 async function createConfigurationGroup(args: z.infer<typeof CreateConfigurationGroupSchema>) {
+  const client = getApiClient();
   const { code, title, configurations } = args;
-  const response = await apiRequest<{ status: boolean; result: any }>(
-    `/v1/configuration/${code}/group`,
-    {
-      method: 'POST',
-      data: { title, configurations },
+
+  const result = await toResultAsync(
+    client.configurations.createConfigurationGroup(code, { title, configurations } as any),
+  );
+
+  return result.match(
+    (response) => response.data.result,
+    (error) => {
+      throw createToolError(error, 'creating configuration group');
     },
   );
-  return response.result;
 }
 
 /**
  * Delete a configuration group
  * API: DELETE /v1/configuration/{code}/group/{id}
- * This endpoint is not documented in the official API docs but follows REST conventions.
+ *
+ * The SDK does not expose a delete method for configuration groups,
+ * so we use a direct API call.
  */
 async function deleteConfigurationGroup(args: z.infer<typeof DeleteConfigurationGroupSchema>) {
+  const client = getApiClient();
   const { code, id } = args;
-  await apiRequest(`/v1/configuration/${code}/group/${id}`, {
+
+  await client.request(`/v1/configuration/${code}/group/${id}`, {
     method: 'DELETE',
   });
+
   return { success: true, id };
 }
 

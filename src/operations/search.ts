@@ -67,21 +67,16 @@ async function qqlSearch(args: z.infer<typeof QqlSearchSchema>) {
   const client = getApiClient();
   const { query, limit, offset } = args;
 
-  const result = await toResultAsync(
-    (client as any).search.search({
-      query,
-      limit: limit || 10,
-      offset: offset || 0,
-    }),
-  );
+  const result = await toResultAsync(client.search.search(query, limit || 10, offset || 0));
 
   return result.match(
-    (response: any) => ({
-      total: response.data.result.total,
-      filtered: response.data.result.filtered,
-      count: response.data.result.count,
-      entities: response.data.result.entities,
-    }),
+    (response) => {
+      const r = response.data.result;
+      return {
+        total: r?.total,
+        entities: r?.entities,
+      };
+    },
     (error) => {
       throw createToolError(error, 'search operation');
     },

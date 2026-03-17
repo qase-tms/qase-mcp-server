@@ -5,15 +5,38 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.1.0]
+
+### Added
+
+- Per-request authentication: clients can pass `Authorization: Bearer <token>` to use their own Qase API token instead of the shared `QASE_API_TOKEN` environment variable (supported on both Streamable HTTP and SSE transports)
+- `create_case`, `update_case`: Added `steps_type` field (`classic` / `gherkin`) ([#17](https://github.com/qase-tms/qase-mcp-server/issues/17))
+- 87 schema-API contract tests to prevent future type drift between Zod schemas and SDK expectations
+
+### Changed
+
+- **Breaking (internal):** Replaced deprecated `qaseio` SDK with `qase-api-client` — the new auto-generated OpenAPI client for Qase API v1
+- `QaseApiClient` wrapper now instantiates all 18 API classes (`ProjectsApi`, `CasesApi`, `ConfigurationsApi`, `SystemFieldsApi`, `UsersApi`, `SharedParametersApi`, etc.) instead of relying on the old `QaseApi` facade
+- `list_users`, `get_user`: Now use `UsersApi` from the SDK instead of direct HTTP calls
+- `list_shared_parameters`, `get_shared_parameter`: Now use `SharedParametersApi` from the SDK instead of direct HTTP calls
+- `list_system_fields`: Now uses `SystemFieldsApi` from the SDK instead of direct HTTP calls
+- `list_configurations`, `create_configuration_group`: Now use `ConfigurationsApi` from the SDK instead of direct HTTP calls
+- `qql_search`: Updated to positional arguments `search(query, limit, offset)` per new SDK signature
+- Case enum resolution (`normalizeCaseEnums`): Now fetches system fields via `SystemFieldsApi` instead of direct HTTP calls
+- `create_case`, `update_case`: Enum fields (`severity`, `priority`, `type`, `layer`, `behavior`, `status`) now accept human-readable string labels instead of numeric IDs; `normalizeCaseEnums` resolves labels to IDs via system fields ([#13](https://github.com/qase-tms/qase-mcp-server/issues/13))
 
 ### Fixed
 
 - `list_defects`: Corrected API call signature (status as single value, not array) and removed unsupported severity filter
-- `list_users`, `get_user`: Switched to direct HTTP calls (qaseio SDK doesn't expose Users API)
-- `list_shared_parameters`, `get_shared_parameter`: Switched to direct HTTP calls (qaseio SDK doesn't expose Shared Parameters API)
-- `list_system_fields`: Switched to direct HTTP calls (qaseio SDK doesn't expose System Fields API)
-- `list_configurations`: Switched to direct HTTP calls (qaseio SDK doesn't expose Configurations API)
+- `list_custom_fields`: Fixed argument order — was passing `(limit, offset)` where SDK expects `(entity, type, limit, offset)`
+- `list_environments`: Fixed argument order — was passing `(code, limit, offset)` where SDK expects `(code, search, slug, limit, offset)`
+- `list_authors`: Fixed argument order — was passing `(limit, offset)` where SDK expects `(search, type, limit, offset)`
+- `TestCaseexternalIssuesTypeEnum` → `TestCaseExternalIssuesTypeEnum`: Fixed enum name casing for the new SDK
+- `upload_attachment`: Fixed "file.forEach is not a function" crash — now correctly converts base64 string or file path into the `[{name, value}]` array format expected by the SDK's multipart upload ([#14](https://github.com/qase-tms/qase-mcp-server/issues/14))
+- `create_defect`, `update_defect`: `severity` now accepts human-readable labels (`blocker`, `critical`, `major`, `normal`, `minor`, `trivial`) instead of numeric IDs; converted to numbers internally ([#18](https://github.com/qase-tms/qase-mcp-server/issues/18))
+- `create_run`: Changed `start_time` / `end_time` from number to string (RFC 3339 format) matching SDK type
+- `qql_search`: Removed non-existent fields from response to prevent confusion
+- `list_attachments`: Added default `limit=10` to prevent slow responses on accounts with large numbers of attachments
 
 ## [1.0.0] - 2025-10-08
 
@@ -172,4 +195,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Results are identified by hash, not numeric ID
 - Custom fields accessed via bracket notation in QQL: `cf["Field Name"]`
 
+[1.1.0]: https://github.com/qase-tms/qase-mcp-server/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/qase-tms/qase-mcp-server/releases/tag/v1.0.0

@@ -2,6 +2,7 @@ import express, { Express } from 'express';
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { randomUUID } from 'crypto';
+import { requestTokenStorage } from '../utils/auth-context.js';
 
 export interface StreamableHttpConfig {
   port: number;
@@ -17,14 +18,14 @@ function isInitializeRequest(body: unknown): boolean {
 }
 
 export function setupStreamableHttpTransport(
-  server: Server,
+  createServer: () => Server,
   config: StreamableHttpConfig,
 ): Express {
   const app = express();
 
   // CORS middleware for inspector
   app.use((req, res, next) => {
-    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Origin', process.env.CORS_ORIGIN || '*');
     res.header('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
     res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, mcp-session-id');
 
@@ -33,11 +34,8 @@ export function setupStreamableHttpTransport(
       return;
     }
 
-    // Log all incoming requests for debugging
-    console.error(`[StreamableHTTP] ${req.method} ${req.path}`, {
-      headers: req.headers,
-      query: req.query,
-    });
+    // Log request (omit headers to avoid exposing Authorization token in logs)
+    console.error(`[StreamableHTTP] ${req.method} ${req.path}`, { query: req.query });
     next();
   });
 
@@ -46,8 +44,30 @@ export function setupStreamableHttpTransport(
   const endpoint = config.endpoint || '/mcp';
   const host = config.host || '0.0.0.0';
 
-  // Session management - store transport per session
+  // Session management - store transport and last-seen timestamp per session
+  const SESSION_TTL_MS = 30 * 60 * 1000; // 30 minutes
   const sessions = new Map<string, StreamableHTTPServerTransport>();
+  const sessionLastSeen = new Map<string, number>();
+
+  // Periodically evict stale sessions that never sent a DELETE
+  const cleanupInterval = setInterval(
+    () => {
+      const now = Date.now();
+      for (const [id, ts] of sessionLastSeen) {
+        if (now - ts > SESSION_TTL_MS) {
+          const staleTransport = sessions.get(id);
+          if (staleTransport) {
+            staleTransport.close().catch(() => {});
+            sessions.delete(id);
+          }
+          sessionLastSeen.delete(id);
+          console.error(`[StreamableHTTP] Evicted stale session: ${id}`);
+        }
+      }
+    },
+    5 * 60 * 1000,
+  ); // check every 5 minutes
+  cleanupInterval.unref(); // don't keep the process alive just for cleanup
 
   // Health check endpoint
   app.get('/health', (_req, res) => {
@@ -70,6 +90,7 @@ export function setupStreamableHttpTransport(
     try {
       await transport.close();
       sessions.delete(sessionId);
+      sessionLastSeen.delete(sessionId);
       console.error(`[StreamableHTTP] Session closed: ${sessionId}`);
       res.status(200).json({ status: 'session closed' });
     } catch (error) {
@@ -118,8 +139,9 @@ export function setupStreamableHttpTransport(
     let transport: StreamableHTTPServerTransport;
 
     if (sessionId && sessions.has(sessionId)) {
-      // Reuse existing transport for this session
+      // Reuse existing transport for this session — bump last-seen
       transport = sessions.get(sessionId)!;
+      sessionLastSeen.set(sessionId, Date.now());
     } else if (isInitializeRequest(req.body)) {
       // This is an initialize request - create new session
       const newSessionId = randomUUID();
@@ -128,11 +150,12 @@ export function setupStreamableHttpTransport(
         enableJsonResponse: true,
       });
 
-      // Store session
+      // Store session and record creation time
       sessions.set(newSessionId, transport);
+      sessionLastSeen.set(newSessionId, Date.now());
 
-      // Connect the MCP server to this transport
-      await server.connect(transport);
+      // Create a fresh Server instance per session — the SDK requires one Server per transport
+      await createServer().connect(transport);
 
       console.error(`[StreamableHTTP] New session created: ${newSessionId}`);
     } else {
@@ -143,9 +166,19 @@ export function setupStreamableHttpTransport(
       return;
     }
 
-    // Handle the request through the transport
+    // Extract per-request token from Authorization header (Bearer <token>)
+    const authHeader = (req.headers['authorization'] as string) || '';
+    const requestToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : '';
+
+    if (requestToken) {
+      console.error('[StreamableHTTP] Using per-request Bearer token');
+    }
+
+    // Run the handler inside AsyncLocalStorage context so getApiClient() can read the token
     try {
-      await transport.handleRequest(req, res, req.body);
+      await requestTokenStorage.run(requestToken, () =>
+        transport.handleRequest(req, res, req.body),
+      );
     } catch (error) {
       console.error('[StreamableHTTP] Error handling request:', error);
       if (!res.headersSent) {

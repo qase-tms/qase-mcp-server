@@ -96,7 +96,7 @@ async function listCustomFields(args: z.infer<typeof ListCustomFieldsSchema>) {
   const { limit, offset } = args;
 
   const result = await toResultAsync(
-    client.customFields.getCustomFields(limit as any, offset as any),
+    client.customFields.getCustomFields(undefined, undefined, limit, offset),
   );
 
   return result.match(

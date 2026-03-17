@@ -16,17 +16,23 @@ import { ProjectCodeSchema, IdSchema } from '../utils/validation.js';
 // ============================================================================
 
 /**
- * Defect severity levels
+ * Defect severity as human-readable label.
+ * Converted to numeric ID before sending to the SDK.
  */
-const DefectSeverityEnum = z.enum([
-  'undefined',
-  'blocker',
-  'critical',
-  'major',
-  'normal',
-  'minor',
-  'trivial',
-]);
+const DefectSeveritySchema = z
+  .enum(['undefined', 'blocker', 'critical', 'major', 'normal', 'minor', 'trivial'])
+  .optional()
+  .describe('Defect severity level');
+
+const severityToId: Record<string, number> = {
+  undefined: 0,
+  blocker: 1,
+  critical: 2,
+  major: 3,
+  normal: 4,
+  minor: 5,
+  trivial: 6,
+};
 
 /**
  * Defect status values
@@ -74,7 +80,7 @@ const CreateDefectSchema = z.object({
   code: ProjectCodeSchema,
   title: z.string().min(1).max(255).describe('Defect title'),
   actual_result: z.string().optional().describe('Actual behavior observed'),
-  severity: DefectSeverityEnum.optional().describe('Defect severity'),
+  severity: DefectSeveritySchema.describe('Defect severity'),
   attachments: z.array(z.string()).optional().describe('Array of attachment hashes'),
   custom_field: z.record(z.any()).optional().describe('Custom field values'),
   tags: z.array(z.string()).optional().describe('Tags for categorization'),
@@ -88,7 +94,7 @@ const UpdateDefectSchema = z.object({
   id: IdSchema,
   title: z.string().min(1).max(255).optional().describe('Defect title'),
   actual_result: z.string().optional().describe('Actual behavior observed'),
-  severity: DefectSeverityEnum.optional().describe('Defect severity'),
+  severity: DefectSeveritySchema.describe('Defect severity'),
   attachments: z.array(z.string()).optional().describe('Array of attachment hashes'),
   tags: z.array(z.string()).optional().describe('Tags for categorization'),
 });
@@ -163,7 +169,12 @@ async function getDefect(args: z.infer<typeof GetDefectSchema>) {
  */
 async function createDefect(args: z.infer<typeof CreateDefectSchema>) {
   const client = getApiClient();
-  const { code, ...defectData } = args;
+  const { code, severity, ...rest } = args;
+
+  const defectData = {
+    ...rest,
+    ...(severity !== undefined && { severity: severityToId[severity] }),
+  };
 
   const result = await toResultAsync(client.defects.createDefect(code, defectData as any));
 
@@ -180,7 +191,12 @@ async function createDefect(args: z.infer<typeof CreateDefectSchema>) {
  */
 async function updateDefect(args: z.infer<typeof UpdateDefectSchema>) {
   const client = getApiClient();
-  const { code, id, ...updateData } = args;
+  const { code, id, severity, ...rest } = args;
+
+  const updateData = {
+    ...rest,
+    ...(severity !== undefined && { severity: severityToId[severity] }),
+  };
 
   const result = await toResultAsync(client.defects.updateDefect(code, id, updateData as any));
 

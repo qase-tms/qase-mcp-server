@@ -39,3 +39,9 @@ coverage/
 # Composer github auth
 auth.json
 
+# MCP config (contains API tokens)
+.mcp.json
+
+# Local scripts (smoke tests, etc.)
+scripts/
+

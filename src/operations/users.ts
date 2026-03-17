@@ -4,13 +4,13 @@
  * Implements all MCP tools for managing users in Qase.
  * Users are team members with access to the Qase workspace.
  *
- * The qaseio SDK does not expose the Users API, so we use direct HTTP calls.
  * https://developers.qase.io/reference/get-users
  */
 
 import { z } from 'zod';
-import { apiRequest } from '../client/index.js';
+import { getApiClient } from '../client/index.js';
 import { toolRegistry } from '../utils/registry.js';
+import { toResultAsync, createToolError } from '../utils/errors.js';
 import { IdSchema } from '../utils/validation.js';
 
 // ============================================================================
@@ -45,8 +45,16 @@ const GetUserSchema = z.object({
  * https://developers.qase.io/reference/get-users
  */
 async function listUsers(_args: z.infer<typeof ListUsersSchema>) {
-  const response = await apiRequest<{ status: boolean; result: any }>('/v1/user');
-  return response.result;
+  const client = getApiClient();
+
+  const result = await toResultAsync(client.users.getUsers());
+
+  return result.match(
+    (response) => response.data.result,
+    (error) => {
+      throw createToolError(error, 'listing users');
+    },
+  );
 }
 
 /**
@@ -55,9 +63,17 @@ async function listUsers(_args: z.infer<typeof ListUsersSchema>) {
  * https://developers.qase.io/reference/get-user
  */
 async function getUser(args: z.infer<typeof GetUserSchema>) {
+  const client = getApiClient();
   const { id } = args;
-  const response = await apiRequest<{ status: boolean; result: any }>(`/v1/user/${id}`);
-  return response.result;
+
+  const result = await toResultAsync(client.users.getUser(id));
+
+  return result.match(
+    (response) => response.data.result,
+    (error) => {
+      throw createToolError(error, 'getting user');
+    },
+  );
 }
 
 // ============================================================================

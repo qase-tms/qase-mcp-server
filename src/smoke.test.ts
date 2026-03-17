@@ -104,7 +104,7 @@ describe('Schema-API Contract Tests', () => {
   }
 
   // ── cases.ts ──────────────────────────────────────────────────────────
-  describe('cases.ts — enum fields accept string or integer (Bug #13)', () => {
+  describe('cases.ts — enum fields accept string labels (Bug #13)', () => {
     const caseEnumFields = [
       'severity',
       'priority',
@@ -115,12 +115,11 @@ describe('Schema-API Contract Tests', () => {
     ];
 
     it.each(['create_case', 'update_case'])(
-      '%s: enum fields should accept string or integer (anyOf)',
+      '%s: enum fields should be string type',
       (toolName) => {
         const props = getSchemaProperties(toolName);
         for (const field of caseEnumFields) {
-          // CaseEnumValueSchema is a union, so it should have anyOf
-          expect(props[field]?.anyOf ?? props[field]?.type).toBeDefined();
+          expect(props[field]?.type).toBe('string');
         }
       },
     );
@@ -164,11 +163,17 @@ describe('Schema-API Contract Tests', () => {
   });
 
   // ── defects.ts ────────────────────────────────────────────────────────
-  describe('defects.ts — severity type mismatch', () => {
-    assertFieldTypes([
-      ['create_defect', 'severity', 'integer'],
-      ['update_defect', 'severity', 'integer'],
-    ]);
+  describe('defects.ts — severity should be string enum', () => {
+    it.each(['create_defect', 'update_defect'])(
+      '%s: severity should be a string enum',
+      (toolName) => {
+        const props = getSchemaProperties(toolName);
+        expect(props.severity?.type).toBe('string');
+        expect(props.severity?.enum).toEqual(
+          expect.arrayContaining(['blocker', 'critical', 'major', 'normal', 'minor', 'trivial']),
+        );
+      },
+    );
   });
 
   // ── runs.ts ───────────────────────────────────────────────────────────

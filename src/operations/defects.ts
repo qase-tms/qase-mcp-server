@@ -16,15 +16,23 @@ import { ProjectCodeSchema, IdSchema } from '../utils/validation.js';
 // ============================================================================
 
 /**
- * Defect severity as numeric ID matching the Qase API
+ * Defect severity as human-readable label.
+ * Converted to numeric ID before sending to the SDK.
  */
 const DefectSeveritySchema = z
-  .number()
-  .int()
-  .min(0)
-  .max(6)
+  .enum(['undefined', 'blocker', 'critical', 'major', 'normal', 'minor', 'trivial'])
   .optional()
-  .describe('Severity: 0=undefined, 1=blocker, 2=critical, 3=major, 4=normal, 5=minor, 6=trivial');
+  .describe('Defect severity level');
+
+const severityToId: Record<string, number> = {
+  undefined: 0,
+  blocker: 1,
+  critical: 2,
+  major: 3,
+  normal: 4,
+  minor: 5,
+  trivial: 6,
+};
 
 /**
  * Defect status values
@@ -161,7 +169,12 @@ async function getDefect(args: z.infer<typeof GetDefectSchema>) {
  */
 async function createDefect(args: z.infer<typeof CreateDefectSchema>) {
   const client = getApiClient();
-  const { code, ...defectData } = args;
+  const { code, severity, ...rest } = args;
+
+  const defectData = {
+    ...rest,
+    ...(severity !== undefined && { severity: severityToId[severity] }),
+  };
 
   const result = await toResultAsync(client.defects.createDefect(code, defectData as any));
 
@@ -178,7 +191,12 @@ async function createDefect(args: z.infer<typeof CreateDefectSchema>) {
  */
 async function updateDefect(args: z.infer<typeof UpdateDefectSchema>) {
   const client = getApiClient();
-  const { code, id, ...updateData } = args;
+  const { code, id, severity, ...rest } = args;
+
+  const updateData = {
+    ...rest,
+    ...(severity !== undefined && { severity: severityToId[severity] }),
+  };
 
   const result = await toResultAsync(client.defects.updateDefect(code, id, updateData as any));
 

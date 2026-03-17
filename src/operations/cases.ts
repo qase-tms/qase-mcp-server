@@ -71,7 +71,7 @@ const GetCaseSchema = z.object({
 /**
  * Schema for test case steps
  */
-const CaseEnumValueSchema = z.union([z.string(), z.number().int()]);
+const CaseEnumValueSchema = z.string();
 
 const TestStepSchema = z.object({
   action: z.string().describe('Step action description'),

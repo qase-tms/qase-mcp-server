@@ -8,7 +8,7 @@
  * - Manage tool lifecycle
  */
 
-import { Tool } from '@modelcontextprotocol/sdk/types.js';
+import { Tool, ToolAnnotations } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
 import { zodToJsonSchema } from 'zod-to-json-schema';
 
@@ -28,6 +28,7 @@ export interface ToolDefinition<T extends z.ZodType = z.ZodType> {
   description: string;
   schema: T;
   handler: ToolHandler;
+  annotations?: ToolAnnotations;
 }
 
 /**
@@ -54,7 +55,7 @@ export class ToolRegistry {
    * ```
    */
   register<T extends z.ZodType>(definition: ToolDefinition<T>): void {
-    const { name, description, schema, handler } = definition;
+    const { name, description, schema, handler, annotations } = definition;
 
     // Convert Zod schema to JSON Schema for MCP protocol
     // Using explicit type assertion to avoid TypeScript's deep type inference issues
@@ -93,6 +94,7 @@ export class ToolRegistry {
       name,
       description,
       inputSchema,
+      ...(annotations && { annotations }),
     });
 
     // Store handler function
@@ -170,3 +172,35 @@ export class ToolRegistry {
  * Import and use this instance across all operation modules
  */
 export const toolRegistry = new ToolRegistry();
+
+/**
+ * Reusable tool annotation presets
+ * Used by operation modules to annotate tools with behavior hints
+ */
+export const ReadAnnotation: ToolAnnotations = {
+  readOnlyHint: true,
+  destructiveHint: false,
+  idempotentHint: true,
+  openWorldHint: true,
+};
+
+export const CreateAnnotation: ToolAnnotations = {
+  readOnlyHint: false,
+  destructiveHint: false,
+  idempotentHint: false,
+  openWorldHint: true,
+};
+
+export const UpdateAnnotation: ToolAnnotations = {
+  readOnlyHint: false,
+  destructiveHint: false,
+  idempotentHint: true,
+  openWorldHint: true,
+};
+
+export const DeleteAnnotation: ToolAnnotations = {
+  readOnlyHint: false,
+  destructiveHint: true,
+  idempotentHint: true,
+  openWorldHint: true,
+};

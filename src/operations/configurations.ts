@@ -9,7 +9,12 @@
 
 import { z } from 'zod';
 import { getApiClient } from '../client/index.js';
-import { toolRegistry } from '../utils/registry.js';
+import {
+  toolRegistry,
+  ReadAnnotation,
+  CreateAnnotation,
+  DeleteAnnotation,
+} from '../utils/registry.js';
 import { toResultAsync, createToolError } from '../utils/errors.js';
 import { ProjectCodeSchema, IdSchema } from '../utils/validation.js';
 
@@ -132,6 +137,7 @@ toolRegistry.register({
   description: 'Get all configuration groups and their items in a project',
   schema: ListConfigurationsSchema,
   handler: listConfigurations,
+  annotations: ReadAnnotation,
 });
 
 toolRegistry.register({
@@ -139,6 +145,7 @@ toolRegistry.register({
   description: 'Create a new configuration group (e.g., Browser, OS) with items',
   schema: CreateConfigurationGroupSchema,
   handler: createConfigurationGroup,
+  annotations: CreateAnnotation,
 });
 
 toolRegistry.register({
@@ -146,4 +153,5 @@ toolRegistry.register({
   description: 'Delete a configuration group from a project',
   schema: DeleteConfigurationGroupSchema,
   handler: deleteConfigurationGroup,
+  annotations: DeleteAnnotation,
 });

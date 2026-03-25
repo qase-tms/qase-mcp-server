@@ -7,7 +7,13 @@
 
 import { z } from 'zod';
 import { getApiClient } from '../client/index.js';
-import { toolRegistry } from '../utils/registry.js';
+import {
+  toolRegistry,
+  ReadAnnotation,
+  CreateAnnotation,
+  UpdateAnnotation,
+  DeleteAnnotation,
+} from '../utils/registry.js';
 import { toResultAsync, createToolError } from '../utils/errors.js';
 import { ProjectCodeSchema, IdSchema, HashSchema } from '../utils/validation.js';
 
@@ -237,6 +243,7 @@ toolRegistry.register({
   description: 'Get all test results with optional filtering by run, case, status, etc.',
   schema: ListResultsSchema,
   handler: listResults,
+  annotations: ReadAnnotation,
 });
 
 toolRegistry.register({
@@ -244,6 +251,7 @@ toolRegistry.register({
   description: 'Get a specific test result by hash',
   schema: GetResultSchema,
   handler: getResult,
+  annotations: ReadAnnotation,
 });
 
 toolRegistry.register({
@@ -251,6 +259,7 @@ toolRegistry.register({
   description: 'Create a test result for a run',
   schema: CreateResultSchema,
   handler: createResult,
+  annotations: CreateAnnotation,
 });
 
 toolRegistry.register({
@@ -258,6 +267,7 @@ toolRegistry.register({
   description: 'Create multiple test results at once for efficiency',
   schema: CreateResultsBulkSchema,
   handler: createResultsBulk,
+  annotations: CreateAnnotation,
 });
 
 toolRegistry.register({
@@ -265,6 +275,7 @@ toolRegistry.register({
   description: 'Update an existing test result',
   schema: UpdateResultSchema,
   handler: updateResult,
+  annotations: UpdateAnnotation,
 });
 
 toolRegistry.register({
@@ -272,4 +283,5 @@ toolRegistry.register({
   description: 'Delete a test result from a run',
   schema: DeleteResultSchema,
   handler: deleteResult,
+  annotations: DeleteAnnotation,
 });

@@ -8,7 +8,12 @@
 import { z } from 'zod';
 import { createReadStream, existsSync } from 'fs';
 import { getApiClient } from '../client/index.js';
-import { toolRegistry } from '../utils/registry.js';
+import {
+  toolRegistry,
+  ReadAnnotation,
+  CreateAnnotation,
+  DeleteAnnotation,
+} from '../utils/registry.js';
 import { toResultAsync, createToolError } from '../utils/errors.js';
 import { ProjectCodeSchema, HashSchema } from '../utils/validation.js';
 
@@ -159,6 +164,7 @@ toolRegistry.register({
   description: 'Get all attachments with optional pagination',
   schema: ListAttachmentsSchema,
   handler: listAttachments,
+  annotations: ReadAnnotation,
 });
 
 toolRegistry.register({
@@ -166,6 +172,7 @@ toolRegistry.register({
   description: 'Get a specific attachment by hash, including download URL',
   schema: GetAttachmentSchema,
   handler: getAttachment,
+  annotations: ReadAnnotation,
 });
 
 toolRegistry.register({
@@ -173,6 +180,7 @@ toolRegistry.register({
   description: 'Upload a new attachment (provide file as base64 encoded string)',
   schema: UploadAttachmentSchema,
   handler: uploadAttachment,
+  annotations: CreateAnnotation,
 });
 
 toolRegistry.register({
@@ -180,4 +188,5 @@ toolRegistry.register({
   description: 'Delete an attachment by hash',
   schema: DeleteAttachmentSchema,
   handler: deleteAttachment,
+  annotations: DeleteAnnotation,
 });

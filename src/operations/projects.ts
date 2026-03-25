@@ -8,7 +8,12 @@
 import { z } from 'zod';
 import { ProjectCreateAccessEnum } from 'qase-api-client';
 import { getApiClient } from '../client/index.js';
-import { toolRegistry } from '../utils/registry.js';
+import {
+  toolRegistry,
+  ReadAnnotation,
+  CreateAnnotation,
+  DeleteAnnotation,
+} from '../utils/registry.js';
 import { toResultAsync, createToolError } from '../utils/errors.js';
 import { PaginationSchema, ProjectCodeSchema } from '../utils/validation.js';
 
@@ -203,6 +208,7 @@ toolRegistry.register({
   description: 'Get all projects with optional pagination',
   schema: ListProjectsSchema,
   handler: listProjects,
+  annotations: ReadAnnotation,
 });
 
 toolRegistry.register({
@@ -210,6 +216,7 @@ toolRegistry.register({
   description: 'Get a specific project by project code',
   schema: GetProjectSchema,
   handler: getProject,
+  annotations: ReadAnnotation,
 });
 
 toolRegistry.register({
@@ -217,6 +224,7 @@ toolRegistry.register({
   description: 'Create a new project in Qase',
   schema: CreateProjectSchema,
   handler: createProject,
+  annotations: CreateAnnotation,
 });
 
 toolRegistry.register({
@@ -224,6 +232,7 @@ toolRegistry.register({
   description: 'Delete a project by project code',
   schema: DeleteProjectSchema,
   handler: deleteProject,
+  annotations: DeleteAnnotation,
 });
 
 toolRegistry.register({
@@ -231,6 +240,7 @@ toolRegistry.register({
   description: 'Grant access to a project for a user or group',
   schema: GrantProjectAccessSchema,
   handler: grantProjectAccess,
+  annotations: CreateAnnotation,
 });
 
 toolRegistry.register({
@@ -238,4 +248,5 @@ toolRegistry.register({
   description: 'Revoke access to a project from a user or group',
   schema: RevokeProjectAccessSchema,
   handler: revokeProjectAccess,
+  annotations: DeleteAnnotation,
 });

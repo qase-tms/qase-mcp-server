@@ -9,7 +9,7 @@
 
 import { z } from 'zod';
 import { getApiClient } from '../client/index.js';
-import { toolRegistry } from '../utils/registry.js';
+import { toolRegistry, ReadAnnotation } from '../utils/registry.js';
 import { toResultAsync, createToolError } from '../utils/errors.js';
 
 // ============================================================================
@@ -55,4 +55,5 @@ toolRegistry.register({
     'Get all system field configurations (built-in fields like priority, severity, etc.)',
   schema: ListSystemFieldsSchema,
   handler: listSystemFields,
+  annotations: ReadAnnotation,
 });

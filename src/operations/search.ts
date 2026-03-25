@@ -7,7 +7,7 @@
 
 import { z } from 'zod';
 import { getApiClient } from '../client/index.js';
-import { toolRegistry } from '../utils/registry.js';
+import { toolRegistry, ReadAnnotation } from '../utils/registry.js';
 import { toResultAsync, createToolError } from '../utils/errors.js';
 import { QqlExamples } from '../utils/qql-helpers.js';
 
@@ -145,6 +145,7 @@ toolRegistry.register({
     'Search entities using Qase Query Language (QQL) with powerful filtering and cross-project queries',
   schema: QqlSearchSchema,
   handler: qqlSearch,
+  annotations: ReadAnnotation,
 });
 
 toolRegistry.register({
@@ -152,4 +153,5 @@ toolRegistry.register({
   description: 'Get help and examples for Qase Query Language (QQL) syntax',
   schema: GetQqlHelpSchema,
   handler: getQqlHelp,
+  annotations: ReadAnnotation,
 });

@@ -7,7 +7,13 @@
 
 import { z } from 'zod';
 import { getApiClient } from '../client/index.js';
-import { toolRegistry } from '../utils/registry.js';
+import {
+  toolRegistry,
+  ReadAnnotation,
+  CreateAnnotation,
+  UpdateAnnotation,
+  DeleteAnnotation,
+} from '../utils/registry.js';
 import { toResultAsync, createToolError } from '../utils/errors.js';
 import { ProjectCodeSchema, IdSchema } from '../utils/validation.js';
 
@@ -178,6 +184,7 @@ toolRegistry.register({
   description: 'Get all test suites in a project with optional search and pagination',
   schema: ListSuitesSchema,
   handler: listSuites,
+  annotations: ReadAnnotation,
 });
 
 toolRegistry.register({
@@ -185,6 +192,7 @@ toolRegistry.register({
   description: 'Get a specific test suite by project code and suite ID',
   schema: GetSuiteSchema,
   handler: getSuite,
+  annotations: ReadAnnotation,
 });
 
 toolRegistry.register({
@@ -192,6 +200,7 @@ toolRegistry.register({
   description: 'Create a new test suite in a project',
   schema: CreateSuiteSchema,
   handler: createSuite,
+  annotations: CreateAnnotation,
 });
 
 toolRegistry.register({
@@ -199,6 +208,7 @@ toolRegistry.register({
   description: 'Update an existing test suite',
   schema: UpdateSuiteSchema,
   handler: updateSuite,
+  annotations: UpdateAnnotation,
 });
 
 toolRegistry.register({
@@ -206,4 +216,5 @@ toolRegistry.register({
   description: 'Delete a test suite from a project',
   schema: DeleteSuiteSchema,
   handler: deleteSuite,
+  annotations: DeleteAnnotation,
 });

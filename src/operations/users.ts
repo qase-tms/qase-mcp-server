@@ -9,7 +9,7 @@
 
 import { z } from 'zod';
 import { getApiClient } from '../client/index.js';
-import { toolRegistry } from '../utils/registry.js';
+import { toolRegistry, ReadAnnotation } from '../utils/registry.js';
 import { toResultAsync, createToolError } from '../utils/errors.js';
 import { IdSchema } from '../utils/validation.js';
 
@@ -85,6 +85,7 @@ toolRegistry.register({
   description: 'Get all users in the workspace',
   schema: ListUsersSchema,
   handler: listUsers,
+  annotations: ReadAnnotation,
 });
 
 toolRegistry.register({
@@ -92,4 +93,5 @@ toolRegistry.register({
   description: 'Get a specific user by ID',
   schema: GetUserSchema,
   handler: getUser,
+  annotations: ReadAnnotation,
 });

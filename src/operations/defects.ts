@@ -7,7 +7,13 @@
 
 import { z } from 'zod';
 import { getApiClient } from '../client/index.js';
-import { toolRegistry } from '../utils/registry.js';
+import {
+  toolRegistry,
+  ReadAnnotation,
+  CreateAnnotation,
+  UpdateAnnotation,
+  DeleteAnnotation,
+} from '../utils/registry.js';
 import { toResultAsync, createToolError } from '../utils/errors.js';
 import { ProjectCodeSchema, IdSchema } from '../utils/validation.js';
 
@@ -268,6 +274,7 @@ toolRegistry.register({
   description: 'Get all defects in a project with optional filtering by status and severity',
   schema: ListDefectsSchema,
   handler: listDefects,
+  annotations: ReadAnnotation,
 });
 
 toolRegistry.register({
@@ -275,6 +282,7 @@ toolRegistry.register({
   description: 'Get a specific defect by project code and defect ID',
   schema: GetDefectSchema,
   handler: getDefect,
+  annotations: ReadAnnotation,
 });
 
 toolRegistry.register({
@@ -282,6 +290,7 @@ toolRegistry.register({
   description: 'Create a new defect/bug report in a project',
   schema: CreateDefectSchema,
   handler: createDefect,
+  annotations: CreateAnnotation,
 });
 
 toolRegistry.register({
@@ -289,6 +298,7 @@ toolRegistry.register({
   description: 'Update an existing defect',
   schema: UpdateDefectSchema,
   handler: updateDefect,
+  annotations: UpdateAnnotation,
 });
 
 toolRegistry.register({
@@ -296,6 +306,7 @@ toolRegistry.register({
   description: 'Delete a defect from a project',
   schema: DeleteDefectSchema,
   handler: deleteDefect,
+  annotations: DeleteAnnotation,
 });
 
 toolRegistry.register({
@@ -303,6 +314,7 @@ toolRegistry.register({
   description: 'Mark a defect as resolved',
   schema: ResolveDefectSchema,
   handler: resolveDefect,
+  annotations: UpdateAnnotation,
 });
 
 toolRegistry.register({
@@ -310,4 +322,5 @@ toolRegistry.register({
   description: 'Update the status of a defect (open, in_progress, resolved, invalid)',
   schema: UpdateDefectStatusSchema,
   handler: updateDefectStatus,
+  annotations: UpdateAnnotation,
 });

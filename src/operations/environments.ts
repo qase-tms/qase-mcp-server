@@ -7,7 +7,13 @@
 
 import { z } from 'zod';
 import { getApiClient } from '../client/index.js';
-import { toolRegistry } from '../utils/registry.js';
+import {
+  toolRegistry,
+  ReadAnnotation,
+  CreateAnnotation,
+  UpdateAnnotation,
+  DeleteAnnotation,
+} from '../utils/registry.js';
 import { toResultAsync, createToolError } from '../utils/errors.js';
 import { ProjectCodeSchema, IdSchema } from '../utils/validation.js';
 
@@ -167,6 +173,7 @@ toolRegistry.register({
   description: 'Get all test environments in a project',
   schema: ListEnvironmentsSchema,
   handler: listEnvironments,
+  annotations: ReadAnnotation,
 });
 
 toolRegistry.register({
@@ -174,6 +181,7 @@ toolRegistry.register({
   description: 'Get a specific environment by project code and environment ID',
   schema: GetEnvironmentSchema,
   handler: getEnvironment,
+  annotations: ReadAnnotation,
 });
 
 toolRegistry.register({
@@ -181,6 +189,7 @@ toolRegistry.register({
   description: 'Create a new test environment (staging, production, etc.)',
   schema: CreateEnvironmentSchema,
   handler: createEnvironment,
+  annotations: CreateAnnotation,
 });
 
 toolRegistry.register({
@@ -188,6 +197,7 @@ toolRegistry.register({
   description: 'Update an existing test environment',
   schema: UpdateEnvironmentSchema,
   handler: updateEnvironment,
+  annotations: UpdateAnnotation,
 });
 
 toolRegistry.register({
@@ -195,4 +205,5 @@ toolRegistry.register({
   description: 'Delete a test environment from a project',
   schema: DeleteEnvironmentSchema,
   handler: deleteEnvironment,
+  annotations: DeleteAnnotation,
 });

@@ -7,7 +7,13 @@
 
 import { z } from 'zod';
 import { getApiClient } from '../client/index.js';
-import { toolRegistry } from '../utils/registry.js';
+import {
+  toolRegistry,
+  ReadAnnotation,
+  CreateAnnotation,
+  UpdateAnnotation,
+  DeleteAnnotation,
+} from '../utils/registry.js';
 import { toResultAsync, createToolError } from '../utils/errors.js';
 import { ProjectCodeSchema, IdSchema } from '../utils/validation.js';
 
@@ -248,6 +254,7 @@ toolRegistry.register({
   description: 'Get all test runs in a project with optional filtering and pagination',
   schema: ListRunsSchema,
   handler: listRuns,
+  annotations: ReadAnnotation,
 });
 
 toolRegistry.register({
@@ -255,6 +262,7 @@ toolRegistry.register({
   description: 'Get a specific test run by project code and run ID',
   schema: GetRunSchema,
   handler: getRun,
+  annotations: ReadAnnotation,
 });
 
 toolRegistry.register({
@@ -262,6 +270,7 @@ toolRegistry.register({
   description: 'Create a new test run in a project',
   schema: CreateRunSchema,
   handler: createRun,
+  annotations: CreateAnnotation,
 });
 
 toolRegistry.register({
@@ -269,6 +278,7 @@ toolRegistry.register({
   description: 'Delete a test run from a project',
   schema: DeleteRunSchema,
   handler: deleteRun,
+  annotations: DeleteAnnotation,
 });
 
 toolRegistry.register({
@@ -276,6 +286,7 @@ toolRegistry.register({
   description: 'Mark a test run as complete',
   schema: CompleteRunSchema,
   handler: completeRun,
+  annotations: UpdateAnnotation,
 });
 
 toolRegistry.register({
@@ -283,6 +294,7 @@ toolRegistry.register({
   description: 'Get or create a public link for sharing a test run externally',
   schema: GetRunPublicLinkSchema,
   handler: getRunPublicLink,
+  annotations: CreateAnnotation,
 });
 
 toolRegistry.register({
@@ -290,4 +302,5 @@ toolRegistry.register({
   description: 'Delete the public link for a test run',
   schema: DeleteRunPublicLinkSchema,
   handler: deleteRunPublicLink,
+  annotations: DeleteAnnotation,
 });

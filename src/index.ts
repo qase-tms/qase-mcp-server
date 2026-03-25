@@ -52,7 +52,7 @@ function createServer(): Server {
   const server = new Server(
     {
       name: 'qase-mcp-server',
-      version: '1.1.0',
+      version: '1.1.2',
     },
     {
       capabilities: {
@@ -183,7 +183,7 @@ async function main() {
 
   // Log server information to stderr (stdout is used for MCP protocol)
   console.error('╔══════════════════════════════════════════════════════════════╗');
-  console.error('║              Qase MCP Server v1.1.0                         ║');
+  console.error('║              Qase MCP Server v1.1.2                         ║');
   console.error('╚══════════════════════════════════════════════════════════════╝');
   console.error('');
   console.error(`✓ Registered ${toolRegistry.getToolCount()} tools`);

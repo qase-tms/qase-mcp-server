@@ -9,7 +9,7 @@
 
 import { z } from 'zod';
 import { getApiClient } from '../client/index.js';
-import { toolRegistry } from '../utils/registry.js';
+import { toolRegistry, ReadAnnotation } from '../utils/registry.js';
 import { toResultAsync, createToolError } from '../utils/errors.js';
 import { IdSchema } from '../utils/validation.js';
 
@@ -100,6 +100,7 @@ toolRegistry.register({
   description: 'Get all shared parameters with optional pagination',
   schema: ListSharedParametersSchema,
   handler: listSharedParameters,
+  annotations: ReadAnnotation,
 });
 
 toolRegistry.register({
@@ -107,4 +108,5 @@ toolRegistry.register({
   description: 'Get a specific shared parameter by ID',
   schema: GetSharedParameterSchema,
   handler: getSharedParameter,
+  annotations: ReadAnnotation,
 });

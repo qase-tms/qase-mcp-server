@@ -8,12 +8,12 @@
     "url": "https://github.com/qase-tms/qase-mcp-server",
     "source": "github"
   },
-  "version": "1.1.1",
+  "version": "1.1.2",
   "packages": [
     {
       "registryType": "npm",
       "identifier": "@qase/mcp-server",
-      "version": "1.1.1",
+      "version": "1.1.2",
       "transport": {
         "type": "stdio"
       },
@@ -32,5 +32,10 @@
         }
       ]
     }
-  ]
+  ],
+  "_meta": {
+    "io.modelcontextprotocol.registry/publisher-provided": {
+      "privacyPolicyUrl": "https://qase.io/privacy"
+    }
+  }
 }

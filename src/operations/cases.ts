@@ -8,7 +8,13 @@
 import { z } from 'zod';
 import { TestCaseExternalIssuesTypeEnum } from 'qase-api-client';
 import { getApiClient } from '../client/index.js';
-import { toolRegistry } from '../utils/registry.js';
+import {
+  toolRegistry,
+  ReadAnnotation,
+  CreateAnnotation,
+  UpdateAnnotation,
+  DeleteAnnotation,
+} from '../utils/registry.js';
 import { toResultAsync, createToolError } from '../utils/errors.js';
 import { normalizeCaseEnums } from '../utils/case-enums.js';
 import { ProjectCodeSchema, IdSchema } from '../utils/validation.js';
@@ -74,9 +80,15 @@ const GetCaseSchema = z.object({
 const CaseEnumValueSchema = z.string();
 
 const TestStepSchema = z.object({
-  action: z.string().describe('Step action description'),
+  action: z.string().optional().describe('Step action description (used for classic steps)'),
   expected_result: z.string().optional().describe('Expected result for this step'),
   data: z.string().optional().describe('Test data for this step'),
+  value: z
+    .string()
+    .optional()
+    .describe(
+      'Gherkin scenario text (used when steps_type is "gherkin"). Example: "Given a user exists\\nWhen they log in\\nThen they see the dashboard"',
+    ),
   attachments: z.array(z.string()).optional().describe('Array of attachment hashes'),
 });
 
@@ -392,6 +404,7 @@ toolRegistry.register({
   description: 'Get all test cases in a project with optional filtering and pagination',
   schema: ListCasesSchema,
   handler: listCases,
+  annotations: ReadAnnotation,
 });
 
 toolRegistry.register({
@@ -399,6 +412,7 @@ toolRegistry.register({
   description: 'Get a specific test case by project code and case ID',
   schema: GetCaseSchema,
   handler: getCase,
+  annotations: ReadAnnotation,
 });
 
 toolRegistry.register({
@@ -406,6 +420,7 @@ toolRegistry.register({
   description: 'Create a new test case in a project',
   schema: CreateCaseSchema,
   handler: createCase,
+  annotations: CreateAnnotation,
 });
 
 toolRegistry.register({
@@ -413,6 +428,7 @@ toolRegistry.register({
   description: 'Update an existing test case',
   schema: UpdateCaseSchema,
   handler: updateCase,
+  annotations: UpdateAnnotation,
 });
 
 toolRegistry.register({
@@ -420,6 +436,7 @@ toolRegistry.register({
   description: 'Delete a test case from a project',
   schema: DeleteCaseSchema,
   handler: deleteCase,
+  annotations: DeleteAnnotation,
 });
 
 toolRegistry.register({
@@ -427,6 +444,7 @@ toolRegistry.register({
   description: 'Create multiple test cases at once in a project',
   schema: BulkCreateCasesSchema,
   handler: bulkCreateCases,
+  annotations: CreateAnnotation,
 });
 
 toolRegistry.register({
@@ -434,6 +452,7 @@ toolRegistry.register({
   description: 'Attach an external issue (e.g., Jira ticket) to a test case',
   schema: AttachExternalIssueSchema,
   handler: attachExternalIssue,
+  annotations: CreateAnnotation,
 });
 
 toolRegistry.register({
@@ -441,4 +460,5 @@ toolRegistry.register({
   description: 'Detach an external issue from a test case',
   schema: DetachExternalIssueSchema,
   handler: detachExternalIssue,
+  annotations: DeleteAnnotation,
 });

@@ -7,7 +7,7 @@
 
 import { z } from 'zod';
 import { getApiClient } from '../client/index.js';
-import { toolRegistry } from '../utils/registry.js';
+import { toolRegistry, ReadAnnotation } from '../utils/registry.js';
 import { toResultAsync, createToolError } from '../utils/errors.js';
 import { IdSchema } from '../utils/validation.js';
 
@@ -79,6 +79,7 @@ toolRegistry.register({
   description: 'Get all test case authors with optional pagination',
   schema: ListAuthorsSchema,
   handler: listAuthors,
+  annotations: ReadAnnotation,
 });
 
 toolRegistry.register({
@@ -86,4 +87,5 @@ toolRegistry.register({
   description: 'Get a specific author by ID',
   schema: GetAuthorSchema,
   handler: getAuthor,
+  annotations: ReadAnnotation,
 });

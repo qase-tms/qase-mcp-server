@@ -7,7 +7,13 @@
 
 import { z } from 'zod';
 import { getApiClient } from '../client/index.js';
-import { toolRegistry } from '../utils/registry.js';
+import {
+  toolRegistry,
+  ReadAnnotation,
+  CreateAnnotation,
+  UpdateAnnotation,
+  DeleteAnnotation,
+} from '../utils/registry.js';
 import { toResultAsync, createToolError } from '../utils/errors.js';
 import { ProjectCodeSchema, HashSchema } from '../utils/validation.js';
 
@@ -172,6 +178,7 @@ toolRegistry.register({
   description: 'Get all shared steps in a project with optional search and pagination',
   schema: ListSharedStepsSchema,
   handler: listSharedSteps,
+  annotations: ReadAnnotation,
 });
 
 toolRegistry.register({
@@ -179,6 +186,7 @@ toolRegistry.register({
   description: 'Get a specific shared step by project code and hash',
   schema: GetSharedStepSchema,
   handler: getSharedStep,
+  annotations: ReadAnnotation,
 });
 
 toolRegistry.register({
@@ -186,6 +194,7 @@ toolRegistry.register({
   description: 'Create a new reusable shared step in a project',
   schema: CreateSharedStepSchema,
   handler: createSharedStep,
+  annotations: CreateAnnotation,
 });
 
 toolRegistry.register({
@@ -193,6 +202,7 @@ toolRegistry.register({
   description: 'Update an existing shared step',
   schema: UpdateSharedStepSchema,
   handler: updateSharedStep,
+  annotations: UpdateAnnotation,
 });
 
 toolRegistry.register({
@@ -200,4 +210,5 @@ toolRegistry.register({
   description: 'Delete a shared step from a project',
   schema: DeleteSharedStepSchema,
   handler: deleteSharedStep,
+  annotations: DeleteAnnotation,
 });

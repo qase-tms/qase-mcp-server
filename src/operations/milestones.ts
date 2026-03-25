@@ -7,7 +7,13 @@
 
 import { z } from 'zod';
 import { getApiClient } from '../client/index.js';
-import { toolRegistry } from '../utils/registry.js';
+import {
+  toolRegistry,
+  ReadAnnotation,
+  CreateAnnotation,
+  UpdateAnnotation,
+  DeleteAnnotation,
+} from '../utils/registry.js';
 import { toResultAsync, createToolError } from '../utils/errors.js';
 import { ProjectCodeSchema, IdSchema } from '../utils/validation.js';
 
@@ -164,6 +170,7 @@ toolRegistry.register({
   description: 'Get all milestones in a project with optional search and pagination',
   schema: ListMilestonesSchema,
   handler: listMilestones,
+  annotations: ReadAnnotation,
 });
 
 toolRegistry.register({
@@ -171,6 +178,7 @@ toolRegistry.register({
   description: 'Get a specific milestone by project code and milestone ID',
   schema: GetMilestoneSchema,
   handler: getMilestone,
+  annotations: ReadAnnotation,
 });
 
 toolRegistry.register({
@@ -178,6 +186,7 @@ toolRegistry.register({
   description: 'Create a new milestone for organizing tests by releases or sprints',
   schema: CreateMilestoneSchema,
   handler: createMilestone,
+  annotations: CreateAnnotation,
 });
 
 toolRegistry.register({
@@ -185,6 +194,7 @@ toolRegistry.register({
   description: 'Update an existing milestone',
   schema: UpdateMilestoneSchema,
   handler: updateMilestone,
+  annotations: UpdateAnnotation,
 });
 
 toolRegistry.register({
@@ -192,4 +202,5 @@ toolRegistry.register({
   description: 'Delete a milestone from a project',
   schema: DeleteMilestoneSchema,
   handler: deleteMilestone,
+  annotations: DeleteAnnotation,
 });

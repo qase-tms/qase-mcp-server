@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.2]
+
+### Added
+
+- Tool annotations (`readOnlyHint`, `destructiveHint`, `idempotentHint`, `openWorldHint`) on all tools for MCP Directory compliance ([#27](https://github.com/qase-tms/qase-mcp-server/issues/27))
+- Gherkin step support: `TestStepSchema` now includes `value` field for Gherkin scenarios (`Given/When/Then`)
+- `LICENSE` file (MIT)
+- Privacy policy URL in `server.json` manifest
+- `icon.png` — Qase logo for MCP Directory listing
+
+### Changed
+
+- Updated `qase-api-client` from 1.1.2 to 1.1.3 (adds `steps_type` enum and `value` to TestStep in OpenAPI spec)
+- Guarded `prepare` script to prevent husky failures in production installs
+
 ## [1.1.0]
 
 ### Added

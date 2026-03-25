@@ -7,7 +7,13 @@
 
 import { z } from 'zod';
 import { getApiClient } from '../client/index.js';
-import { toolRegistry } from '../utils/registry.js';
+import {
+  toolRegistry,
+  ReadAnnotation,
+  CreateAnnotation,
+  UpdateAnnotation,
+  DeleteAnnotation,
+} from '../utils/registry.js';
 import { toResultAsync, createToolError } from '../utils/errors.js';
 import { ProjectCodeSchema, IdSchema } from '../utils/validation.js';
 
@@ -165,6 +171,7 @@ toolRegistry.register({
   description: 'Get all test plans in a project with optional pagination',
   schema: ListPlansSchema,
   handler: listPlans,
+  annotations: ReadAnnotation,
 });
 
 toolRegistry.register({
@@ -172,6 +179,7 @@ toolRegistry.register({
   description: 'Get a specific test plan by project code and plan ID',
   schema: GetPlanSchema,
   handler: getPlan,
+  annotations: ReadAnnotation,
 });
 
 toolRegistry.register({
@@ -179,6 +187,7 @@ toolRegistry.register({
   description: 'Create a new test plan with selected test cases',
   schema: CreatePlanSchema,
   handler: createPlan,
+  annotations: CreateAnnotation,
 });
 
 toolRegistry.register({
@@ -186,6 +195,7 @@ toolRegistry.register({
   description: 'Update an existing test plan',
   schema: UpdatePlanSchema,
   handler: updatePlan,
+  annotations: UpdateAnnotation,
 });
 
 toolRegistry.register({
@@ -193,4 +203,5 @@ toolRegistry.register({
   description: 'Delete a test plan from a project',
   schema: DeletePlanSchema,
   handler: deletePlan,
+  annotations: DeleteAnnotation,
 });

@@ -7,7 +7,13 @@
 
 import { z } from 'zod';
 import { getApiClient } from '../client/index.js';
-import { toolRegistry } from '../utils/registry.js';
+import {
+  toolRegistry,
+  ReadAnnotation,
+  CreateAnnotation,
+  UpdateAnnotation,
+  DeleteAnnotation,
+} from '../utils/registry.js';
 import { toResultAsync, createToolError } from '../utils/errors.js';
 import { IdSchema } from '../utils/validation.js';
 
@@ -183,6 +189,7 @@ toolRegistry.register({
   description: 'Get all custom field definitions with optional pagination',
   schema: ListCustomFieldsSchema,
   handler: listCustomFields,
+  annotations: ReadAnnotation,
 });
 
 toolRegistry.register({
@@ -190,6 +197,7 @@ toolRegistry.register({
   description: 'Get a specific custom field definition by ID',
   schema: GetCustomFieldSchema,
   handler: getCustomField,
+  annotations: ReadAnnotation,
 });
 
 toolRegistry.register({
@@ -197,6 +205,7 @@ toolRegistry.register({
   description: 'Create a new custom field for extending entity data',
   schema: CreateCustomFieldSchema,
   handler: createCustomField,
+  annotations: CreateAnnotation,
 });
 
 toolRegistry.register({
@@ -204,6 +213,7 @@ toolRegistry.register({
   description: 'Update an existing custom field definition',
   schema: UpdateCustomFieldSchema,
   handler: updateCustomField,
+  annotations: UpdateAnnotation,
 });
 
 toolRegistry.register({
@@ -211,4 +221,5 @@ toolRegistry.register({
   description: 'Delete a custom field definition',
   schema: DeleteCustomFieldSchema,
   handler: deleteCustomField,
+  annotations: DeleteAnnotation,
 });

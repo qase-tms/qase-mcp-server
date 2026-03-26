@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.4]
+
+### Changed
+
+- Updated `qase-api-client` from 1.1.3 to 1.1.5
+
+### Added
+
+- Pre-commit hook to verify version consistency across `package.json` and `server.json`
+
 ## [1.1.3]
 
 ### Changed
@@ -217,6 +227,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Results are identified by hash, not numeric ID
 - Custom fields accessed via bracket notation in QQL: `cf["Field Name"]`
 
+[1.1.4]: https://github.com/qase-tms/qase-mcp-server/compare/v1.1.3...v1.1.4
 [1.1.3]: https://github.com/qase-tms/qase-mcp-server/compare/v1.1.2...v1.1.3
 [1.1.2]: https://github.com/qase-tms/qase-mcp-server/compare/v1.1.0...v1.1.2
 [1.1.0]: https://github.com/qase-tms/qase-mcp-server/compare/v1.0.0...v1.1.0

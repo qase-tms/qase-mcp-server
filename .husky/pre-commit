@@ -1,2 +1,19 @@
+#!/bin/sh
+
+# Check that version is consistent across package.json and server.json
+pkg_version=$(node -p "require('./package.json').version")
+server_version=$(node -p "require('./server.json').version")
+server_pkg_version=$(node -p "require('./server.json').packages[0].version")
+
+if [ "$pkg_version" != "$server_version" ] || [ "$pkg_version" != "$server_pkg_version" ]; then
+  echo "ERROR: Version mismatch detected!"
+  echo "  package.json:          $pkg_version"
+  echo "  server.json (root):    $server_version"
+  echo "  server.json (package): $server_pkg_version"
+  echo ""
+  echo "Please make sure all versions are in sync before committing."
+  exit 1
+fi
+
 npx lint-staged
 npm test

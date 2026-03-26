@@ -20,6 +20,7 @@ import { toolRegistry } from './utils/registry.js';
 import { formatApiError, ToolExecutionError } from './utils/errors.js';
 import { setupSSETransport } from './transports/sse.js';
 import { setupStreamableHttpTransport } from './transports/streamableHttp.js';
+import { VERSION } from './version.js';
 
 // Import operation modules - each module registers its tools on import
 import './operations/projects.js';
@@ -52,7 +53,7 @@ function createServer(): Server {
   const server = new Server(
     {
       name: 'qase-mcp-server',
-      version: '1.1.2',
+      version: VERSION,
     },
     {
       capabilities: {

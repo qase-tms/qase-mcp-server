@@ -32,6 +32,9 @@ import {
 import axios, { AxiosRequestConfig } from 'axios';
 import FormData from 'form-data';
 import { requestTokenStorage } from '../utils/auth-context.js';
+import { VERSION } from '../version.js';
+
+const USER_AGENT = `qase-mcp/${VERSION}`;
 
 /**
  * Configuration for the Qase API client
@@ -75,6 +78,9 @@ class QaseApiClient {
       apiKey: config.token,
       basePath: `${config.host}/v1`,
       formDataCtor: FormData as any,
+      baseOptions: {
+        headers: { 'User-Agent': USER_AGENT },
+      },
     });
 
     this.projects = new ProjectsApi(cfg);
@@ -107,6 +113,7 @@ class QaseApiClient {
       headers: {
         Token: this.token,
         'Content-Type': 'application/json',
+        'User-Agent': USER_AGENT,
         ...options.headers,
       },
       ...options,

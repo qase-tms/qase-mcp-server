@@ -42,6 +42,9 @@ auth.json
 # MCP config (contains API tokens)
 .mcp.json
 
+# Auto-generated version file
+src/version.ts
+
 # Local scripts (smoke tests, etc.)
 scripts/
 

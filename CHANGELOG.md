@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.3]
+
+### Changed
+
+- Updated default headers for API clients: all requests now include `User-Agent: qase-mcp/{version}`
+- Server `version` in MCP handshake now uses the auto-generated `VERSION` constant instead of a hardcoded string
+
 ## [1.1.2]
 
 ### Added
@@ -210,5 +217,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Results are identified by hash, not numeric ID
 - Custom fields accessed via bracket notation in QQL: `cf["Field Name"]`
 
+[1.1.3]: https://github.com/qase-tms/qase-mcp-server/compare/v1.1.2...v1.1.3
+[1.1.2]: https://github.com/qase-tms/qase-mcp-server/compare/v1.1.0...v1.1.2
 [1.1.0]: https://github.com/qase-tms/qase-mcp-server/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/qase-tms/qase-mcp-server/releases/tag/v1.0.0

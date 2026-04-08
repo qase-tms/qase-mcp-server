@@ -183,8 +183,11 @@ async function main() {
   const { transport, port, host } = parseArgs();
 
   // Log server information to stderr (stdout is used for MCP protocol)
+  const title = `Qase MCP Server v${VERSION}`;
+  const padding = 60 - title.length;
+  const paddedTitle = `║  ${title}${' '.repeat(Math.max(padding - 2, 0))}║`;
   console.error('╔══════════════════════════════════════════════════════════════╗');
-  console.error('║              Qase MCP Server v1.1.2                         ║');
+  console.error(paddedTitle);
   console.error('╚══════════════════════════════════════════════════════════════╝');
   console.error('');
   console.error(`✓ Registered ${toolRegistry.getToolCount()} tools`);

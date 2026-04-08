@@ -1,0 +1,27 @@
+package.json
+  46ac0b6254376a2c 3
+server.json
+  46ac0b6254376a2c 11,16
+CHANGELOG.md
+  46ac0b6254376a2c 8-13
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.5",
+  "base_commit_sha": "00d232127093aacd41d3ab938ebb79b908d8cbab",
+  "prompts": {
+    "46ac0b6254376a2c": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "e265f5c7-935c-458d-8efe-b538f217a004",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Dmitrii Gridnev",
+      "messages": [],
+      "total_additions": 9,
+      "total_deletions": 3,
+      "accepted_lines": 9,
+      "overriden_lines": 0
+    }
+  }
+}

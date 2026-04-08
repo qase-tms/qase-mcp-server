@@ -1,0 +1,23 @@
+src/index.ts
+  46ac0b6254376a2c 186-188,190
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.5",
+  "base_commit_sha": "6f77303e006dd2ab8aeeac4d6993feec3c7e4fd8",
+  "prompts": {
+    "46ac0b6254376a2c": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "e265f5c7-935c-458d-8efe-b538f217a004",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Dmitrii Gridnev",
+      "messages": [],
+      "total_additions": 12,
+      "total_deletions": 9,
+      "accepted_lines": 4,
+      "overriden_lines": 0
+    }
+  }
+}

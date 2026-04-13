@@ -1,0 +1,25 @@
+src/http/dedupe.ts
+  77cba31c751e5b9b 1-65
+src/http/dedupe.test.ts
+  77cba31c751e5b9b 1-62
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8",
+  "base_commit_sha": "034cb155b6d4b74d9dcac5e3c9188bf4a5b635c6",
+  "prompts": {
+    "77cba31c751e5b9b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "4103c30d-6035-4298-8179-cb2733d3da72",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Dmitrii Gridnev",
+      "messages": [],
+      "total_additions": 127,
+      "total_deletions": 0,
+      "accepted_lines": 360,
+      "overriden_lines": 0
+    }
+  }
+}

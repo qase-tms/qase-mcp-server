@@ -36,3 +36,34 @@ describe('InMemoryCache — basic operations', () => {
     await expect(cache.delete('nope')).resolves.toBeUndefined();
   });
 });
+
+describe('InMemoryCache — TTL expiration', () => {
+  beforeEach(() => {
+    jest.useFakeTimers();
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  it('returns undefined after TTL elapses', async () => {
+    const cache = new InMemoryCache({ maxEntries: 10, maxPerTenant: 10, sweepIntervalMs: 0 });
+    await cache.set('k', 'v', 1000);
+
+    jest.advanceTimersByTime(999);
+    expect(await cache.get('k')).toBe('v');
+
+    jest.advanceTimersByTime(2);
+    expect(await cache.get('k')).toBeUndefined();
+
+    await cache.close();
+  });
+
+  it('returns value exactly at the boundary when strictly less than TTL', async () => {
+    const cache = new InMemoryCache({ maxEntries: 10, maxPerTenant: 10, sweepIntervalMs: 0 });
+    await cache.set('k', 'v', 1000);
+    jest.advanceTimersByTime(500);
+    expect(await cache.get('k')).toBe('v');
+    await cache.close();
+  });
+});

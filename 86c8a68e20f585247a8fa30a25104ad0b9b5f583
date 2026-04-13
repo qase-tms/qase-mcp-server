@@ -1,0 +1,25 @@
+src/cache/circuit-breaker.test.ts
+  77cba31c751e5b9b 1-94
+src/cache/circuit-breaker.ts
+  77cba31c751e5b9b 1-83
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8",
+  "base_commit_sha": "86c8a68e20f585247a8fa30a25104ad0b9b5f583",
+  "prompts": {
+    "77cba31c751e5b9b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "4103c30d-6035-4298-8179-cb2733d3da72",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Dmitrii Gridnev",
+      "messages": [],
+      "total_additions": 177,
+      "total_deletions": 0,
+      "accepted_lines": 407,
+      "overriden_lines": 0
+    }
+  }
+}

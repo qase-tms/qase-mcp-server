@@ -1,0 +1,25 @@
+src/http/index.ts
+  77cba31c751e5b9b 1-5
+src/client/index.ts
+  77cba31c751e5b9b 32-33,73,79-84,87,91-108,115
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8",
+  "base_commit_sha": "5efec73f4c8b337e9832d69852dd1551379350fc",
+  "prompts": {
+    "77cba31c751e5b9b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "4103c30d-6035-4298-8179-cb2733d3da72",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Dmitrii Gridnev",
+      "messages": [],
+      "total_additions": 34,
+      "total_deletions": 25,
+      "accepted_lines": 267,
+      "overriden_lines": 0
+    }
+  }
+}

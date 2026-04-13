@@ -14,6 +14,7 @@ interface FakeRedis {
 function makeFakeRedis(): FakeRedis {
   const store = new Map<string, string>();
   const expiresAt = new Map<string, number>();
+  let scanSnapshot: string[] = [];
 
   const purgeExpired = (key: string): boolean => {
     const exp = expiresAt.get(key);
@@ -45,10 +46,20 @@ function makeFakeRedis(): FakeRedis {
       }
       return n;
     },
-    async scan(_cursor, _m, pattern, _c, _count) {
+    async scan(cursor, _m, pattern, _c, count) {
       const re = new RegExp('^' + pattern.replace(/\*/g, '.*').replace(/\?/g, '.') + '$');
-      const matches = Array.from(store.keys()).filter((k) => re.test(k));
-      return ['0', matches];
+      // Snapshot all keys at the start of a new scan (cursor === '0').
+      // Re-use the same snapshot on subsequent pages so that deletions
+      // during iteration don't shift the positional cursor.
+      const start = Number(cursor) || 0;
+      if (start === 0) {
+        scanSnapshot = Array.from(store.keys());
+      }
+      const end = start + count;
+      const page = scanSnapshot.slice(start, end);
+      const slice = page.filter((k) => re.test(k));
+      const nextCursor = end >= scanSnapshot.length ? '0' : String(end);
+      return [nextCursor, slice];
     },
     async unlink(...keys) {
       return this.del(...keys);
@@ -108,5 +119,33 @@ describe('RedisCache — basic ops', () => {
     const cache = new RedisCache(fake as any);
     await cache.close();
     expect(quitSpy).toHaveBeenCalled();
+  });
+});
+
+describe('RedisCache — deleteByPrefix', () => {
+  it('removes every entry whose key matches `${prefix}*` across SCAN pages', async () => {
+    const fake = makeFakeRedis();
+    const cache = new RedisCache(fake as any);
+    for (let i = 0; i < 250; i++) {
+      await cache.set(`v1:h:tenantA:r${i}::`, i, 60_000);
+    }
+    await cache.set('v1:h:tenantB:r1::', 'B', 60_000);
+
+    await cache.deleteByPrefix('v1:h:tenantA:');
+
+    for (let i = 0; i < 250; i++) {
+      expect(await cache.get(`v1:h:tenantA:r${i}::`)).toBeUndefined();
+    }
+    expect(await cache.get('v1:h:tenantB:r1::')).toBe('B');
+    await cache.close();
+  });
+
+  it('no-ops when the prefix matches nothing', async () => {
+    const fake = makeFakeRedis();
+    const cache = new RedisCache(fake as any);
+    await cache.set('v1:h:tenantA:r1::', 1, 60_000);
+    await cache.deleteByPrefix('v1:h:tenantZ:');
+    expect(await cache.get('v1:h:tenantA:r1::')).toBe(1);
+    await cache.close();
   });
 });

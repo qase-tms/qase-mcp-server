@@ -54,9 +54,17 @@ export class RedisCache implements CacheBackend {
     await this.client.del(key);
   }
 
-  async deleteByPrefix(_prefix: string): Promise<void> {
-    // Implemented in Task 6.
-    throw new Error('RedisCache.deleteByPrefix: not implemented until Task 6');
+  async deleteByPrefix(prefix: string): Promise<void> {
+    const pattern = `${prefix}*`;
+    let cursor = '0';
+    do {
+      const [next, keys] = await this.client.scan(cursor, 'MATCH', pattern, 'COUNT', 200);
+      if (keys.length > 0) {
+        // UNLINK is non-blocking in Redis 4+; falls back semantically to DEL.
+        await this.client.unlink(...keys);
+      }
+      cursor = next;
+    } while (cursor !== '0');
   }
 
   async close(): Promise<void> {

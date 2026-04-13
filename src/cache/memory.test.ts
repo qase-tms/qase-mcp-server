@@ -67,3 +67,20 @@ describe('InMemoryCache — TTL expiration', () => {
     await cache.close();
   });
 });
+
+describe('InMemoryCache — deleteByPrefix', () => {
+  it('removes only entries whose keys start with the prefix', async () => {
+    const cache = new InMemoryCache({ maxEntries: 10, maxPerTenant: 10, sweepIntervalMs: 0 });
+    await cache.set('v1:api.qase.io:tenantA:system_fields::', 1, 60_000);
+    await cache.set('v1:api.qase.io:tenantA:users::', 2, 60_000);
+    await cache.set('v1:api.qase.io:tenantB:system_fields::', 3, 60_000);
+
+    await cache.deleteByPrefix('v1:api.qase.io:tenantA:');
+
+    expect(await cache.get('v1:api.qase.io:tenantA:system_fields::')).toBeUndefined();
+    expect(await cache.get('v1:api.qase.io:tenantA:users::')).toBeUndefined();
+    expect(await cache.get('v1:api.qase.io:tenantB:system_fields::')).toBe(3);
+
+    await cache.close();
+  });
+});

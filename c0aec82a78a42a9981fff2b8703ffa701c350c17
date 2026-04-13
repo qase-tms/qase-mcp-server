@@ -1,0 +1,25 @@
+src/cache/memory.test.ts
+  77cba31c751e5b9b 87-141
+src/cache/memory.ts
+  77cba31c751e5b9b 31,38-43,80-82,89,105
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8",
+  "base_commit_sha": "c0aec82a78a42a9981fff2b8703ffa701c350c17",
+  "prompts": {
+    "77cba31c751e5b9b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "4103c30d-6035-4298-8179-cb2733d3da72",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Dmitrii Gridnev",
+      "messages": [],
+      "total_additions": 103,
+      "total_deletions": 7,
+      "accepted_lines": 300,
+      "overriden_lines": 0
+    }
+  }
+}

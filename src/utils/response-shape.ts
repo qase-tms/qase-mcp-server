@@ -6,9 +6,11 @@
  * `"description": ""` is different from missing description when the user
  * asked about it).
  *
- * Returns `undefined` if the input collapses entirely (e.g. `null` or an
- * object that becomes empty after compaction). Callers decide what to do
- * with that.
+ * Returns `undefined` only when the input itself is `null` or `undefined`.
+ * For objects that collapse to zero kept fields, returns `{}` (an empty
+ * object) — callers should test with `Object.keys(result).length === 0` if
+ * they want to detect collapse, not `result === undefined`. Arrays that
+ * become empty are returned as `[]`.
  */
 export function compactResponse(value: unknown): unknown {
   if (value === null || value === undefined) return undefined;

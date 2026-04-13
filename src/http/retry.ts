@@ -21,7 +21,7 @@ const RETRYABLE_NETWORK_CODES = new Set(['ECONNRESET', 'ETIMEDOUT', 'ECONNABORTE
 /**
  * Attach a retry interceptor with jittered exponential backoff.
  *
- * Policy (from ADR-0001, §9):
+ * Policy (from ADR-0001, Decision → Special Mentions → Infrastructure):
  * - Idempotent (GET/HEAD/OPTIONS/DELETE): retry 429/502/503/504 + network errors
  * - Mutating (POST/PATCH/PUT): retry only 429 + pre-send timeouts
  */

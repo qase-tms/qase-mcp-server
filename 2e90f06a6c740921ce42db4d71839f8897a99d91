@@ -1,0 +1,31 @@
+src/utils/case-enums.test.ts
+  77cba31c751e5b9b 1-6,9-11,15-16,19-26,48,50,54,59-66,68-69,71-73,75
+src/utils/case-enums.ts
+  77cba31c751e5b9b 2-3,27,29,31-34,36-37,39-40,42-43,46-52,54-55,57-65,67-70,72-75,81-82,84-89,99,101-103,109-112,115-118
+src/utils/auth-context.ts
+  77cba31c751e5b9b 9-27
+src/client/index.test.ts
+  77cba31c751e5b9b 10-18
+src/client/index.ts
+  77cba31c751e5b9b 34
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8",
+  "base_commit_sha": "2e90f06a6c740921ce42db4d71839f8897a99d91",
+  "prompts": {
+    "77cba31c751e5b9b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "4103c30d-6035-4298-8179-cb2733d3da72",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Dmitrii Gridnev",
+      "messages": [],
+      "total_additions": 133,
+      "total_deletions": 156,
+      "accepted_lines": 365,
+      "overriden_lines": 0
+    }
+  }
+}

@@ -26,7 +26,11 @@ interface SystemFieldResponse {
 
 type SystemFieldMap = Record<string, Record<string, number>>;
 
-const SYSTEM_FIELDS_TTL_MS = 5 * 60 * 1000; // 5 minutes
+// System fields are workspace-level config (priority, severity, status options,
+// etc.) that change on the order of hours to days when an admin reconfigures
+// the workspace. 5 minutes balances freshness against API call frequency; do
+// not decrease below 1 minute without measuring.
+const SYSTEM_FIELDS_TTL_MS = 5 * 60 * 1000;
 
 function normalizeEnumValue(raw: unknown, lookup?: Record<string, number>): number | undefined {
   if (raw === undefined || raw === null) return undefined;
@@ -77,6 +81,16 @@ async function fetchSystemFieldMaps(): Promise<SystemFieldMap> {
   return map;
 }
 
+/**
+ * Resolve system-field metadata from cache, fetching from the API on miss.
+ *
+ * Note on concurrency: this function does not coalesce concurrent cache
+ * misses. If two requests race past a cold cache simultaneously, both will
+ * hit the API. This is deliberate — the axios-level in-flight deduplication
+ * added in Task 12 of the Phase 1 plan coalesces identical GETs at the HTTP
+ * layer, which is a more general fix that also covers other metadata
+ * fetches, so there is no need to reimplement it here.
+ */
 async function getSystemFieldMaps(): Promise<SystemFieldMap> {
   const cache = getCache();
   const key = systemFieldsKey();

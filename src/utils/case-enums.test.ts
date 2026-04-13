@@ -23,6 +23,7 @@ describe('normalizeCaseEnums', () => {
   });
 
   afterAll(async () => {
+    delete process.env.QASE_API_TOKEN;
     await resetCacheForTest();
   });
 
@@ -57,21 +58,24 @@ describe('normalizeCaseEnums', () => {
   });
 
   it('isolates different tenants — tokenA cannot see tokenB data', async () => {
-    process.env.QASE_API_TOKEN = 'token-a';
-    await resetCaseEnumCacheForTest();
-    await __setCaseEnumCacheForTest({ priority: { high: 99 } });
+    const original = process.env.QASE_API_TOKEN;
+    try {
+      process.env.QASE_API_TOKEN = 'token-a';
+      await resetCaseEnumCacheForTest();
+      await __setCaseEnumCacheForTest({ priority: { high: 99 } });
 
-    process.env.QASE_API_TOKEN = 'token-b';
-    await resetCaseEnumCacheForTest();
-    await __setCaseEnumCacheForTest({ priority: { high: 42 } });
+      process.env.QASE_API_TOKEN = 'token-b';
+      await resetCaseEnumCacheForTest();
+      await __setCaseEnumCacheForTest({ priority: { high: 42 } });
 
-    const resultB = await normalizeCaseEnums({ priority: 'high' });
-    expect(resultB.priority).toBe(42);
+      const resultB = await normalizeCaseEnums({ priority: 'high' });
+      expect(resultB.priority).toBe(42);
 
-    process.env.QASE_API_TOKEN = 'token-a';
-    const resultA = await normalizeCaseEnums({ priority: 'high' });
-    expect(resultA.priority).toBe(99);
-
-    process.env.QASE_API_TOKEN = 'test-token-for-case-enums';
+      process.env.QASE_API_TOKEN = 'token-a';
+      const resultA = await normalizeCaseEnums({ priority: 'high' });
+      expect(resultA.priority).toBe(99);
+    } finally {
+      process.env.QASE_API_TOKEN = original;
+    }
   });
 });

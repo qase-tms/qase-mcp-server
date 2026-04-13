@@ -20,7 +20,8 @@ export function getEffectiveToken(): string {
   const envToken = process.env.QASE_API_TOKEN;
   if (!envToken) {
     throw new Error(
-      'QASE_API_TOKEN environment variable is required or a per-request Bearer token must be provided.',
+      'QASE_API_TOKEN environment variable is required or a per-request Bearer token must be provided. ' +
+        'Get your API token from: https://app.qase.io/user/api/token',
     );
   }
   return envToken;

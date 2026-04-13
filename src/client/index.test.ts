@@ -7,6 +7,15 @@ import { setTestEnv, clearTestEnv } from '../utils/test-helpers.js';
 
 jest.mock('../utils/auth-context.js', () => ({
   requestTokenStorage: { getStore: jest.fn(() => undefined) },
+  getEffectiveToken: jest.fn(() => {
+    const envToken = process.env.QASE_API_TOKEN;
+    if (!envToken) {
+      throw new Error(
+        'QASE_API_TOKEN environment variable is required or a per-request Bearer token must be provided.',
+      );
+    }
+    return envToken;
+  }),
 }));
 
 async function resetClient() {

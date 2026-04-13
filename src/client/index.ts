@@ -31,7 +31,7 @@ import {
 } from 'qase-api-client';
 import axios, { AxiosRequestConfig } from 'axios';
 import FormData from 'form-data';
-import { requestTokenStorage } from '../utils/auth-context.js';
+import { requestTokenStorage, getEffectiveToken } from '../utils/auth-context.js';
 import { VERSION } from '../version.js';
 
 const USER_AGENT = `qase-mcp/${VERSION}`;
@@ -137,29 +137,6 @@ function getHost(): string {
   }
 
   return `https://${domain}`;
-}
-
-/**
- * Get the effective API token for the current request.
- *
- * Priority:
- *   1. Per-request Bearer token from Authorization header (AsyncLocalStorage)
- *   2. Shared QASE_API_TOKEN environment variable
- */
-function getEffectiveToken(): string {
-  const requestToken = requestTokenStorage.getStore();
-  if (requestToken) {
-    return requestToken;
-  }
-
-  const envToken = process.env.QASE_API_TOKEN;
-  if (!envToken) {
-    throw new Error(
-      'QASE_API_TOKEN environment variable is required. ' +
-        'Get your token from: https://app.qase.io/user/api/token',
-    );
-  }
-  return envToken;
 }
 
 /**

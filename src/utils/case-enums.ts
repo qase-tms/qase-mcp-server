@@ -1,4 +1,6 @@
 import { getApiClient } from '../client/index.js';
+import { getCache, buildCacheKey, hashToken } from '../cache/index.js';
+import { getEffectiveToken } from './auth-context.js';
 
 type CaseEnumField = 'priority' | 'type' | 'behavior' | 'severity' | 'status' | 'layer';
 
@@ -22,90 +24,69 @@ interface SystemFieldResponse {
   options?: SystemFieldOption[];
 }
 
-type SystemFieldMap = Record<string, Map<string, number>>;
+type SystemFieldMap = Record<string, Record<string, number>>;
 
-let systemFieldCache: Promise<SystemFieldMap> | null = null;
+const SYSTEM_FIELDS_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
-function normalizeEnumValue(raw: unknown, lookup?: Map<string, number>): number | undefined {
-  if (raw === undefined || raw === null) {
-    return undefined;
-  }
+function normalizeEnumValue(raw: unknown, lookup?: Record<string, number>): number | undefined {
+  if (raw === undefined || raw === null) return undefined;
+  if (typeof raw === 'number') return raw;
+  if (typeof raw !== 'string') return undefined;
 
-  if (typeof raw === 'number') {
-    return raw;
-  }
+  const trimmed = raw.trim();
+  if (trimmed === '') return undefined;
 
-  if (typeof raw === 'string') {
-    const trimmed = raw.trim();
+  const parsed = Number(trimmed);
+  if (Number.isInteger(parsed)) return parsed;
 
-    if (trimmed === '') {
-      return undefined;
-    }
-
-    const parsed = Number(trimmed);
-
-    if (Number.isInteger(parsed)) {
-      return parsed;
-    }
-
-    const lower = trimmed.toLowerCase();
-
-    if (lookup?.has(lower)) {
-      return lookup.get(lower);
-    }
-  }
-
-  return undefined;
+  const lower = trimmed.toLowerCase();
+  return lookup?.[lower];
 }
 
-function createFieldMap(entry: SystemFieldResponse): Map<string, number> | undefined {
-  if (!entry.options || entry.options.length === 0) {
-    return undefined;
+function buildFieldLookup(entry: SystemFieldResponse): Record<string, number> | undefined {
+  if (!entry.options || entry.options.length === 0) return undefined;
+  const out: Record<string, number> = {};
+  for (const opt of entry.options) {
+    out[opt.slug.toLowerCase()] = opt.id;
+    if (opt.title) out[opt.title.toLowerCase()] = opt.id;
+    out[opt.id.toString()] = opt.id;
   }
+  return out;
+}
 
-  const map = new Map<string, number>();
+function systemFieldsKey(): string {
+  const token = getEffectiveToken();
+  const host = process.env.QASE_API_DOMAIN || 'api.qase.io';
+  return buildCacheKey({
+    host,
+    tenantId: hashToken(token),
+    resource: 'system_fields',
+  });
+}
 
-  for (const option of entry.options) {
-    map.set(option.slug.toLowerCase(), option.id);
+async function fetchSystemFieldMaps(): Promise<SystemFieldMap> {
+  const client = getApiClient();
+  const response = await client.systemFields.getSystemFields();
+  const map: SystemFieldMap = {};
 
-    if (option.title) {
-      map.set(option.title.toLowerCase(), option.id);
-    }
-
-    map.set(option.id.toString(), option.id);
+  for (const entry of response.data.result as SystemFieldResponse[]) {
+    const slug = entry.slug.toLowerCase();
+    const lookup = buildFieldLookup(entry);
+    if (lookup) map[slug] = lookup;
   }
-
   return map;
 }
 
 async function getSystemFieldMaps(): Promise<SystemFieldMap> {
-  if (systemFieldCache) {
-    return systemFieldCache;
-  }
+  const cache = getCache();
+  const key = systemFieldsKey();
 
-  const client = getApiClient();
-  systemFieldCache = client.systemFields
-    .getSystemFields()
-    .then((response) => {
-      const map: SystemFieldMap = {};
+  const cached = await cache.get<SystemFieldMap>(key);
+  if (cached) return cached;
 
-      for (const entry of response.data.result as SystemFieldResponse[]) {
-        const normalizedSlug = entry.slug.toLowerCase();
-        const fieldMap = createFieldMap(entry);
-
-        if (fieldMap) {
-          map[normalizedSlug] = fieldMap;
-        }
-      }
-
-      return map;
-    })
-    .catch((error) => {
-      systemFieldCache = null;
-      throw error;
-    });
-
-  return systemFieldCache;
+  const fresh = await fetchSystemFieldMaps();
+  await cache.set(key, fresh, SYSTEM_FIELDS_TTL_MS);
+  return fresh;
 }
 
 export async function normalizeCaseEnums<T extends Record<string, unknown>>(
@@ -115,22 +96,24 @@ export async function normalizeCaseEnums<T extends Record<string, unknown>>(
   const systemFields = await getSystemFieldMaps();
 
   for (const field of caseEnumFields) {
-    const rawValue = normalized[field as keyof typeof normalized];
+    const raw = normalized[field];
     const lookup = systemFields[field];
-    const mappedValue = normalizeEnumValue(rawValue, lookup);
-
-    if (mappedValue !== undefined) {
-      (normalized as Record<string, unknown>)[field] = mappedValue;
+    const mapped = normalizeEnumValue(raw, lookup);
+    if (mapped !== undefined) {
+      (normalized as Record<string, unknown>)[field] = mapped;
     }
   }
-
   return normalized;
 }
 
-export function resetCaseEnumCacheForTest(): void {
-  systemFieldCache = null;
+/** @internal — used by tests to pre-populate the tenant-scoped shard. */
+export async function __setCaseEnumCacheForTest(snapshot: SystemFieldMap): Promise<void> {
+  const cache = getCache();
+  await cache.set(systemFieldsKey(), snapshot, SYSTEM_FIELDS_TTL_MS);
 }
 
-export function __setCaseEnumCacheForTest(snapshot: SystemFieldMap): void {
-  systemFieldCache = Promise.resolve(snapshot);
+/** @internal — used by tests to clear the tenant-scoped shard. */
+export async function resetCaseEnumCacheForTest(): Promise<void> {
+  const cache = getCache();
+  await cache.delete(systemFieldsKey());
 }

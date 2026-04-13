@@ -29,7 +29,8 @@ import {
   UsersApi,
   SharedParametersApi,
 } from 'qase-api-client';
-import axios, { AxiosRequestConfig } from 'axios';
+import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
+import { createKeepAliveAgent, attachRetry, attachInflightDedupe } from '../http/index.js';
 import FormData from 'form-data';
 import { requestTokenStorage, getEffectiveToken } from '../utils/auth-context.js';
 import { VERSION } from '../version.js';
@@ -69,51 +70,54 @@ class QaseApiClient {
 
   private readonly token: string;
   private readonly host: string;
+  private readonly axiosInstance: AxiosInstance;
 
   constructor(config: ApiClientConfig) {
     this.token = config.token;
     this.host = config.host;
 
+    const agent = createKeepAliveAgent({ maxSockets: 20 });
+    this.axiosInstance = axios.create({ httpsAgent: agent, headers: { 'User-Agent': USER_AGENT } });
+    attachRetry(this.axiosInstance);
+    attachInflightDedupe(this.axiosInstance);
+
+    const basePath = `${config.host}/v1`;
     const cfg = new Configuration({
       apiKey: config.token,
-      basePath: `${config.host}/v1`,
+      basePath,
       formDataCtor: FormData as any,
-      baseOptions: {
-        headers: { 'User-Agent': USER_AGENT },
-      },
     });
 
-    this.projects = new ProjectsApi(cfg);
-    this.cases = new CasesApi(cfg);
-    this.suites = new SuitesApi(cfg);
-    this.runs = new RunsApi(cfg);
-    this.results = new ResultsApi(cfg);
-    this.plans = new PlansApi(cfg);
-    this.milestones = new MilestonesApi(cfg);
-    this.defects = new DefectsApi(cfg);
-    this.environment = new EnvironmentsApi(cfg);
-    this.attachments = new AttachmentsApi(cfg);
-    this.sharedSteps = new SharedStepsApi(cfg);
-    this.authors = new AuthorsApi(cfg);
-    this.customFields = new CustomFieldsApi(cfg);
-    this.search = new SearchApi(cfg);
-    this.configurations = new ConfigurationsApi(cfg);
-    this.systemFields = new SystemFieldsApi(cfg);
-    this.users = new UsersApi(cfg);
-    this.sharedParameters = new SharedParametersApi(cfg);
+    this.projects = new ProjectsApi(cfg, basePath, this.axiosInstance);
+    this.cases = new CasesApi(cfg, basePath, this.axiosInstance);
+    this.suites = new SuitesApi(cfg, basePath, this.axiosInstance);
+    this.runs = new RunsApi(cfg, basePath, this.axiosInstance);
+    this.results = new ResultsApi(cfg, basePath, this.axiosInstance);
+    this.plans = new PlansApi(cfg, basePath, this.axiosInstance);
+    this.milestones = new MilestonesApi(cfg, basePath, this.axiosInstance);
+    this.defects = new DefectsApi(cfg, basePath, this.axiosInstance);
+    this.environment = new EnvironmentsApi(cfg, basePath, this.axiosInstance);
+    this.attachments = new AttachmentsApi(cfg, basePath, this.axiosInstance);
+    this.sharedSteps = new SharedStepsApi(cfg, basePath, this.axiosInstance);
+    this.authors = new AuthorsApi(cfg, basePath, this.axiosInstance);
+    this.customFields = new CustomFieldsApi(cfg, basePath, this.axiosInstance);
+    this.search = new SearchApi(cfg, basePath, this.axiosInstance);
+    this.configurations = new ConfigurationsApi(cfg, basePath, this.axiosInstance);
+    this.systemFields = new SystemFieldsApi(cfg, basePath, this.axiosInstance);
+    this.users = new UsersApi(cfg, basePath, this.axiosInstance);
+    this.sharedParameters = new SharedParametersApi(cfg, basePath, this.axiosInstance);
   }
 
   /**
    * Make a direct API call for endpoints not fully covered by the SDK.
    */
   async request<T = any>(path: string, options: AxiosRequestConfig = {}): Promise<T> {
-    const response = await axios({
+    const response = await this.axiosInstance.request({
       method: options.method || 'GET',
       url: `${this.host}${path}`,
       headers: {
         Token: this.token,
         'Content-Type': 'application/json',
-        'User-Agent': USER_AGENT,
         ...options.headers,
       },
       ...options,

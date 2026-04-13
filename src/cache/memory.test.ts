@@ -84,3 +84,58 @@ describe('InMemoryCache — deleteByPrefix', () => {
     await cache.close();
   });
 });
+
+describe('InMemoryCache — per-tenant cap', () => {
+  it('silently drops writes beyond the per-tenant cap', async () => {
+    const cache = new InMemoryCache({ maxEntries: 100, maxPerTenant: 2, sweepIntervalMs: 0 });
+
+    await cache.set('v1:h:tenantA:r1::', 1, 60_000);
+    await cache.set('v1:h:tenantA:r2::', 2, 60_000);
+    await cache.set('v1:h:tenantA:r3::', 3, 60_000); // beyond cap
+
+    expect(await cache.get('v1:h:tenantA:r1::')).toBe(1);
+    expect(await cache.get('v1:h:tenantA:r2::')).toBe(2);
+    expect(await cache.get('v1:h:tenantA:r3::')).toBeUndefined();
+
+    await cache.close();
+  });
+
+  it('counts each tenant independently', async () => {
+    const cache = new InMemoryCache({ maxEntries: 100, maxPerTenant: 2, sweepIntervalMs: 0 });
+
+    await cache.set('v1:h:tenantA:r1::', 'a1', 60_000);
+    await cache.set('v1:h:tenantA:r2::', 'a2', 60_000);
+    await cache.set('v1:h:tenantB:r1::', 'b1', 60_000);
+
+    expect(await cache.get('v1:h:tenantB:r1::')).toBe('b1');
+    await cache.close();
+  });
+
+  it('decreases count when an entry is deleted explicitly', async () => {
+    const cache = new InMemoryCache({ maxEntries: 100, maxPerTenant: 2, sweepIntervalMs: 0 });
+
+    await cache.set('v1:h:tenantA:r1::', 1, 60_000);
+    await cache.set('v1:h:tenantA:r2::', 2, 60_000);
+    await cache.delete('v1:h:tenantA:r1::');
+
+    await cache.set('v1:h:tenantA:r3::', 3, 60_000);
+    expect(await cache.get('v1:h:tenantA:r3::')).toBe(3);
+
+    await cache.close();
+  });
+
+  it('overwriting an existing key does not consume a new quota slot', async () => {
+    const cache = new InMemoryCache({ maxEntries: 100, maxPerTenant: 2, sweepIntervalMs: 0 });
+
+    await cache.set('v1:h:tenantA:r1::', 'first', 60_000);
+    await cache.set('v1:h:tenantA:r1::', 'updated', 60_000);
+    await cache.set('v1:h:tenantA:r2::', 'second', 60_000);
+    await cache.set('v1:h:tenantA:r3::', 'third', 60_000); // cap: new key → dropped
+
+    expect(await cache.get('v1:h:tenantA:r1::')).toBe('updated');
+    expect(await cache.get('v1:h:tenantA:r2::')).toBe('second');
+    expect(await cache.get('v1:h:tenantA:r3::')).toBeUndefined();
+
+    await cache.close();
+  });
+});

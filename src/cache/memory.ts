@@ -28,13 +28,19 @@ export class InMemoryCache implements CacheBackend {
   private readonly perTenantCount = new Map<string, number>();
   private readonly maxPerTenant: number;
   private readonly sweepTimer?: ReturnType<typeof setInterval>;
+  private disposingKeys = new Set<string>();
 
   constructor(opts: InMemoryCacheOptions) {
     this.maxPerTenant = opts.maxPerTenant;
     this.store = new LRUCache<string, Entry>({
       max: opts.maxEntries,
       dispose: (_value, key) => {
-        this.decTenant(key);
+        // Only decrement if this dispose is due to actual eviction or deletion,
+        // not due to value update. We mark keys being explicitly deleted/disposed.
+        if (this.disposingKeys.has(key)) {
+          this.disposingKeys.delete(key);
+          this.decTenant(key);
+        }
       },
     });
 
@@ -71,12 +77,16 @@ export class InMemoryCache implements CacheBackend {
   }
 
   async delete(key: string): Promise<void> {
+    if (this.store.has(key)) {
+      this.disposingKeys.add(key);
+    }
     this.store.delete(key);
   }
 
   async deleteByPrefix(prefix: string): Promise<void> {
     for (const key of this.store.keys()) {
       if (key.startsWith(prefix)) {
+        this.disposingKeys.add(key);
         this.store.delete(key);
       }
     }
@@ -92,6 +102,7 @@ export class InMemoryCache implements CacheBackend {
     const now = Date.now();
     for (const [key, entry] of this.store.entries()) {
       if (entry.expiresAt <= now) {
+        this.disposingKeys.add(key);
         this.store.delete(key);
       }
     }

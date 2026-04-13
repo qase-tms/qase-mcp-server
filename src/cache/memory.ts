@@ -1,5 +1,6 @@
 import { LRUCache } from 'lru-cache';
 import { CacheBackend } from './types.js';
+import { getMetrics } from './metrics.js';
 
 export interface InMemoryCacheOptions {
   /** Global cap across all tenants. */
@@ -55,11 +56,16 @@ export class InMemoryCache implements CacheBackend {
 
   async get<T>(key: string): Promise<T | undefined> {
     const entry = this.store.get(key);
-    if (!entry) return undefined;
-    if (entry.expiresAt <= Date.now()) {
-      this.store.delete(key);
+    if (!entry) {
+      getMetrics().incCounter('qase_mcp_cache_misses_total', { tier: 'l1' });
       return undefined;
     }
+    if (entry.expiresAt <= Date.now()) {
+      this.store.delete(key);
+      getMetrics().incCounter('qase_mcp_cache_misses_total', { tier: 'l1' });
+      return undefined;
+    }
+    getMetrics().incCounter('qase_mcp_cache_hits_total', { tier: 'l1' });
     return entry.value as T;
   }
 

@@ -189,3 +189,45 @@ describe('InMemoryCache — quota accounting under eviction', () => {
     }
   });
 });
+
+import { getMetrics, resetMetricsForTest } from './metrics.js';
+
+describe('InMemoryCache — metrics instrumentation', () => {
+  beforeEach(() => {
+    resetMetricsForTest();
+  });
+
+  afterEach(() => {
+    resetMetricsForTest();
+  });
+
+  it('increments cache_hits_total{tier="l1"} on a hit', async () => {
+    const cache = new InMemoryCache({ maxEntries: 10, maxPerTenant: 10, sweepIntervalMs: 0 });
+    await cache.set('v1:h:tenantA:r1::', 1, 60_000);
+    await cache.get('v1:h:tenantA:r1::');
+    expect(getMetrics().getCounter('qase_mcp_cache_hits_total', { tier: 'l1' })).toBe(1);
+    await cache.close();
+  });
+
+  it('increments cache_misses_total{tier="l1"} on a miss', async () => {
+    const cache = new InMemoryCache({ maxEntries: 10, maxPerTenant: 10, sweepIntervalMs: 0 });
+    await cache.get('v1:h:tenantA:rX::');
+    expect(getMetrics().getCounter('qase_mcp_cache_misses_total', { tier: 'l1' })).toBe(1);
+    await cache.close();
+  });
+
+  it('counts an expired entry access as a miss', async () => {
+    jest.useFakeTimers();
+    try {
+      const cache = new InMemoryCache({ maxEntries: 10, maxPerTenant: 10, sweepIntervalMs: 0 });
+      await cache.set('v1:h:tenantA:r1::', 1, 1000);
+      jest.advanceTimersByTime(2000);
+      await cache.get('v1:h:tenantA:r1::');
+      expect(getMetrics().getCounter('qase_mcp_cache_hits_total', { tier: 'l1' })).toBe(0);
+      expect(getMetrics().getCounter('qase_mcp_cache_misses_total', { tier: 'l1' })).toBe(1);
+      await cache.close();
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+});

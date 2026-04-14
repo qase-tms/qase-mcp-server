@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0]
+
+### Breaking Changes
+
+- **All 83 v1 tool names have been removed.** The tool set has been consolidated from 83 tools to 29. See [MIGRATION.md](./MIGRATION.md) for a complete v1→v2 tool mapping table.
+- Response format is now compact JSON with null values stripped (no indentation). This reduces token usage but changes the raw string format of responses.
+
+### Added
+
+- **`qase_project_context`** — Bootstrap tool that fetches project details, suites, milestones, environments, custom fields, and users in a single call. Result is cached for 5 minutes (tenant-safe two-tier cache: in-memory + optional Redis).
+- **`qase_get`** — Universal entity getter for all entity types (`case`, `suite`, `run`, `result`, `plan`, `defect`, `milestone`, `environment`, `shared_step`, `shared_parameter`, `configuration`, `attachment`, `author`, `user`, `custom_field`). Supports field projection via the `fields` parameter.
+- **`qql_search`** / **`qql_help`** — Unified QQL search across all entity types (retained from v1 with identical interface).
+- **Composite tool `qase_ci_report`** — Reports CI/CD test results in one call: creates a run, bulk-records results, and optionally completes the run. Replaces the 3–4 step `create_run → create_results_bulk → complete_run` workflow.
+- **Composite tool `qase_triage_defect`** — Creates a defect from a test failure and optionally links it to failed result hashes. Streamlines triage workflows.
+- **Composite tool `qase_regression_run`** — Sets up a regression run in one call. Accepts case selection by suite IDs, explicit case IDs, or plan ID.
+- **`qase_api`** — Escape hatch for direct Qase REST API access. Allows calling any endpoint not covered by the named tools.
+- **Upsert+delete tools** for all major entities: `qase_case_upsert`, `qase_case_delete`, `qase_suite_upsert`, `qase_suite_delete`, `qase_run_upsert`, `qase_run_complete`, `qase_run_delete`, `qase_result_record`, `qase_result_delete`, `qase_plan_upsert`, `qase_plan_delete`, `qase_defect_upsert`, `qase_defect_delete`, `qase_milestone_upsert`, `qase_milestone_delete`, `qase_environment_upsert`, `qase_environment_delete`, `qase_shared_step_upsert`, `qase_shared_step_delete`, `qase_attachment_upload`, `qase_attachment_delete`.
+- **HTTP keep-alive, automatic retry, and in-flight request deduplication** in the API client layer.
+- **Tenant-safe two-tier cache** — in-memory LRU cache with optional Redis L2. Cache keys are scoped per-tenant (token hash + API domain) eliminating the cross-tenant data leak present in v1.
+- **Prometheus `/metrics` endpoint** — exposes cache hit/miss rates, request latency, and error counts when running in HTTP transport mode.
+
+### Fixed
+
+- **Security: cross-tenant cache data leak eliminated.** v1 cached responses globally; v2 scopes every cache key to the authenticated tenant.
+
 ## [1.1.5]
 
 ### Fixed

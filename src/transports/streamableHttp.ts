@@ -3,6 +3,7 @@ import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { randomUUID } from 'crypto';
 import { requestTokenStorage } from '../utils/auth-context.js';
+import { getMetrics } from '../cache/index.js';
 
 export interface StreamableHttpConfig {
   port: number;
@@ -72,6 +73,12 @@ export function setupStreamableHttpTransport(
   // Health check endpoint
   app.get('/health', (_req, res) => {
     res.json({ status: 'ok', transport: 'streamable-http' });
+  });
+
+  // Prometheus metrics endpoint
+  app.get('/metrics', (_req, res) => {
+    res.set('Content-Type', 'text/plain; version=0.0.4');
+    res.send(getMetrics().renderPrometheus());
   });
 
   // MCP endpoint - DELETE for session cleanup

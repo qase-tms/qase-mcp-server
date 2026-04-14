@@ -196,3 +196,27 @@ describe('LayeredCache — invalidation', () => {
     await cache.close();
   });
 });
+
+describe('LayeredCache — remote invalidation', () => {
+  it('evicts matching L1 entries when the bus delivers a pattern from another instance', async () => {
+    const l1 = makeSpyCache();
+    const l2 = makeSpyCache();
+    const bus = makeNoopBus();
+
+    await l1.set('v1:h:tenantA:r1::', 1, 60_000);
+    await l1.set('v1:h:tenantA:r2::', 2, 60_000);
+    await l1.set('v1:h:tenantB:r1::', 3, 60_000);
+
+    const cache = new LayeredCache(l1, l2, bus);
+    await cache.ready();
+
+    // Simulate a publish from another instance
+    await bus.publish('v1:h:tenantA:');
+
+    expect(await l1.get('v1:h:tenantA:r1::')).toBeUndefined();
+    expect(await l1.get('v1:h:tenantA:r2::')).toBeUndefined();
+    expect(await l1.get('v1:h:tenantB:r1::')).toBe(3);
+
+    await cache.close();
+  });
+});

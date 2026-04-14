@@ -22,11 +22,23 @@ interface L2Envelope<T> {
  * instances' subscribers evict the matching L1 entries.
  */
 export class LayeredCache implements CacheBackend {
+  private readonly subscribeReady: Promise<void>;
+  private readonly selfPublishing = new Set<string>();
+
   constructor(
     private readonly l1: CacheBackend,
     private readonly l2: CacheBackend,
     private readonly bus: InvalidationBus,
-  ) {}
+  ) {
+    this.subscribeReady = this.bus.subscribe((prefix) => {
+      if (this.selfPublishing.has(prefix)) return;
+      this.l1.deleteByPrefix(prefix).catch(() => {});
+    });
+  }
+
+  async ready(): Promise<void> {
+    await this.subscribeReady;
+  }
 
   async get<T>(key: string): Promise<T | undefined> {
     const fromL1 = await this.l1.get<T>(key);
@@ -54,19 +66,25 @@ export class LayeredCache implements CacheBackend {
 
   async delete(key: string): Promise<void> {
     await Promise.allSettled([this.l1.delete(key), this.l2.delete(key)]);
+    this.selfPublishing.add(key);
     try {
       await this.bus.publish(key);
     } catch {
       // Swallow — coherence drift is bounded by L1 TTL
+    } finally {
+      this.selfPublishing.delete(key);
     }
   }
 
   async deleteByPrefix(prefix: string): Promise<void> {
     await Promise.allSettled([this.l1.deleteByPrefix(prefix), this.l2.deleteByPrefix(prefix)]);
+    this.selfPublishing.add(prefix);
     try {
       await this.bus.publish(prefix);
     } catch {
       // Swallow
+    } finally {
+      this.selfPublishing.delete(prefix);
     }
   }
 

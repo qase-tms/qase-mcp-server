@@ -52,12 +52,22 @@ export class LayeredCache implements CacheBackend {
     if (l1Result.status === 'rejected') throw l1Result.reason;
   }
 
-  async delete(_key: string): Promise<void> {
-    throw new Error('LayeredCache.delete: not implemented until Task 11');
+  async delete(key: string): Promise<void> {
+    await Promise.allSettled([this.l1.delete(key), this.l2.delete(key)]);
+    try {
+      await this.bus.publish(key);
+    } catch {
+      // Swallow — coherence drift is bounded by L1 TTL
+    }
   }
 
-  async deleteByPrefix(_prefix: string): Promise<void> {
-    throw new Error('LayeredCache.deleteByPrefix: not implemented until Task 11');
+  async deleteByPrefix(prefix: string): Promise<void> {
+    await Promise.allSettled([this.l1.deleteByPrefix(prefix), this.l2.deleteByPrefix(prefix)]);
+    try {
+      await this.bus.publish(prefix);
+    } catch {
+      // Swallow
+    }
   }
 
   async close(): Promise<void> {

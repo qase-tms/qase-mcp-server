@@ -152,3 +152,47 @@ describe('LayeredCache — write path', () => {
     await cache.close();
   });
 });
+
+describe('LayeredCache — invalidation', () => {
+  it('delete() clears both tiers and publishes the key as a prefix', async () => {
+    const l1 = makeSpyCache();
+    const l2 = makeSpyCache();
+    const bus = makeNoopBus();
+
+    const cache = new LayeredCache(l1, l2, bus);
+    await cache.set('k', 'v', 5000);
+    await cache.delete('k');
+
+    expect(l1.deletes).toContain('k');
+    expect(l2.deletes).toContain('k');
+    expect(bus.published).toEqual(['k']);
+    await cache.close();
+  });
+
+  it('deleteByPrefix() clears both tiers and publishes the prefix', async () => {
+    const l1 = makeSpyCache();
+    const l2 = makeSpyCache();
+    const bus = makeNoopBus();
+
+    const cache = new LayeredCache(l1, l2, bus);
+    await cache.deleteByPrefix('v1:h:tenantA:');
+
+    expect(l1.prefixDeletes).toEqual(['v1:h:tenantA:']);
+    expect(l2.prefixDeletes).toEqual(['v1:h:tenantA:']);
+    expect(bus.published).toEqual(['v1:h:tenantA:']);
+    await cache.close();
+  });
+
+  it('does not propagate a bus.publish failure to the caller', async () => {
+    const l1 = makeSpyCache();
+    const l2 = makeSpyCache();
+    const bus = makeNoopBus();
+    bus.publish = async () => { throw new Error('bus down'); };
+
+    const cache = new LayeredCache(l1, l2, bus);
+    await expect(cache.deleteByPrefix('x:')).resolves.toBeUndefined();
+    expect(l1.prefixDeletes).toEqual(['x:']);
+    expect(l2.prefixDeletes).toEqual(['x:']);
+    await cache.close();
+  });
+});

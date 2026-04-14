@@ -2,6 +2,7 @@ import express, { Express } from 'express';
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
 import { requestTokenStorage } from '../utils/auth-context.js';
+import { getMetrics } from '../cache/index.js';
 
 export interface SSETransportConfig {
   port: number;
@@ -23,6 +24,12 @@ export function setupSSETransport(server: Server, config: SSETransportConfig): E
   // Health check endpoint
   app.get('/health', (_req, res) => {
     res.json({ status: 'ok', transport: 'sse' });
+  });
+
+  // Prometheus metrics endpoint
+  app.get('/metrics', (_req, res) => {
+    res.set('Content-Type', 'text/plain; version=0.0.4');
+    res.send(getMetrics().renderPrometheus());
   });
 
   // SSE endpoint for establishing connection

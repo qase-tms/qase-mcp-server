@@ -54,6 +54,7 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
+    "test:integration": "REDIS_TEST_URL=${REDIS_TEST_URL:-redis://localhost:6379} jest src/cache/layered.integration.test.ts",
     "inspector": "npx @modelcontextprotocol/inspector node build/index.js",
     "start": "node build/index.js",
     "start:stdio": "node build/index.js --transport stdio",

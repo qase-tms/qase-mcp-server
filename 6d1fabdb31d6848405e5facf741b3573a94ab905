@@ -1,0 +1,23 @@
+README.md
+  77cba31c751e5b9b 15-28,34,69-71,84-95,98-99,245,248,251,253,259-262,264,267,270-273,275,278,280,283,286,288,291,294,296,299,301-304,309-337,339,341,362-364,409,420,435-440,443-447,526
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8",
+  "base_commit_sha": "6d1fabdb31d6848405e5facf741b3573a94ab905",
+  "prompts": {
+    "77cba31c751e5b9b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "4103c30d-6035-4298-8179-cb2733d3da72",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Dmitrii Gridnev",
+      "messages": [],
+      "total_additions": 117,
+      "total_deletions": 159,
+      "accepted_lines": 342,
+      "overriden_lines": 0
+    }
+  }
+}

@@ -18,6 +18,7 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import { toolRegistry } from './utils/registry.js';
 import { formatApiError, ToolExecutionError } from './utils/errors.js';
+import { compactResponse } from './utils/response-shape.js';
 import { setupSSETransport } from './transports/sse.js';
 import { setupStreamableHttpTransport } from './transports/streamableHttp.js';
 import { VERSION } from './version.js';
@@ -95,12 +96,13 @@ function createServer(): Server {
       // Execute the tool handler with provided arguments
       const result = await handler(args || {});
 
-      // Return result in MCP format
+      // Return result in MCP format with compact response (no indent, strip nulls)
+      const compacted = compactResponse(result);
       return {
         content: [
           {
             type: 'text',
-            text: JSON.stringify(result, null, 2),
+            text: JSON.stringify(compacted),
           },
         ],
       };

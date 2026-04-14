@@ -48,3 +48,8 @@ src/version.ts
 # Local scripts (smoke tests, etc.)
 scripts/
 
+# Internal planning artifacts (not for public repo)
+docs/adr/
+docs/superpowers/
+.planning/
+

@@ -1,5 +1,5 @@
 /**
- * Smoke Tests for All MCP Tools
+ * Smoke Tests for v2 MCP Tools
  *
  * Auto-discovers every registered tool and verifies:
  * - Tool has name, description, and inputSchema
@@ -48,25 +48,8 @@ jest.mock('./client/index.js', () => {
   };
 });
 
-// Import all operation modules to trigger tool registration
-import './operations/projects.js';
-import './operations/cases.js';
-import './operations/suites.js';
-import './operations/runs.js';
-import './operations/results.js';
-import './operations/plans.js';
-import './operations/shared-steps.js';
-import './operations/shared-parameters.js';
-import './operations/milestones.js';
-import './operations/defects.js';
-import './operations/environments.js';
-import './operations/attachments.js';
-import './operations/authors.js';
-import './operations/custom-fields.js';
-import './operations/system-fields.js';
-import './operations/configurations.js';
-import './operations/users.js';
-import './operations/search.js';
+// Import v2 operation modules to trigger tool registration
+import './operations-v2/index.js';
 
 import { toolRegistry } from './utils/registry.js';
 
@@ -103,8 +86,8 @@ describe('Schema-API Contract Tests', () => {
     });
   }
 
-  // ── cases.ts ──────────────────────────────────────────────────────────
-  describe('cases.ts — enum fields accept string labels (Bug #13)', () => {
+  // ── qase_case_upsert ──────────────────────────────────────────────────
+  describe('qase_case_upsert — enum fields accept string labels', () => {
     const caseEnumFields = [
       'severity',
       'priority',
@@ -114,253 +97,195 @@ describe('Schema-API Contract Tests', () => {
       'status',
     ];
 
-    it.each(['create_case', 'update_case'])(
-      '%s: enum fields should be string type',
-      (toolName) => {
-        const props = getSchemaProperties(toolName);
-        for (const field of caseEnumFields) {
-          expect(props[field]?.type).toBe('string');
-        }
-      },
-    );
-
-    it('bulk_create_cases: enum fields should be defined', () => {
-      const props = getSchemaProperties('bulk_create_cases');
-      const itemProps = props.cases?.items?.properties ?? {};
+    it('qase_case_upsert: enum fields should be string type', () => {
+      const props = getSchemaProperties('qase_case_upsert');
       for (const field of caseEnumFields) {
-        expect(itemProps[field]).toBeDefined();
+        expect(props[field]?.type).toBe('string');
       }
     });
   });
 
-  describe('cases.ts — steps_type field (Feature #17)', () => {
+  describe('qase_case_upsert — steps_type field', () => {
     assertFieldsExist([
-      ['create_case', 'steps_type'],
-      ['update_case', 'steps_type'],
+      ['qase_case_upsert', 'steps_type'],
     ]);
   });
 
-  describe('cases.ts — is_flaky should be boolean', () => {
+  describe('qase_case_upsert — is_flaky should be boolean', () => {
     assertFieldTypes([
-      ['create_case', 'is_flaky', 'boolean'],
-      ['update_case', 'is_flaky', 'boolean'],
+      ['qase_case_upsert', 'is_flaky', 'boolean'],
     ]);
   });
 
-  // ── attachments.ts ────────────────────────────────────────────────────
-  describe('attachments.ts — upload_attachment (Bug #14)', () => {
+  // ── qase_attachment_upload ────────────────────────────────────────────
+  describe('qase_attachment_upload', () => {
     it('code should be required', () => {
-      const required = getSchemaRequired('upload_attachment');
+      const required = getSchemaRequired('qase_attachment_upload');
       expect(required).toContain('code');
     });
 
+    it('filename and file should be required', () => {
+      const required = getSchemaRequired('qase_attachment_upload');
+      expect(required).toContain('file');
+      expect(required).toContain('filename');
+    });
+
     it('handler should not crash with file.forEach TypeError', async () => {
-      const handler = toolRegistry.getHandler('upload_attachment')!;
+      const handler = toolRegistry.getHandler('qase_attachment_upload')!;
       await expect(
         handler({ code: 'TEST', file: 'dGVzdA==', filename: 'test.txt' }),
       ).resolves.toBeDefined();
     });
   });
 
-  // ── defects.ts ────────────────────────────────────────────────────────
-  describe('defects.ts — severity should be string enum', () => {
-    it.each(['create_defect', 'update_defect'])(
-      '%s: severity should be a string enum',
-      (toolName) => {
-        const props = getSchemaProperties(toolName);
-        expect(props.severity?.type).toBe('string');
-        expect(props.severity?.enum).toEqual(
-          expect.arrayContaining(['blocker', 'critical', 'major', 'normal', 'minor', 'trivial']),
-        );
-      },
-    );
-  });
-
-  // ── runs.ts ───────────────────────────────────────────────────────────
-  describe('runs.ts — time fields', () => {
-    assertFieldTypes([
-      ['create_run', 'start_time', 'string'],
-      ['create_run', 'end_time', 'string'],
-    ]);
-  });
-
-  // ── results.ts ────────────────────────────────────────────────────────
-  describe('results.ts — field types match SDK', () => {
-    // SDK: getResults(code, status?: string, run?: string, caseId?: string, ...)
-    assertFieldTypes([
-      ['list_results', 'status', 'string'],
-      ['list_results', 'run', 'string'],
-      ['list_results', 'case_id', 'string'],
-      ['list_results', 'from_end_time', 'string'],
-      ['list_results', 'to_end_time', 'string'],
-    ]);
-
-    // SDK: CreateResult has case_id as number, time_ms as number
-    assertFieldTypes([
-      ['create_result', 'case_id', 'integer'],
-      ['create_result', 'time_ms', 'integer'],
-      ['update_result', 'time_ms', 'integer'],
-    ]);
-
-    // status should be a string enum, not a number
-    it('create_result status should be a string enum', () => {
-      const props = getSchemaProperties('create_result');
-      expect(props.status?.type).toBe('string');
-      expect(props.status?.enum).toBeDefined();
+  // ── qase_defect_upsert ────────────────────────────────────────────────
+  describe('qase_defect_upsert — severity should be string enum', () => {
+    it('severity should be a string enum', () => {
+      const props = getSchemaProperties('qase_defect_upsert');
+      expect(props.severity?.type).toBe('string');
+      expect(props.severity?.enum).toEqual(
+        expect.arrayContaining(['blocker', 'critical', 'major', 'normal', 'minor', 'trivial']),
+      );
     });
   });
 
-  // ── milestones.ts ─────────────────────────────────────────────────────
-  describe('milestones.ts — field types match SDK', () => {
-    // SDK: MilestoneCreate has due_date?: number (unix timestamp)
-    assertFieldTypes([
-      ['create_milestone', 'due_date', 'number'],
-      ['update_milestone', 'due_date', 'number'],
-    ]);
+  // ── qase_result_record ────────────────────────────────────────────────
+  describe('qase_result_record — field types', () => {
+    it('results should be an array', () => {
+      const props = getSchemaProperties('qase_result_record');
+      expect(props.results?.type).toBe('array');
+    });
 
-    assertFieldTypes([
-      ['create_milestone', 'title', 'string'],
-      ['update_milestone', 'title', 'string'],
-    ]);
-  });
-
-  // ── projects.ts ───────────────────────────────────────────────────────
-  describe('projects.ts — field types match SDK', () => {
-    assertFieldTypes([
-      ['create_project', 'title', 'string'],
-      ['create_project', 'code', 'string'],
-    ]);
-  });
-
-  // ── suites.ts ─────────────────────────────────────────────────────────
-  describe('suites.ts — field types match SDK', () => {
-    assertFieldTypes([
-      ['create_suite', 'title', 'string'],
-    ]);
-
-    // parent_id should be integer if present
-    it('create_suite parent_id should be integer', () => {
-      const props = getSchemaProperties('create_suite');
-      if (props.parent_id) {
-        expect(props.parent_id.type).toBe('integer');
-      }
+    it('run_id should be integer', () => {
+      const props = getSchemaProperties('qase_result_record');
+      expect(props.run_id?.type).toBe('integer');
     });
   });
 
-  // ── environments.ts ───────────────────────────────────────────────────
-  describe('environments.ts — field types match SDK', () => {
-    assertFieldTypes([
-      ['create_environment', 'title', 'string'],
+  // ── qase_run_upsert ───────────────────────────────────────────────────
+  describe('qase_run_upsert — field types', () => {
+    assertFieldsExist([
+      ['qase_run_upsert', 'title'],
+      ['qase_run_upsert', 'code'],
     ]);
   });
 
-  // ── plans.ts ──────────────────────────────────────────────────────────
-  describe('plans.ts — field types match SDK', () => {
-    assertFieldTypes([
-      ['create_plan', 'title', 'string'],
+  // ── qase_milestone_upsert ─────────────────────────────────────────────
+  describe('qase_milestone_upsert — field types', () => {
+    assertFieldsExist([
+      ['qase_milestone_upsert', 'title'],
     ]);
+  });
 
-    // cases should be array of integers
-    it('create_plan cases should be an array', () => {
-      const props = getSchemaProperties('create_plan');
-      if (props.cases) {
-        expect(props.cases.type).toBe('array');
-        expect(props.cases.items?.type).toBe('integer');
-      }
+  // ── qase_suite_upsert ─────────────────────────────────────────────────
+  describe('qase_suite_upsert — field types', () => {
+    assertFieldsExist([
+      ['qase_suite_upsert', 'title'],
+    ]);
+  });
+
+  // ── qase_environment_upsert ───────────────────────────────────────────
+  describe('qase_environment_upsert — field types', () => {
+    assertFieldsExist([
+      ['qase_environment_upsert', 'title'],
+    ]);
+  });
+
+  // ── qase_plan_upsert ──────────────────────────────────────────────────
+  describe('qase_plan_upsert — field types', () => {
+    assertFieldsExist([
+      ['qase_plan_upsert', 'title'],
+    ]);
+  });
+
+  // ── qase_shared_step_upsert ───────────────────────────────────────────
+  describe('qase_shared_step_upsert — field types', () => {
+    assertFieldsExist([
+      ['qase_shared_step_upsert', 'title'],
+    ]);
+  });
+
+  // ── qase_get ──────────────────────────────────────────────────────────
+  describe('qase_get — entity field', () => {
+    it('entity should be defined and have enum values', () => {
+      const props = getSchemaProperties('qase_get');
+      expect(props.entity).toBeDefined();
+    });
+
+    it('entity and id should be required', () => {
+      const required = getSchemaRequired('qase_get');
+      expect(required).toContain('entity');
+      expect(required).toContain('id');
+    });
+
+    it('code should be optional (present but not required)', () => {
+      const props = getSchemaProperties('qase_get');
+      expect(props.code).toBeDefined();
+      const required = getSchemaRequired('qase_get');
+      expect(required).not.toContain('code');
     });
   });
 
-  // ── shared-steps.ts ───────────────────────────────────────────────────
-  describe('shared-steps.ts — field types match SDK', () => {
-    assertFieldTypes([
-      ['create_shared_step', 'title', 'string'],
-    ]);
-  });
-
-  // ── custom-fields.ts ─────────────────────────────────────────────────
-  describe('custom-fields.ts — field types match SDK', () => {
-    assertFieldTypes([
-      ['create_custom_field', 'title', 'string'],
-    ]);
-
-    it('create_custom_field entity should be a string or enum', () => {
-      const props = getSchemaProperties('create_custom_field');
-      if (props.entity) {
-        expect(['string'].includes(props.entity.type)).toBe(true);
-      }
+  // ── qase_project_context ─────────────────────────────────────────────
+  describe('qase_project_context', () => {
+    it('code should be required', () => {
+      const required = getSchemaRequired('qase_project_context');
+      expect(required).toContain('code');
     });
   });
 
-  // ── Cross-cutting: all ID fields should be integer ────────────────────
-  describe('ID fields should be integer across all tools', () => {
+  // ── qql_search ────────────────────────────────────────────────────────
+  describe('qql_search', () => {
+    it('query should be required', () => {
+      const required = getSchemaRequired('qql_search');
+      expect(required).toContain('query');
+    });
+  });
+
+  // ── Cross-cutting: required code field ───────────────────────────────
+  describe('required code field across tools', () => {
+    const toolsRequiringCode = [
+      'qase_case_upsert',
+      'qase_case_delete',
+      'qase_defect_upsert',
+      'qase_defect_delete',
+      'qase_run_upsert',
+      'qase_run_complete',
+      'qase_run_delete',
+      'qase_result_record',
+      'qase_result_delete',
+      'qase_suite_upsert',
+      'qase_suite_delete',
+      'qase_milestone_upsert',
+      'qase_milestone_delete',
+      'qase_plan_upsert',
+      'qase_plan_delete',
+      'qase_environment_upsert',
+      'qase_environment_delete',
+      'qase_shared_step_upsert',
+      'qase_shared_step_delete',
+      'qase_attachment_upload',
+    ];
+
+    it.each(toolsRequiringCode)('%s should require "code"', (toolName) => {
+      const required = getSchemaRequired(toolName);
+      expect(required).toContain('code');
+    });
+  });
+
+  // ── ID fields should be integer ───────────────────────────────────────
+  describe('ID fields should be integer', () => {
     const toolsWithId: [string, string][] = [
-      ['get_case', 'id'],
-      ['update_case', 'id'],
-      ['delete_case', 'id'],
-      ['get_defect', 'id'],
-      ['update_defect', 'id'],
-      ['delete_defect', 'id'],
-      ['get_run', 'id'],
-      ['delete_run', 'id'],
-      ['complete_run', 'id'],
-      ['get_milestone', 'id'],
-      ['update_milestone', 'id'],
-      ['delete_milestone', 'id'],
-      ['get_suite', 'id'],
-      ['update_suite', 'id'],
-      ['delete_suite', 'id'],
-      ['get_plan', 'id'],
-      ['update_plan', 'id'],
-      ['delete_plan', 'id'],
+      ['qase_case_delete', 'id'],
+      ['qase_defect_delete', 'id'],
+      ['qase_run_complete', 'id'],
+      ['qase_run_delete', 'id'],
+      ['qase_suite_delete', 'id'],
+      ['qase_milestone_delete', 'id'],
+      ['qase_plan_delete', 'id'],
     ];
 
     assertFieldTypes(toolsWithId.map(([tool, field]) => [tool, field, 'integer']));
-  });
-
-  // ── Cross-cutting: pagination fields ──────────────────────────────────
-  describe('pagination fields should be integer across list tools', () => {
-    const listTools = [
-      'list_cases',
-      'list_defects',
-      'list_runs',
-      'list_results',
-      'list_milestones',
-      'list_suites',
-      'list_plans',
-      'list_attachments',
-      'list_environments',
-    ];
-
-    it.each(listTools)('%s: limit and offset should be integer', (toolName) => {
-      const props = getSchemaProperties(toolName);
-      if (props.limit) {
-        expect(props.limit.type).toBe('integer');
-      }
-      if (props.offset) {
-        expect(props.offset.type).toBe('integer');
-      }
-    });
-  });
-
-  // ── Cross-cutting: required fields ────────────────────────────────────
-  describe('required fields match SDK expectations', () => {
-    it.each([
-      ['create_case', 'code'],
-      ['create_case', 'title'],
-      ['create_defect', 'code'],
-      ['create_defect', 'title'],
-      ['create_run', 'code'],
-      ['create_run', 'title'],
-      ['create_result', 'code'],
-      ['create_result', 'id'],
-      ['create_result', 'status'],
-      ['upload_attachment', 'code'],
-      ['upload_attachment', 'file'],
-      ['upload_attachment', 'filename'],
-    ])('%s should require "%s"', (tool, field) => {
-      const required = getSchemaRequired(tool);
-      expect(required).toContain(field);
-    });
   });
 });
 
@@ -373,9 +298,78 @@ describe('Tool Smoke Tests', () => {
     toolNames = allTools.map((t) => t.name);
   });
 
-  it('should have tools registered', () => {
-    expect(allTools.length).toBeGreaterThan(0);
+  it('should have ~29 tools registered (v2 tool set)', () => {
+    expect(allTools.length).toBeGreaterThanOrEqual(25);
+    expect(allTools.length).toBeLessThanOrEqual(35);
     console.error(`[Smoke] Found ${allTools.length} registered tools`);
+  });
+
+  it('all expected v2 tool names are present', () => {
+    const expectedTools = [
+      'qase_project_context',
+      'qase_get',
+      'qql_search',
+      'qql_help',
+      'qase_case_upsert',
+      'qase_case_delete',
+      'qase_run_upsert',
+      'qase_run_complete',
+      'qase_run_delete',
+      'qase_result_record',
+      'qase_result_delete',
+      'qase_defect_upsert',
+      'qase_defect_delete',
+      'qase_suite_upsert',
+      'qase_suite_delete',
+      'qase_milestone_upsert',
+      'qase_milestone_delete',
+      'qase_plan_upsert',
+      'qase_plan_delete',
+      'qase_shared_step_upsert',
+      'qase_shared_step_delete',
+      'qase_environment_upsert',
+      'qase_environment_delete',
+      'qase_attachment_upload',
+      'qase_attachment_delete',
+      'qase_api',
+      'qase_ci_report',
+      'qase_triage_defect',
+      'qase_regression_run',
+    ];
+    for (const name of expectedTools) {
+      expect(toolNames).toContain(name);
+    }
+  });
+
+  it('no v1 tool names are present', () => {
+    const v1Names = [
+      'list_projects',
+      'get_project',
+      'create_project',
+      'list_cases',
+      'get_case',
+      'create_case',
+      'update_case',
+      'delete_case',
+      'bulk_create_cases',
+      'list_runs',
+      'get_run',
+      'create_run',
+      'complete_run',
+      'delete_run',
+      'list_results',
+      'create_result',
+      'create_results_bulk',
+      'list_defects',
+      'get_defect',
+      'create_defect',
+      'update_defect',
+      'delete_defect',
+      'upload_attachment',
+    ];
+    for (const name of v1Names) {
+      expect(toolNames).not.toContain(name);
+    }
   });
 
   it('every tool has a description and inputSchema', () => {

@@ -24,24 +24,7 @@ import { setupStreamableHttpTransport } from './transports/streamableHttp.js';
 import { VERSION } from './version.js';
 
 // Import operation modules - each module registers its tools on import
-import './operations/projects.js';
-import './operations/cases.js';
-import './operations/suites.js';
-import './operations/runs.js';
-import './operations/results.js';
-import './operations/plans.js';
-import './operations/shared-steps.js';
-import './operations/shared-parameters.js';
-import './operations/milestones.js';
-import './operations/defects.js';
-import './operations/environments.js';
-import './operations/attachments.js';
-import './operations/authors.js';
-import './operations/custom-fields.js';
-import './operations/system-fields.js';
-import './operations/configurations.js';
-import './operations/users.js';
-import './operations/search.js';
+import './operations-v2/index.js';
 
 /**
  * Create and configure a new MCP Server instance.

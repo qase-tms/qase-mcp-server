@@ -1,0 +1,23 @@
+MIGRATION.md
+  77cba31c751e5b9b 1-351
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8",
+  "base_commit_sha": "922f7a8b425f84367c99357c99dd93ba38b533a2",
+  "prompts": {
+    "77cba31c751e5b9b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "4103c30d-6035-4298-8179-cb2733d3da72",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Dmitrii Gridnev",
+      "messages": [],
+      "total_additions": 351,
+      "total_deletions": 0,
+      "accepted_lines": 576,
+      "overriden_lines": 0
+    }
+  }
+}

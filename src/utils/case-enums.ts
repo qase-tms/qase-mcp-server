@@ -92,7 +92,7 @@ async function fetchSystemFieldMaps(): Promise<SystemFieldMap> {
  * fetches, so there is no need to reimplement it here.
  */
 async function getSystemFieldMaps(): Promise<SystemFieldMap> {
-  const cache = getCache();
+  const cache = await getCache();
   const key = systemFieldsKey();
 
   const cached = await cache.get<SystemFieldMap>(key);
@@ -122,12 +122,12 @@ export async function normalizeCaseEnums<T extends Record<string, unknown>>(
 
 /** @internal — used by tests to pre-populate the tenant-scoped shard. */
 export async function __setCaseEnumCacheForTest(snapshot: SystemFieldMap): Promise<void> {
-  const cache = getCache();
+  const cache = await getCache();
   await cache.set(systemFieldsKey(), snapshot, SYSTEM_FIELDS_TTL_MS);
 }
 
 /** @internal — used by tests to clear the tenant-scoped shard. */
 export async function resetCaseEnumCacheForTest(): Promise<void> {
-  const cache = getCache();
+  const cache = await getCache();
   await cache.delete(systemFieldsKey());
 }

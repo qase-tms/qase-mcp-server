@@ -42,8 +42,14 @@ export class LayeredCache implements CacheBackend {
     return env.v;
   }
 
-  async set<T>(_key: string, _value: T, _ttlMs: number): Promise<void> {
-    throw new Error('LayeredCache.set: not implemented until Task 10');
+  async set<T>(key: string, value: T, ttlMs: number): Promise<void> {
+    const envelope: L2Envelope<T> = { v: value, exp: Date.now() + ttlMs };
+    const results = await Promise.allSettled([
+      this.l1.set(key, value, ttlMs),
+      this.l2.set(key, envelope, ttlMs),
+    ]);
+    const l1Result = results[0];
+    if (l1Result.status === 'rejected') throw l1Result.reason;
   }
 
   async delete(_key: string): Promise<void> {

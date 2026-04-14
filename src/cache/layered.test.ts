@@ -116,3 +116,39 @@ describe('LayeredCache — read path', () => {
     await cache.close();
   });
 });
+
+describe('LayeredCache — write path', () => {
+  it('writes to both L1 and L2 in parallel', async () => {
+    const l1 = makeSpyCache();
+    const l2 = makeSpyCache();
+    const bus = makeNoopBus();
+
+    const cache = new LayeredCache(l1, l2, bus);
+    await cache.set('k', 'v', 5000);
+
+    expect(l1.sets).toHaveLength(1);
+    expect(l1.sets[0]).toMatchObject({ key: 'k', value: 'v', ttlMs: 5000 });
+
+    expect(l2.sets).toHaveLength(1);
+    expect(l2.sets[0].key).toBe('k');
+    expect(l2.sets[0].ttlMs).toBe(5000);
+    const env = l2.sets[0].value as { v: unknown; exp: number };
+    expect(env.v).toBe('v');
+    expect(env.exp).toBeGreaterThan(Date.now() - 100);
+    expect(env.exp).toBeLessThanOrEqual(Date.now() + 5000);
+
+    await cache.close();
+  });
+
+  it('does not throw if L2 set fails (L1 still has the value)', async () => {
+    const l1 = makeSpyCache();
+    const l2 = makeSpyCache();
+    l2.set = async () => { throw new Error('l2 down'); };
+    const bus = makeNoopBus();
+
+    const cache = new LayeredCache(l1, l2, bus);
+    await expect(cache.set('k', 'v', 5000)).resolves.toBeUndefined();
+    expect(await cache.get('k')).toBe('v');
+    await cache.close();
+  });
+});

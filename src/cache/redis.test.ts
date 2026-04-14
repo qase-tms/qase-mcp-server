@@ -1,4 +1,6 @@
 import { RedisCache } from './redis.js';
+import { CircuitBreaker } from './circuit-breaker.js';
+import { resetMetricsForTest, getMetrics } from './metrics.js';
 
 interface FakeRedis {
   store: Map<string, string>;
@@ -147,5 +149,61 @@ describe('RedisCache — deleteByPrefix', () => {
     await cache.deleteByPrefix('v1:h:tenantZ:');
     expect(await cache.get('v1:h:tenantA:r1::')).toBe(1);
     await cache.close();
+  });
+});
+
+describe('RedisCache — resilience', () => {
+  beforeEach(() => resetMetricsForTest());
+  afterEach(() => resetMetricsForTest());
+
+  it('returns undefined (miss) on a GET error instead of throwing', async () => {
+    const failing = makeFakeRedis();
+    failing.get = async () => {
+      throw new Error('network');
+    };
+    const cache = new RedisCache(failing as any);
+    expect(await cache.get('k')).toBeUndefined();
+    expect(getMetrics().getCounter('qase_mcp_cache_errors_total', { tier: 'l2' })).toBe(1);
+  });
+
+  it('swallows SET errors silently', async () => {
+    const failing = makeFakeRedis();
+    failing.set = async () => {
+      throw new Error('network');
+    };
+    const cache = new RedisCache(failing as any);
+    await expect(cache.set('k', 'v', 1000)).resolves.toBeUndefined();
+    expect(getMetrics().getCounter('qase_mcp_cache_errors_total', { tier: 'l2' })).toBe(1);
+  });
+
+  it('increments l2 hits and misses', async () => {
+    const fake = makeFakeRedis();
+    const cache = new RedisCache(fake as any);
+    await cache.set('k', 'v', 60_000);
+    await cache.get('k'); // hit
+    await cache.get('nope'); // miss
+    expect(getMetrics().getCounter('qase_mcp_cache_hits_total', { tier: 'l2' })).toBe(1);
+    expect(getMetrics().getCounter('qase_mcp_cache_misses_total', { tier: 'l2' })).toBe(1);
+  });
+
+  it('short-circuits once CB opens after repeated failures', async () => {
+    const failing = makeFakeRedis();
+    failing.get = async () => {
+      throw new Error('network');
+    };
+    const cb = new CircuitBreaker({ name: 'redis', failureThreshold: 3, openDurationMs: 1000 });
+    const cache = new RedisCache(failing as any, { circuitBreaker: cb });
+
+    // Three real failures trip the breaker.
+    await cache.get('k');
+    await cache.get('k');
+    await cache.get('k');
+    expect(cb.state).toBe('open');
+
+    // Fourth call is short-circuited: errors_total increments, but no call to underlying client
+    const spy = jest.spyOn(failing, 'get');
+    await cache.get('k');
+    expect(spy).not.toHaveBeenCalled();
+    expect(getMetrics().getCounter('qase_mcp_cache_errors_total', { tier: 'l2' })).toBeGreaterThanOrEqual(4);
   });
 });

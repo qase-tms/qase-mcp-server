@@ -12,37 +12,26 @@ The Qase MCP Server provides seamless integration between AI assistants (Claude,
 
 ### Features
 
-- ✅ **Complete Qase API Coverage** - Access all Qase entities and operations
-- ✅ **QQL Support** - Powerful Qase Query Language for advanced searches
-- ✅ **Type-Safe** - Full TypeScript implementation with comprehensive validation
-- ✅ **Custom Domains** - Support for enterprise custom domains
+- **29 Consolidated Tools** - Streamlined from 83 tools to 29 task-oriented operations for lower token usage and better LLM accuracy
+- **Composite Tools** - Multi-step workflows in a single call: CI reporting, defect triage, regression run setup
+- **QQL Support** - Powerful Qase Query Language for advanced searches across cases, runs, results, defects, and plans
+- **Project Context Bootstrap** - One call to get full project structure (suites, milestones, environments, users, custom fields)
+- **Compact Responses** - Minimal JSON output with no indentation and automatic null/empty field stripping
+- **HTTP Resilience** - Connection pooling (keep-alive), retry with exponential backoff, in-flight request deduplication
+- **Tenant-Safe Cache** - Two-tier caching (in-memory + optional Redis) with per-tenant isolation and pub/sub invalidation
+- **Type-Safe** - Full TypeScript implementation with comprehensive Zod validation
+- **Custom Domains** - Support for enterprise custom domains
+- **Escape Hatch** - Direct REST API access for any endpoint via `qase_api`
 
-### Supported Entities
+### Upgrading from v1
 
-The server provides tools for managing:
-
-- **Projects** - Create and manage test projects
-- **Test Cases** - Create, update, and organize test cases
-- **Test Suites** - Organize tests into hierarchical suites
-- **Test Runs** - Execute test runs and track progress
-- **Test Results** - Record and analyze test execution results
-- **Test Plans** - Define and manage test plans
-- **Defects** - Track and manage bugs
-- **Milestones** - Organize work by sprints/releases
-- **Environments** - Manage test environments
-- **Shared Steps** - Create reusable test steps
-- **Shared Parameters** - Define reusable test data
-- **Attachments** - Upload and manage files
-- **Custom Fields** - Define custom metadata
-- **Configurations** - Manage test configurations
-- **Users** - User management operations
-- **QQL Search** - Advanced cross-project queries
+If you're upgrading from v1.x, see [MIGRATION.md](MIGRATION.md) for the complete tool mapping table and breaking changes.
 
 ## Installation
 
 ### Prerequisites
 
-- Node.js 18+
+- Node.js 20+
 - Qase account with API token ([Get your token](https://app.qase.io/user/api/token))
 
 ### Option 1: Install from NPM (Recommended)
@@ -77,6 +66,9 @@ QASE_API_TOKEN=your_api_token_here
 
 # Optional: Custom API domain for enterprise customers
 QASE_API_DOMAIN=api.qase.io
+
+# Optional: Redis URL for shared cache in hosted/multi-instance deployments
+QASE_MCP_REDIS_URL=redis://localhost:6379
 ```
 
 Get your API token from: https://app.qase.io/user/api/token
@@ -88,6 +80,22 @@ If you're using Qase Enterprise with a custom domain:
 ```bash
 QASE_API_DOMAIN=api.yourcompany.qase.io
 ```
+
+### Redis Cache (Hosted Deployments)
+
+For multi-instance deployments behind a load balancer, set `QASE_MCP_REDIS_URL` to enable shared L2 cache with pub/sub invalidation:
+
+```bash
+QASE_MCP_REDIS_URL=redis://your-redis-host:6379
+```
+
+This requires the optional `ioredis` dependency. Install with:
+
+```bash
+npm install --include=optional
+```
+
+When Redis is not configured, the server uses an in-memory cache only (default for local/stdio usage).
 
 ## Integration
 
@@ -234,167 +242,103 @@ Add an `opencode.json` file to your project root (or `~/.config/opencode/opencod
 
 ## Usage Examples
 
-### Basic Operations
-
-#### List All Projects
+### Get Project Overview
 
 ```
-Can you list all my Qase projects?
+Show me the structure of project DEMO — suites, milestones, environments
 ```
 
-#### Create a Test Case
+The AI will call `qase_project_context` to get everything in one request.
 
-```
-Create a test case in project DEMO titled "Login with valid credentials" with steps for entering username, password, and clicking login
-```
-
-#### Search with QQL
+### Search with QQL
 
 ```
 Find all failed test results from the last 7 days in project DEMO
 ```
 
-### Advanced QQL Queries
-
-#### Find Flaky Tests
-
+The AI will use `qql_search` with the query:
 ```
-Search for all flaky test cases in project DEMO that are not automated
+entity = "result" and project = "DEMO" and status = "failed" and created >= now("-7d")
 ```
 
-The server will execute:
-```
-entity = "case" and project = "DEMO" and isFlaky = true and automation = "Not automated"
-```
-
-#### Find Open Blocker Defects
+### Create a Test Case
 
 ```
-Show me all open blocker defects in project DEMO
+Create a high-priority smoke test case in project DEMO titled "Login with valid credentials"
 ```
 
-#### Find Tests by Author
+The AI will call `qase_case_upsert` with `priority: "high"`, `type: "smoke"` — enum labels are normalized automatically.
+
+### Report CI Results
 
 ```
-Find all test cases created by john@example.com in the last month
+Report these CI results for project DEMO: case 1 passed in 1.2s, case 2 failed with "timeout error"
 ```
 
-### Working with Test Runs
+The AI will call `qase_ci_report` — a single composite that creates the run, records all results, and completes the run.
 
-#### Create and Execute a Test Run
+### Set Up a Regression Run
 
 ```
-Create a test run in project DEMO called "Sprint 24 Regression" including all test cases from the "Authentication" suite, then add a passed result for case ID 123
+Create a regression run for project DEMO including all cases from the Authentication and Payments suites
+```
+
+The AI will call `qase_regression_run` with the suite IDs — one call instead of finding cases + creating run + adding them.
+
+### Triage a Failed Test
+
+```
+Create a critical defect for the login timeout failure in run #42
+```
+
+The AI will call `qase_triage_defect` to create the defect and link it to the failed results.
+
+### Access Any API Endpoint
+
+```
+Get the list of all shared parameters in project DEMO
+```
+
+The AI will use `qase_api` as an escape hatch:
+```json
+{ "method": "GET", "path": "/v1/shared_parameter/DEMO" }
 ```
 
 ## Available Tools
 
-### Projects (6 tools)
-- `list_projects` - Get all projects
-- `get_project` - Get project details
-- `create_project` - Create new project
-- `delete_project` - Delete project
-- `grant_project_access` - Grant user/group access
-- `revoke_project_access` - Revoke access
+### Read Tools (2)
+- `qase_project_context` - Get full project structure in one call (project details, suites, milestones, environments, custom fields, users). Cached for 5 minutes.
+- `qase_get` - Get any entity by type and ID with optional field projection. Supports: case, suite, run, result, plan, defect, milestone, environment, shared_step, shared_parameter, configuration, attachment, author, user, custom_field.
 
-### Test Cases (8 tools)
-- `list_cases` - List all test cases
-- `get_case` - Get test case details
-- `create_case` - Create new test case
-- `update_case` - Update test case
-- `delete_case` - Delete test case
-- `bulk_create_cases` - Create multiple cases
-- `attach_external_issue` - Link external issue (Jira, etc.)
-- `detach_external_issue` - Unlink external issue
+### QQL Tools (2)
+- `qql_search` - Execute QQL queries across cases, runs, results, defects, and plans
+- `qql_help` - Get QQL syntax reference and examples
 
-### Case enum values
+### Write Tools (21)
+- `qase_case_upsert` / `qase_case_delete` - Create or update test cases (enum labels auto-normalized)
+- `qase_run_upsert` / `qase_run_complete` / `qase_run_delete` - Manage test runs
+- `qase_result_record` / `qase_result_delete` - Record test results (single or bulk)
+- `qase_defect_upsert` / `qase_defect_delete` - Create, update, resolve defects
+- `qase_suite_upsert` / `qase_suite_delete` - Manage test suites
+- `qase_milestone_upsert` / `qase_milestone_delete` - Manage milestones
+- `qase_plan_upsert` / `qase_plan_delete` - Manage test plans
+- `qase_shared_step_upsert` / `qase_shared_step_delete` - Manage shared steps
+- `qase_environment_upsert` / `qase_environment_delete` - Manage environments
+- `qase_attachment_upload` / `qase_attachment_delete` - Upload and manage files
 
-`create_case`, `bulk_create_cases`, and `update_case` automatically normalize friendly labels to whatever numeric IDs your workspace currently configures for the built-in system fields (`priority`, `severity`, `type`, `behavior`, `status`, `layer`). The server fetches `/v1/system_field` and caches the available options so you can keep using the titles or slugs you see in Qase while still satisfying the API’s numeric requirements.
+### Composite Tools (3)
+- `qase_ci_report` - Report CI/CD results in one call: creates run, records results, completes run
+- `qase_triage_defect` - Create a defect from test failure and link to failed results
+- `qase_regression_run` - Set up a regression run from suite IDs, case IDs, or plan
 
-The normalization does not touch `automation`/`is_flaky`, so pass those values as the API expects (strings or booleans).
-The server keeps any existing label in place when it does not match a known enum so invalid values still bubble up as errors from Qase.
+### Escape Hatch (1)
+- `qase_api` - Direct REST API call for any endpoint not covered by the tools above
 
-### Test Runs (7 tools)
-- `list_runs` - List test runs
-- `get_run` - Get run details
-- `create_run` - Create new run
-- `delete_run` - Delete run
-- `complete_run` - Mark run as complete
-- `get_run_public_link` - Get public link
-- `delete_run_public_link` - Remove public link
+### Case Enum Values
 
-### Test Results (6 tools)
-- `list_results` - List test results
-- `get_result` - Get result details
-- `create_result` - Create test result
-- `create_results_bulk` - Create multiple results
-- `update_result` - Update result
-- `delete_result` - Delete result
+`qase_case_upsert` automatically normalizes friendly labels to whatever numeric IDs your workspace currently configures for the built-in system fields (`priority`, `severity`, `type`, `behavior`, `status`, `layer`). The server fetches `/v1/system_field` and caches the available options so you can keep using the titles or slugs you see in Qase while still satisfying the API's numeric requirements.
 
-### Test Plans (5 tools)
-- `list_plans` - List test plans
-- `get_plan` - Get plan details
-- `create_plan` - Create test plan
-- `update_plan` - Update test plan
-- `delete_plan` - Delete test plan
-
-### Suites (5 tools)
-- `list_suites` - List suites
-- `get_suite` - Get suite details
-- `create_suite` - Create suite
-- `update_suite` - Update suite
-- `delete_suite` - Delete suite
-
-### Defects (7 tools)
-- `list_defects` - List defects
-- `get_defect` - Get defect details
-- `create_defect` - Create defect
-- `update_defect` - Update defect
-- `delete_defect` - Delete defect
-- `resolve_defect` - Mark as resolved
-- `update_defect_status` - Update status
-
-### Milestones (5 tools)
-- `list_milestones` - List milestones
-- `get_milestone` - Get milestone details
-- `create_milestone` - Create milestone
-- `update_milestone` - Update milestone
-- `delete_milestone` - Delete milestone
-
-### Environments (5 tools)
-- `list_environments` - List environments
-- `get_environment` - Get environment details
-- `create_environment` - Create environment
-- `update_environment` - Update environment
-- `delete_environment` - Delete environment
-
-### Shared Steps (5 tools)
-- `list_shared_steps` - List shared steps
-- `get_shared_step` - Get shared step details
-- `create_shared_step` - Create shared step
-- `update_shared_step` - Update shared step
-- `delete_shared_step` - Delete shared step
-
-### Shared Parameters (5 tools)
-- `list_shared_parameters` - List parameters
-- `get_shared_parameter` - Get parameter details
-- `create_shared_parameter` - Create parameter
-- `update_shared_parameter` - Update parameter
-- `delete_shared_parameter` - Delete parameter
-
-### Supporting Entities
-- **Attachments** (4 tools) - File management
-- **Authors** (2 tools) - Author information
-- **Custom Fields** (5 tools) - Custom field management
-- **System Fields** (1 tool) - System field info
-- **Configurations** (3 tools) - Configuration management
-- **Users** (2 tools) - User management
-
-### QQL Search (2 tools)
-- `qql_search` - Execute QQL query
-- `qql_help` - Get QQL syntax help
-
-**Total: 83 tools available**
+**Total: 29 tools**
 
 ## Development
 
@@ -415,6 +359,9 @@ npm run test:coverage
 
 # Watch mode
 npm run test:watch
+
+# Integration tests (requires Redis)
+REDIS_TEST_URL=redis://localhost:6379 npm run test:integration
 ```
 
 ### Linting
@@ -459,6 +406,7 @@ Server-Sent Events for web-based clients:
 npm run start:sse
 # Server runs on http://localhost:3000/sse
 # Health check: http://localhost:3000/health
+# Metrics: http://localhost:3000/metrics
 ```
 
 #### Streamable HTTP Transport
@@ -469,6 +417,7 @@ Full HTTP-based transport with session management:
 npm run start:http
 # Server runs on http://localhost:3000/mcp
 # Health check: http://localhost:3000/health
+# Metrics: http://localhost:3000/metrics
 ```
 
 #### Custom Configuration
@@ -482,6 +431,19 @@ node build/index.js --transport streamable-http --port 8080 --host 0.0.0.0
 # --port: Port number (default: 3000)
 # --host: Host address (default: 0.0.0.0)
 ```
+
+### Monitoring
+
+When using SSE or Streamable HTTP transport, a Prometheus-compatible `/metrics` endpoint is available:
+
+```bash
+curl http://localhost:3000/metrics
+```
+
+Metrics include:
+- `qase_mcp_cache_hits_total` / `qase_mcp_cache_misses_total` - Cache hit/miss rates by tier (l1/l2)
+- `qase_mcp_cache_errors_total` - Cache errors by tier
+- `qase_mcp_circuit_breaker_state` - Redis circuit breaker state (0=closed, 1=half_open, 2=open)
 
 ## Troubleshooting
 
@@ -561,7 +523,7 @@ To find your certificate:
 
 **Solution**:
 1. Ensure you're using the latest version: `npm update -g @qase/mcp-server`
-2. Check the tool name spelling matches the documentation
+2. If upgrading from v1, tool names have changed — see [MIGRATION.md](MIGRATION.md)
 3. Restart your MCP client after updating
 
 ## Contributing
@@ -594,7 +556,3 @@ MIT License - see [LICENSE](LICENSE) file for details
 - **Documentation**: https://help.qase.io
 - **Email**: support@qase.io
 - **GitHub Issues**: https://github.com/qase-tms/qase-mcp-server/issues
-
----
-
-Made with ❤️ by [Qase](https://qase.io)

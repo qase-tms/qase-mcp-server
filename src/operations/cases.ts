@@ -79,7 +79,7 @@ const GetCaseSchema = z.object({
  */
 const CaseEnumValueSchema = z.string();
 
-const TestStepSchema = z.object({
+const stepFields = {
   action: z.string().optional().describe('Step action description (used for classic steps)'),
   expected_result: z.string().optional().describe('Expected result for this step'),
   data: z.string().optional().describe('Test data for this step'),
@@ -90,6 +90,14 @@ const TestStepSchema = z.object({
       'Gherkin scenario text (used when steps_type is "gherkin"). Example: "Given a user exists\\nWhen they log in\\nThen they see the dashboard"',
     ),
   attachments: z.array(z.string()).optional().describe('Array of attachment hashes'),
+};
+
+const TestStepSchema = z.object({
+  ...stepFields,
+  steps: z
+    .array(z.object(stepFields).passthrough())
+    .optional()
+    .describe('Nested substeps. Same structure as parent steps, supports further nesting.'),
 });
 
 /**

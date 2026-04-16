@@ -1,0 +1,23 @@
+src/operations-v2/write/cases.ts
+  33e5c112bc2b596e 8,14-21
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8",
+  "base_commit_sha": "a18ab6a5d980523aa5b1d627eb099e86091fe3ca",
+  "prompts": {
+    "33e5c112bc2b596e": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "13deaf72-0408-4f78-911e-4dfc1dce5ae8",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Dmitrii Gridnev",
+      "messages": [],
+      "total_additions": 1406,
+      "total_deletions": 3,
+      "accepted_lines": 1404,
+      "overriden_lines": 0
+    }
+  }
+}

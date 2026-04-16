@@ -5,12 +5,20 @@ import { toResultAsync, createToolError } from '../../utils/errors.js';
 import { ProjectCodeSchema, IdSchema } from '../../utils/validation.js';
 import { normalizeCaseEnums } from '../../utils/case-enums.js';
 
-const TestStepSchema = z.object({
+const stepFields = {
   action: z.string().optional().describe('Step action (classic steps)'),
   expected_result: z.string().optional().describe('Expected result'),
   data: z.string().optional().describe('Test data'),
   value: z.string().optional().describe('Gherkin scenario text (when steps_type is "gherkin")'),
   attachments: z.array(z.string()).optional().describe('Attachment hashes'),
+};
+
+const TestStepSchema = z.object({
+  ...stepFields,
+  steps: z
+    .array(z.object(stepFields).passthrough())
+    .optional()
+    .describe('Nested substeps. Same structure as parent steps, supports further nesting.'),
 });
 
 const CaseFieldsSchema = z.object({

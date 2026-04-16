@@ -140,6 +140,24 @@ describe('Schema-API Contract Tests', () => {
     ]);
   });
 
+  describe('cases.ts — nested substeps support (Issue #42)', () => {
+    it.each(['create_case', 'update_case'])(
+      '%s: steps items should have a "steps" property for substeps',
+      (toolName) => {
+        const props = getSchemaProperties(toolName);
+        const stepItems = props.steps?.items;
+        expect(stepItems?.properties?.steps).toBeDefined();
+      },
+    );
+
+    it('bulk_create_cases: steps items should have a "steps" property for substeps', () => {
+      const props = getSchemaProperties('bulk_create_cases');
+      const caseItems = props.cases?.items?.properties ?? {};
+      const stepItems = caseItems.steps?.items;
+      expect(stepItems?.properties?.steps).toBeDefined();
+    });
+  });
+
   describe('cases.ts — is_flaky should be boolean', () => {
     assertFieldTypes([
       ['create_case', 'is_flaky', 'boolean'],

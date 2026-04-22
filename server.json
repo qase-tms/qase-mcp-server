@@ -8,12 +8,12 @@
     "url": "https://github.com/qase-tms/qase-mcp-server",
     "source": "github"
   },
-  "version": "1.1.6",
+  "version": "1.1.7",
   "packages": [
     {
       "registryType": "npm",
       "identifier": "@qase/mcp-server",
-      "version": "1.1.6",
+      "version": "1.1.7",
       "transport": {
         "type": "stdio"
       },

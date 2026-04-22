@@ -1,0 +1,23 @@
+package.json
+  771250921db99ee6 74
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.2",
+  "base_commit_sha": "a1d4aa6b2fe744dfb3bb28140203dd0ecb36fd1a",
+  "prompts": {
+    "771250921db99ee6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "50345126-5eaf-464d-8b61-ddd7d44e0498",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Dmitrii Gridnev",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 1,
+      "overriden_lines": 0
+    }
+  }
+}

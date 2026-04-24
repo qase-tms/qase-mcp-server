@@ -61,6 +61,7 @@ toolRegistry.register({
   schema: UploadSchema,
   handler: upload,
   annotations: CreateAnnotation,
+  visibility: 'discoverable',
 });
 
 toolRegistry.register({
@@ -69,4 +70,5 @@ toolRegistry.register({
   schema: DeleteSchema,
   handler: del,
   annotations: DeleteAnnotation,
+  visibility: 'discoverable',
 });

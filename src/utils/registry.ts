@@ -6,6 +6,7 @@
  * - Convert Zod schemas to JSON Schema automatically
  * - Store and retrieve tool handlers
  * - Manage tool lifecycle
+ * - Support tool discovery with core/discoverable visibility
  */
 
 import { Tool, ToolAnnotations } from '@modelcontextprotocol/sdk/types.js';
@@ -23,26 +24,43 @@ export type ToolHandler<T = any, R = any> = (args: T) => Promise<R>;
  * Tool definition for registration
  * Contains all information needed to register a tool with the MCP server
  */
+/** JSON Schema object type for outputSchema */
+export interface OutputSchema {
+  type: 'object';
+  properties?: Record<string, object>;
+  required?: string[];
+  [key: string]: unknown;
+}
+
 export interface ToolDefinition<T extends z.ZodType = z.ZodType> {
   name: string;
   description: string;
   schema: T;
   handler: ToolHandler;
   annotations?: ToolAnnotations;
+  /** JSON Schema describing the tool's output — enables clients to process results programmatically */
+  outputSchema?: OutputSchema;
+  /** Tool visibility: 'core' tools are always listed, 'discoverable' tools require activation via qase_discover_tools */
+  visibility?: 'core' | 'discoverable';
 }
 
 /**
  * Tool Registry Class
- * Manages the lifecycle of MCP tools
+ * Manages the lifecycle of MCP tools with support for dynamic discovery
  */
 export class ToolRegistry {
   private tools: Map<string, Tool> = new Map();
   private handlers: Map<string, ToolHandler> = new Map();
+  private activeTools: Set<string> = new Set();
+  private toolVisibility: Map<string, 'core' | 'discoverable'> = new Map();
+
+  /** Callback invoked when the active tool set changes (wired to server.sendToolListChanged) */
+  onToolsChanged?: () => void;
 
   /**
    * Register a new tool with the registry
    *
-   * @param definition - Tool definition including name, description, schema, and handler
+   * @param definition - Tool definition including name, description, schema, handler, and visibility
    *
    * @example
    * ```typescript
@@ -50,12 +68,14 @@ export class ToolRegistry {
    *   name: 'list_projects',
    *   description: 'Get all projects',
    *   schema: z.object({ limit: z.number().optional() }),
-   *   handler: async (args) => { ... }
+   *   handler: async (args) => { ... },
+   *   visibility: 'discoverable', // hidden until discovered
    * });
    * ```
    */
   register<T extends z.ZodType>(definition: ToolDefinition<T>): void {
-    const { name, description, schema, handler, annotations } = definition;
+    const { name, description, schema, handler, annotations, outputSchema } = definition;
+    const visibility = definition.visibility ?? 'core';
 
     // Convert Zod schema to JSON Schema for MCP protocol
     // Using explicit type assertion to avoid TypeScript's deep type inference issues
@@ -95,23 +115,68 @@ export class ToolRegistry {
       description,
       inputSchema,
       ...(annotations && { annotations }),
+      ...(outputSchema && { outputSchema }),
     });
 
     // Store handler function
     this.handlers.set(name, handler);
 
+    // Track visibility and activation
+    this.toolVisibility.set(name, visibility);
+    if (visibility === 'core') {
+      this.activeTools.add(name);
+    }
+
     // Log registration for debugging (to stderr)
-    console.error(`[Registry] Registered tool: ${name}`);
+    console.error(`[Registry] Registered tool: ${name} (${visibility})`);
   }
 
   /**
-   * Get all registered tools
+   * Get active tools only (core + activated discoverable)
    * Used by the ListToolsRequestSchema handler
-   *
-   * @returns Array of all registered tools
    */
   getTools(): Tool[] {
+    return Array.from(this.tools.values()).filter((t) => this.activeTools.has(t.name));
+  }
+
+  /**
+   * Get ALL registered tools regardless of activation status.
+   * Used for discovery search and testing.
+   */
+  getAllTools(): Tool[] {
     return Array.from(this.tools.values());
+  }
+
+  /**
+   * Search tools by name or description (case-insensitive substring match).
+   * Searches the full catalog including inactive tools.
+   */
+  searchTools(query: string): Tool[] {
+    const lower = query.toLowerCase();
+    return this.getAllTools().filter(
+      (t) =>
+        t.name.toLowerCase().includes(lower) ||
+        (t.description?.toLowerCase().includes(lower) ?? false),
+    );
+  }
+
+  /**
+   * Activate tools by name, making them visible in getTools().
+   * Returns the list of newly activated tool names.
+   * Triggers onToolsChanged callback if any tools were activated.
+   */
+  activateTools(names: string[]): string[] {
+    const newlyActivated: string[] = [];
+    for (const name of names) {
+      if (this.tools.has(name) && !this.activeTools.has(name)) {
+        this.activeTools.add(name);
+        newlyActivated.push(name);
+      }
+    }
+    if (newlyActivated.length > 0 && this.onToolsChanged) {
+      this.onToolsChanged();
+    }
+    return newlyActivated;
   }
 
   /**
@@ -125,6 +190,13 @@ export class ToolRegistry {
   }
 
   /**
+   * Get a specific tool definition by name
+   */
+  getTool(name: string): Tool | undefined {
+    return this.tools.get(name);
+  }
+
+  /**
    * Check if a tool exists in the registry
    *
    * @param name - Tool name
@@ -135,9 +207,7 @@ export class ToolRegistry {
   }
 
   /**
-   * Get the count of registered tools
-   *
-   * @returns Number of registered tools
+   * Get the count of registered tools (all, including inactive)
    */
   getToolCount(): number {
     return this.tools.size;
@@ -153,6 +223,8 @@ export class ToolRegistry {
   unregister(name: string): boolean {
     const hadTool = this.tools.delete(name);
     this.handlers.delete(name);
+    this.activeTools.delete(name);
+    this.toolVisibility.delete(name);
     return hadTool;
   }
 
@@ -164,6 +236,8 @@ export class ToolRegistry {
   clear(): void {
     this.tools.clear();
     this.handlers.clear();
+    this.activeTools.clear();
+    this.toolVisibility.clear();
   }
 }
 

@@ -10,6 +10,8 @@ import { getApiClient } from '../../client/index.js';
 import { toolRegistry, ReadAnnotation } from '../../utils/registry.js';
 import { toResultAsync, createToolError } from '../../utils/errors.js';
 import { QqlExamples } from '../../utils/qql-helpers.js';
+import { QqlSearchOutput } from '../../utils/output-schemas.js';
+import { richResult, summaryBlock, dataBlock, markdownTable } from '../../utils/rich-response.js';
 
 // ============================================================================
 // SCHEMAS
@@ -72,10 +74,34 @@ async function qqlSearch(args: z.infer<typeof QqlSearchSchema>) {
   return result.match(
     (response) => {
       const r = response.data.result;
-      return {
-        total: r?.total,
-        entities: r?.entities,
-      };
+      const total = r?.total ?? 0;
+      const entities: any[] = r?.entities ?? [];
+
+      const lines = [`Found **${total}** results (showing ${entities.length})`];
+      if (entities.length > 0) {
+        // Check if entities have status_text or status for table view
+        const hasStatus = entities.some((e: any) => e.status_text || e.status !== undefined);
+        if (hasStatus) {
+          const headers = ['ID', 'Title', 'Status'];
+          const rows = entities.map((e: any) => [
+            String(e.id ?? '?'),
+            (e.title || e.case?.title || e.actual_result || '-').substring(0, 60),
+            String(e.status_text || e.status || '-'),
+          ]);
+          lines.push('', markdownTable(headers, rows));
+        } else {
+          lines.push('');
+          for (const e of entities) {
+            const id = e.id ?? '?';
+            const title = e.title || e.case?.title || e.actual_result || `#${id}`;
+            lines.push(`- **#${id}** ${title}`);
+          }
+        }
+      }
+
+      const structured = { total, entities };
+
+      return richResult([summaryBlock(lines.join('\n')), dataBlock(structured)], structured);
     },
     (error) => {
       throw createToolError(error, 'search operation');
@@ -146,6 +172,7 @@ toolRegistry.register({
   schema: QqlSearchSchema,
   handler: qqlSearch,
   annotations: ReadAnnotation,
+  outputSchema: QqlSearchOutput,
 });
 
 toolRegistry.register({

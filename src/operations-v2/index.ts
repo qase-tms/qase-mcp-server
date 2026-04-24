@@ -22,5 +22,8 @@ import './composites/ci-report.js';
 import './composites/triage-defect.js';
 import './composites/regression-run.js';
 
+// Meta tools
+import './meta/discover.js';
+
 // Escape hatch
 import './escape/api.js';

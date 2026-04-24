@@ -3,6 +3,8 @@ import { getApiClient } from '../../client/index.js';
 import { toolRegistry, CreateAnnotation } from '../../utils/registry.js';
 import { toResultAsync, createToolError } from '../../utils/errors.js';
 import { ProjectCodeSchema, IdSchema } from '../../utils/validation.js';
+import { TriageDefectOutput } from '../../utils/output-schemas.js';
+import { richResult, summaryBlock, dataBlock } from '../../utils/rich-response.js';
 
 const Schema = z.object({
   code: ProjectCodeSchema,
@@ -37,11 +39,33 @@ async function handler(args: z.infer<typeof Schema>) {
 
   const defectId = (defect as any).id;
 
-  return {
-    defect_id: defectId,
-    defect,
-    linked_results: failed_result_ids?.length ?? 0,
+  const linkedCount = failed_result_ids?.length ?? 0;
+  const severityIcon: Record<string, string> = {
+    blocker: '🔴',
+    critical: '🟠',
+    major: '🟡',
+    normal: '🔵',
+    minor: '⚪',
+    trivial: '⚪',
   };
+  const icon = severityIcon[args.severity || ''] || '🔵';
+
+  const lines = [
+    `## ${icon} Defect Created: ${args.title}`,
+    '',
+    `- **Defect ID:** ${defectId}`,
+    `- **Project:** ${code}`,
+    `- **Severity:** ${args.severity || 'undefined'}`,
+    `- **Linked results:** ${linkedCount}`,
+  ];
+
+  if (args.actual_result) {
+    lines.push('', '**Actual result:**', `> ${args.actual_result}`);
+  }
+
+  const structured = { defect_id: defectId, defect, linked_results: linkedCount };
+
+  return richResult([summaryBlock(lines.join('\n')), dataBlock(structured)], structured);
 }
 
 toolRegistry.register({
@@ -52,4 +76,5 @@ toolRegistry.register({
   schema: Schema,
   handler,
   annotations: CreateAnnotation,
+  outputSchema: TriageDefectOutput,
 });

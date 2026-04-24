@@ -5,6 +5,7 @@
  * - Tool has name, description, and inputSchema
  * - Tool has a registered handler
  * - Handler is callable (won't throw TypeError/ReferenceError)
+ * - Core tools are active, discoverable tools are hidden until activated
  */
 
 import { describe, it, expect, beforeAll } from '@jest/globals';
@@ -53,14 +54,14 @@ import './operations-v2/index.js';
 
 import { toolRegistry } from './utils/registry.js';
 
-// Helper to extract JSON schema properties from a registered tool
+// Helper to extract JSON schema properties from a registered tool (searches ALL tools)
 function getSchemaProperties(toolName: string): Record<string, any> {
-  const tool = toolRegistry.getTools().find((t) => t.name === toolName);
+  const tool = toolRegistry.getAllTools().find((t) => t.name === toolName);
   return (tool?.inputSchema as any)?.properties ?? {};
 }
 
 function getSchemaRequired(toolName: string): string[] {
-  const tool = toolRegistry.getTools().find((t) => t.name === toolName);
+  const tool = toolRegistry.getAllTools().find((t) => t.name === toolName);
   return (tool?.inputSchema as any)?.required ?? [];
 }
 
@@ -290,18 +291,18 @@ describe('Schema-API Contract Tests', () => {
 });
 
 describe('Tool Smoke Tests', () => {
-  let allTools: ReturnType<typeof toolRegistry.getTools>;
-  let toolNames: string[];
+  let allTools: ReturnType<typeof toolRegistry.getAllTools>;
+  let allToolNames: string[];
 
   beforeAll(() => {
-    allTools = toolRegistry.getTools();
-    toolNames = allTools.map((t) => t.name);
+    allTools = toolRegistry.getAllTools();
+    allToolNames = allTools.map((t) => t.name);
   });
 
-  it('should have ~29 tools registered (v2 tool set)', () => {
+  it('should have ~30 tools registered (v2 tool set + discover)', () => {
     expect(allTools.length).toBeGreaterThanOrEqual(25);
     expect(allTools.length).toBeLessThanOrEqual(35);
-    console.error(`[Smoke] Found ${allTools.length} registered tools`);
+    console.error(`[Smoke] Found ${allTools.length} registered tools (${toolRegistry.getTools().length} core)`);
   });
 
   it('all expected v2 tool names are present', () => {
@@ -335,10 +336,69 @@ describe('Tool Smoke Tests', () => {
       'qase_ci_report',
       'qase_triage_defect',
       'qase_regression_run',
+      'qase_discover_tools',
     ];
     for (const name of expectedTools) {
-      expect(toolNames).toContain(name);
+      expect(allToolNames).toContain(name);
     }
+  });
+
+  it('core tools are visible via getTools()', () => {
+    const coreTools = toolRegistry.getTools().map((t) => t.name);
+    const expectedCore = [
+      'qase_project_context',
+      'qase_get',
+      'qql_search',
+      'qql_help',
+      'qase_case_upsert',
+      'qase_run_upsert',
+      'qase_result_record',
+      'qase_defect_upsert',
+      'qase_ci_report',
+      'qase_triage_defect',
+      'qase_regression_run',
+      'qase_api',
+      'qase_discover_tools',
+    ];
+    for (const name of expectedCore) {
+      expect(coreTools).toContain(name);
+    }
+  });
+
+  it('discoverable tools are NOT in getTools() by default', () => {
+    const coreTools = toolRegistry.getTools().map((t) => t.name);
+    const discoverableTools = [
+      'qase_case_delete',
+      'qase_suite_upsert',
+      'qase_suite_delete',
+      'qase_milestone_upsert',
+      'qase_milestone_delete',
+      'qase_plan_upsert',
+      'qase_plan_delete',
+      'qase_shared_step_upsert',
+      'qase_shared_step_delete',
+      'qase_environment_upsert',
+      'qase_environment_delete',
+      'qase_run_complete',
+      'qase_run_delete',
+      'qase_result_delete',
+      'qase_defect_delete',
+      'qase_attachment_upload',
+      'qase_attachment_delete',
+    ];
+    for (const name of discoverableTools) {
+      expect(coreTools).not.toContain(name);
+    }
+  });
+
+  it('discoverable tools become visible after activation', () => {
+    const activated = toolRegistry.activateTools(['qase_case_delete', 'qase_suite_upsert']);
+    expect(activated).toContain('qase_case_delete');
+    expect(activated).toContain('qase_suite_upsert');
+
+    const coreTools = toolRegistry.getTools().map((t) => t.name);
+    expect(coreTools).toContain('qase_case_delete');
+    expect(coreTools).toContain('qase_suite_upsert');
   });
 
   it('no v1 tool names are present', () => {
@@ -368,7 +428,7 @@ describe('Tool Smoke Tests', () => {
       'upload_attachment',
     ];
     for (const name of v1Names) {
-      expect(toolNames).not.toContain(name);
+      expect(allToolNames).not.toContain(name);
     }
   });
 
@@ -381,7 +441,7 @@ describe('Tool Smoke Tests', () => {
   });
 
   it('every tool has a handler', () => {
-    for (const name of toolNames) {
+    for (const name of allToolNames) {
       const handler = toolRegistry.getHandler(name);
       expect(handler).toBeDefined();
       expect(typeof handler).toBe('function');
@@ -389,9 +449,9 @@ describe('Tool Smoke Tests', () => {
   });
 
   it.each(
-    // Lazily compute tool names — toolRegistry is populated after imports above
+    // Test ALL tools (including discoverable) — handlers should all be callable
     (() => {
-      const tools = toolRegistry.getTools();
+      const tools = toolRegistry.getAllTools();
       return tools.map((t) => t.name);
     })(),
   )('tool "%s" handler is callable', async (toolName) => {

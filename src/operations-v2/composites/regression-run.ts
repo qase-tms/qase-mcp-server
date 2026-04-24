@@ -3,6 +3,8 @@ import { getApiClient } from '../../client/index.js';
 import { toolRegistry, CreateAnnotation } from '../../utils/registry.js';
 import { toResultAsync, createToolError } from '../../utils/errors.js';
 import { ProjectCodeSchema } from '../../utils/validation.js';
+import { RegressionRunOutput } from '../../utils/output-schemas.js';
+import { richResult, summaryBlock, dataBlock } from '../../utils/rich-response.js';
 
 const Schema = z.object({
   code: ProjectCodeSchema,
@@ -76,11 +78,30 @@ async function handler(args: z.infer<typeof Schema>) {
     },
   );
 
-  return {
-    run_id: (run as any).id,
-    cases_added: caseIds.length,
-    run,
-  };
+  const runId = (run as any).id;
+
+  const lines = [
+    `## Regression Run Created`,
+    '',
+    `- **Run ID:** ${runId}`,
+    `- **Project:** ${code}`,
+    `- **Title:** ${args.title}`,
+    `- **Cases:** ${caseIds.length}`,
+  ];
+
+  if (suite_ids?.length) {
+    lines.push(`- **From suites:** ${suite_ids.join(', ')}`);
+  }
+  if (args.plan_id) {
+    lines.push(`- **From plan:** ${args.plan_id}`);
+  }
+  if (args.milestone_id) {
+    lines.push(`- **Milestone:** ${args.milestone_id}`);
+  }
+
+  const structured = { run_id: runId, cases_added: caseIds.length, run };
+
+  return richResult([summaryBlock(lines.join('\n')), dataBlock(structured)], structured);
 }
 
 toolRegistry.register({
@@ -92,4 +113,5 @@ toolRegistry.register({
   schema: Schema,
   handler,
   annotations: CreateAnnotation,
+  outputSchema: RegressionRunOutput,
 });

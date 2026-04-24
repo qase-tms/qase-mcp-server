@@ -60,6 +60,7 @@ toolRegistry.register({
   schema: UpsertSchema,
   handler: upsert,
   annotations: CreateAnnotation,
+  visibility: 'discoverable',
 });
 
 toolRegistry.register({
@@ -68,4 +69,5 @@ toolRegistry.register({
   schema: DeleteSchema,
   handler: del,
   annotations: DeleteAnnotation,
+  visibility: 'discoverable',
 });

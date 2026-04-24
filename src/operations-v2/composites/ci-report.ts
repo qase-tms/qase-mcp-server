@@ -3,6 +3,8 @@ import { getApiClient } from '../../client/index.js';
 import { toolRegistry, CreateAnnotation } from '../../utils/registry.js';
 import { toResultAsync, createToolError } from '../../utils/errors.js';
 import { ProjectCodeSchema } from '../../utils/validation.js';
+import { CiReportOutput } from '../../utils/output-schemas.js';
+import { richResult, summaryBlock, dataBlock, markdownTable } from '../../utils/rich-response.js';
 
 const CaseResultSchema = z.object({
   case_id: z.number().int().positive(),
@@ -78,11 +80,38 @@ async function handler(args: z.infer<typeof Schema>) {
     );
   }
 
-  return {
-    run_id: runId,
-    run_status: runStatus,
-    results_recorded: results.length,
-  };
+  const passed = results.filter((r) => r.status === 'passed').length;
+  const failed = results.filter((r) => r.status === 'failed').length;
+  const blocked = results.filter((r) => r.status === 'blocked').length;
+  const skipped = results.filter((r) => r.status === 'skipped').length;
+
+  const statusIcon = failed > 0 ? '🔴' : '🟢';
+  const lines = [
+    `## ${statusIcon} CI Report: ${title}`,
+    '',
+    `- **Run ID:** ${runId}`,
+    `- **Project:** ${code}`,
+    `- **Status:** ${runStatus}`,
+    `- **Total:** ${results.length}`,
+    '',
+    markdownTable(
+      ['Passed', 'Failed', 'Blocked', 'Skipped'],
+      [[String(passed), String(failed), String(blocked), String(skipped)]],
+      ['r', 'r', 'r', 'r'],
+    ),
+  ];
+
+  if (failed > 0) {
+    lines.push('', '**Failed cases:**');
+    for (const r of results.filter((r) => r.status === 'failed')) {
+      const comment = r.comment ? ` — ${r.comment}` : '';
+      lines.push(`- Case #${r.case_id}${comment}`);
+    }
+  }
+
+  const structured = { run_id: runId, run_status: runStatus, results_recorded: results.length };
+
+  return richResult([summaryBlock(lines.join('\n')), dataBlock(structured)], structured);
 }
 
 toolRegistry.register({
@@ -94,4 +123,5 @@ toolRegistry.register({
   schema: Schema,
   handler,
   annotations: CreateAnnotation,
+  outputSchema: CiReportOutput,
 });

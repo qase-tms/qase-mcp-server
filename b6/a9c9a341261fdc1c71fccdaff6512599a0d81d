@@ -1,0 +1,75 @@
+src/operations-v2/qql/index.ts
+  ec116945d5a6428d 13-14,77-104,175
+src/operations-v2/composites/regression-run.ts
+  ec116945d5a6428d 6-7,81-104,116
+src/utils/registry.test.ts
+  ec116945d5a6428d 167-405
+src/operations-v2/write/defects.ts
+  ec116945d5a6428d 106
+src/index.ts
+  ec116945d5a6428d 18-23,27-28,32,52-53,70-87,95-96,98,100-104,106-166,171,177,180-187
+src/operations-v2/composites/ci-report.ts
+  ec116945d5a6428d 6-7,83-114,126
+src/utils/rich-response.test.ts
+  ec116945d5a6428d 1-133
+src/operations-v2/write/cases.ts
+  ec116945d5a6428d 109
+src/utils/output-schemas.ts
+  ec116945d5a6428d 1-90
+src/operations-v2/write/milestones.ts
+  ec116945d5a6428d 63,72
+src/operations-v2/write/runs.ts
+  ec116945d5a6428d 104,113
+src/operations-v2/write/results.ts
+  ec116945d5a6428d 94
+src/operations-v2/write/shared-steps.ts
+  ec116945d5a6428d 72,81
+src/operations-v2/write/environments.ts
+  ec116945d5a6428d 63,72
+src/utils/rich-response.ts
+  ec116945d5a6428d 1-123
+src/operations-v2/index.ts
+  ec116945d5a6428d 25-27
+src/operations-v2/write/attachments.ts
+  ec116945d5a6428d 64,73
+src/operations-v2/composites/triage-defect.ts
+  ec116945d5a6428d 6-7,42-49,51-68,79
+src/operations-v2/read/project-context.ts
+  ec116945d5a6428d 6-7,63-108,121
+src/operations-v2/write/plans.ts
+  ec116945d5a6428d 62,71
+src/prompts/index.ts
+  ec116945d5a6428d 1-253
+src/utils/server-context.ts
+  ec116945d5a6428d 1-75
+src/operations-v2/write/suites.ts
+  ec116945d5a6428d 69,80
+src/utils/registry.ts
+  ec116945d5a6428d 9,27-34,41-44,49,54-58,63,71-72,77-78,118,124-129,131,135,139-146,150-181,192-198,210,226-227,239-240
+src/smoke.test.ts
+  ec116945d5a6428d 8,57,59,64,294-295,298-299,302,305,339,342,346-403,431,444,452,454
+src/operations-v2/meta/discover.ts
+  ec116945d5a6428d 1-88
+src/utils/server-context.test.ts
+  ec116945d5a6428d 1-181
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "b6a9c9a341261fdc1c71fccdaff6512599a0d81d",
+  "prompts": {
+    "ec116945d5a6428d": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "a2c2c0cf-c5a6-4a7e-834f-0128ecaafa76",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Dmitrii Gridnev",
+      "messages": [],
+      "total_additions": 2019,
+      "total_deletions": 234,
+      "accepted_lines": 1875,
+      "overriden_lines": 0
+    }
+  }
+}

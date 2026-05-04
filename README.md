@@ -190,27 +190,18 @@ claude mcp add --scope user qase -- npx -y @qase/mcp-server
 
 ### OpenAI Codex CLI
 
-Add a `.codex/config.json` file to your project root:
+Codex CLI uses TOML configuration. Add the Qase MCP server to `~/.codex/config.toml` (global) or `.codex/config.toml` in your project root:
 
-```json
-{
-  "mcpServers": {
-    "qase": {
-      "command": "npx",
-      "args": ["-y", "@qase/mcp-server"],
-      "env": {
-        "QASE_API_TOKEN": "your_api_token_here"
-      }
-    }
-  }
-}
+```toml
+[mcp_servers.qase]
+command = "npx"
+args = ["-y", "@qase/mcp-server"]
+
+[mcp_servers.qase.env]
+QASE_API_TOKEN = "your_api_token_here"
 ```
 
-Set the required environment variable before running Codex:
-
-```bash
-export QASE_API_TOKEN=your_api_token_here
-```
+> **Note:** The section name `mcp_servers` must use an underscore — `mcp-servers` or `mcpservers` will be silently ignored.
 
 ### OpenCode
 

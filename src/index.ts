@@ -95,12 +95,15 @@ function createServer(): Server {
       // Execute the tool handler with provided arguments
       const result = await handler(args || {});
 
+      // JSON.stringify(undefined) returns undefined, which breaks MCP's text schema.
+      const text = result === undefined ? 'null' : JSON.stringify(result, null, 2);
+
       // Return result in MCP format
       return {
         content: [
           {
             type: 'text',
-            text: JSON.stringify(result, null, 2),
+            text,
           },
         ],
       };

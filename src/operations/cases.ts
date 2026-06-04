@@ -127,7 +127,9 @@ const CreateCaseSchema = z.object({
   behavior: CaseEnumValueSchema.optional().describe(
     'Test behavior (label or numeric ID from workspace configuration)',
   ),
-  automation: z.string().optional().describe('Automation status'),
+  automation: CaseEnumValueSchema.optional().describe(
+    'Automation status (label, slug, or numeric ID: 0=Manual / is-not-automated, 1=To be automated, 2=Automated)',
+  ),
   status: CaseEnumValueSchema.optional().describe(
     'Test case status (label or numeric ID from workspace configuration)',
   ),
@@ -171,7 +173,9 @@ const UpdateCaseSchema = z.object({
   behavior: CaseEnumValueSchema.optional().describe(
     'Test behavior (label or numeric ID from workspace configuration)',
   ),
-  automation: z.string().optional().describe('Automation status'),
+  automation: CaseEnumValueSchema.optional().describe(
+    'Automation status (label, slug, or numeric ID: 0=Manual / is-not-automated, 1=To be automated, 2=Automated)',
+  ),
   status: CaseEnumValueSchema.optional().describe(
     'Test case status (label or numeric ID from workspace configuration)',
   ),

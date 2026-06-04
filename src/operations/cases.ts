@@ -232,6 +232,45 @@ const DetachExternalIssueSchema = z.object({
 });
 
 // ============================================================================
+// HELPERS
+// ============================================================================
+
+/**
+ * Qase's `automation` field (0=Manual, 1=To be automated, 2=Automated) is
+ * deprecated server-side and silently ignored in create/update payloads. The
+ * current API stores the same state via two booleans (`isManual` and
+ * `isToBeAutomated`), so after the enum normalizer has resolved automation to
+ * a numeric id we translate it into the new field pair the API actually reads.
+ */
+function applyAutomationMapping(caseData: Record<string, unknown>): Record<string, unknown> {
+  const automationId = caseData.automation;
+
+  if (typeof automationId !== 'number') {
+    return caseData;
+  }
+
+  const mapped: Record<string, unknown> = { ...caseData };
+
+  switch (automationId) {
+    case 2: // Automated
+      mapped.isManual = 0;
+      mapped.isToBeAutomated = 0;
+      break;
+    case 1: // To be automated
+      mapped.isManual = 1;
+      mapped.isToBeAutomated = 1;
+      break;
+    case 0: // Manual
+    default:
+      mapped.isManual = 1;
+      mapped.isToBeAutomated = 0;
+      break;
+  }
+
+  return mapped;
+}
+
+// ============================================================================
 // HANDLERS
 // ============================================================================
 
@@ -294,7 +333,7 @@ async function createCase(args: z.infer<typeof CreateCaseSchema>) {
   const client = getApiClient();
   const { code, ...caseData } = args;
 
-  const normalizedCaseData = await normalizeCaseEnums(caseData);
+  const normalizedCaseData = applyAutomationMapping(await normalizeCaseEnums(caseData));
 
   const result = await toResultAsync(client.cases.createCase(code, normalizedCaseData as any));
 
@@ -313,7 +352,7 @@ async function updateCase(args: z.infer<typeof UpdateCaseSchema>) {
   const client = getApiClient();
   const { code, id, ...updateData } = args;
 
-  const normalizedUpdateData = await normalizeCaseEnums(updateData);
+  const normalizedUpdateData = applyAutomationMapping(await normalizeCaseEnums(updateData));
 
   const result = await toResultAsync(
     client.cases.updateCase(code, id, normalizedUpdateData as any),
@@ -351,7 +390,9 @@ async function bulkCreateCases(args: z.infer<typeof BulkCreateCasesSchema>) {
   const client = getApiClient();
   const { code, cases } = args;
 
-  const normalizedCases = await Promise.all(cases.map((caseData) => normalizeCaseEnums(caseData)));
+  const normalizedCases = await Promise.all(
+    cases.map(async (caseData) => applyAutomationMapping(await normalizeCaseEnums(caseData))),
+  );
 
   const result = await toResultAsync(client.cases.bulk(code, { cases: normalizedCases } as any));
 

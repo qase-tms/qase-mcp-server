@@ -1,0 +1,40 @@
+src/operations/cases.ts
+  s_d3029637a2bcc8::t_7f01c4a4d1474e 130-132,176-177
+src/utils/case-enums.test.ts
+  s_d3029637a2bcc8::t_01db82ead2e161 18-27
+  s_d3029637a2bcc8::t_7b05c2432db39a 81-89
+src/index.ts
+  s_d3029637a2bcc8::t_90bd3db1a1e60f 99-100,106
+  s_d3029637a2bcc8::t_7b616b92d8ed3c 98
+src/utils/case-enums.ts
+  s_d3029637a2bcc8::t_a469e1684a2727 3-10,19
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "d8c5a02d5acd747c1537d1ee0e2b69883872fa2f",
+  "prompts": {
+    "2c4ba6461019e3da": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "722ce139-d823-42bc-96b2-5cd782537a3f",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Dmitrii Gridnev <dgridnev@qase.io>",
+      "total_additions": 591,
+      "total_deletions": 0,
+      "accepted_lines": 591,
+      "overriden_lines": 0
+    }
+  },
+  "sessions": {
+    "s_d3029637a2bcc8": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "7f236b7f-b84a-44a3-8d73-1749e5c58605",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Dmitrii Gridnev <dgridnev@qase.io>"
+    }
+  }
+}

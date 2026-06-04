@@ -15,6 +15,16 @@ const defaultFieldSnapshot = {
     ['positive', 2],
     ['negative', 3],
   ]),
+  automation: new Map([
+    ['is-not-automated', 0],
+    ['manual', 0],
+    ['0', 0],
+    ['to-be-automated', 1],
+    ['to be automated', 1],
+    ['1', 1],
+    ['automated', 2],
+    ['2', 2],
+  ]),
 };
 
 describe('normalizeCaseEnums', () => {
@@ -66,6 +76,15 @@ describe('normalizeCaseEnums', () => {
     const normalized = await normalizeCaseEnums(payload);
 
     expect(normalized).toEqual(payload);
+  });
+
+  it('maps automation slug, title, and numeric values to numeric IDs', async () => {
+    expect(await normalizeCaseEnums({ automation: 'Automated' })).toEqual({ automation: 2 });
+    expect(await normalizeCaseEnums({ automation: 'automated' })).toEqual({ automation: 2 });
+    expect(await normalizeCaseEnums({ automation: 'Manual' })).toEqual({ automation: 0 });
+    expect(await normalizeCaseEnums({ automation: 'is-not-automated' })).toEqual({ automation: 0 });
+    expect(await normalizeCaseEnums({ automation: '2' })).toEqual({ automation: 2 });
+    expect(await normalizeCaseEnums({ automation: 1 })).toEqual({ automation: 1 });
   });
 
   it('clears cache on fetch error and retries on next call', async () => {

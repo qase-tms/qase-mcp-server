@@ -2,7 +2,14 @@ import { getApiClient } from '../client/index.js';
 import { getCache, buildCacheKey, hashToken } from '../cache/index.js';
 import { getEffectiveToken } from './auth-context.js';
 
-type CaseEnumField = 'priority' | 'type' | 'behavior' | 'severity' | 'status' | 'layer';
+type CaseEnumField =
+  | 'priority'
+  | 'type'
+  | 'behavior'
+  | 'severity'
+  | 'status'
+  | 'layer'
+  | 'automation';
 
 const caseEnumFields: CaseEnumField[] = [
   'priority',
@@ -11,6 +18,7 @@ const caseEnumFields: CaseEnumField[] = [
   'severity',
   'status',
   'layer',
+  'automation',
 ];
 
 interface SystemFieldOption {

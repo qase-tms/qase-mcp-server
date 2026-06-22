@@ -34,7 +34,12 @@ const CaseFieldsSchema = z.object({
   type: z.string().optional().describe('Type label or numeric ID'),
   layer: z.string().optional().describe('Layer label or numeric ID'),
   behavior: z.string().optional().describe('Behavior label or numeric ID'),
-  automation: z.string().optional(),
+  automation: z
+    .string()
+    .optional()
+    .describe(
+      'Automation status (label, slug, or numeric ID: 0=Manual / is-not-automated, 1=To be automated, 2=Automated)',
+    ),
   status: z.string().optional().describe('Status label or numeric ID'),
   is_flaky: z.boolean().optional(),
   suite_id: z.number().int().positive().optional(),
@@ -59,10 +64,44 @@ const DeleteSchema = z.object({
   id: IdSchema,
 });
 
+/**
+ * Map the user-facing `automation` enum (0=Manual, 1=To be automated,
+ * 2=Automated) to the current API contract (`isManual` + `isToBeAutomated`).
+ * The legacy `automation` field is deprecated in qase-api-client and dropped
+ * from the outbound payload.
+ */
+function applyAutomationMapping(caseData: Record<string, unknown>): Record<string, unknown> {
+  const automationId = caseData.automation;
+
+  if (typeof automationId !== 'number') {
+    return caseData;
+  }
+
+  const { automation: _drop, ...rest } = caseData;
+  const mapped: Record<string, unknown> = rest;
+
+  switch (automationId) {
+    case 2: // Automated
+      mapped.isManual = 0;
+      break;
+    case 1: // To be automated
+      mapped.isManual = 1;
+      mapped.isToBeAutomated = 1;
+      break;
+    case 0: // Manual
+    default:
+      mapped.isManual = 1;
+      mapped.isToBeAutomated = 0;
+      break;
+  }
+
+  return mapped;
+}
+
 async function upsert(args: z.infer<typeof UpsertSchema>) {
   const client = getApiClient();
   const { code, id, ...data } = args;
-  const normalized = await normalizeCaseEnums(data);
+  const normalized = applyAutomationMapping(await normalizeCaseEnums(data));
 
   const result = await toResultAsync(
     id

@@ -1,0 +1,26 @@
+server.json
+  s_5738723311c6c6::t_f7e6ea1b18e7d1 11,16
+package.json
+  s_5738723311c6c6::t_eea35709eb5d64 3
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.9",
+  "base_commit_sha": "13fec90968d821c8478d26decd0a070c02f19e52",
+  "prompts": {},
+  "humans": {
+    "h_6d2c9777a42fa4": {
+      "author": "Dmitrii Gridnev <dgridnev@qase.io>"
+    }
+  },
+  "sessions": {
+    "s_5738723311c6c6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "5a4a0576-f1bc-43cd-b3f5-07101e454500",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "Dmitrii Gridnev <dgridnev@qase.io>"
+    }
+  }
+}

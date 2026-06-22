@@ -236,11 +236,10 @@ const DetachExternalIssueSchema = z.object({
 // ============================================================================
 
 /**
- * Qase's `automation` field (0=Manual, 1=To be automated, 2=Automated) is
- * deprecated server-side and silently ignored in create/update payloads. The
- * current API stores the same state via two booleans (`isManual` and
- * `isToBeAutomated`), so after the enum normalizer has resolved automation to
- * a numeric id we translate it into the new field pair the API actually reads.
+ * Map the user-facing `automation` enum (0=Manual, 1=To be automated,
+ * 2=Automated) to the current API contract (`isManual` + `isToBeAutomated`).
+ * The legacy `automation` field is deprecated in qase-api-client and dropped
+ * from the outbound payload.
  */
 function applyAutomationMapping(caseData: Record<string, unknown>): Record<string, unknown> {
   const automationId = caseData.automation;
@@ -249,12 +248,12 @@ function applyAutomationMapping(caseData: Record<string, unknown>): Record<strin
     return caseData;
   }
 
-  const mapped: Record<string, unknown> = { ...caseData };
+  const { automation: _drop, ...rest } = caseData;
+  const mapped: Record<string, unknown> = rest;
 
   switch (automationId) {
     case 2: // Automated
       mapped.isManual = 0;
-      mapped.isToBeAutomated = 0;
       break;
     case 1: // To be automated
       mapped.isManual = 1;

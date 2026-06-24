@@ -1,0 +1,21 @@
+src/auth/oauth-config.test.ts
+  s_484c32fd3735a0::t_e7e5ea69fcc9be 1-40
+src/auth/oauth-config.ts
+  s_484c32fd3735a0::t_bcbc7c4794d888 1-30
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.13",
+  "base_commit_sha": "41cc7e4dbd440f22b526cdb01562f8096b0574ac",
+  "prompts": {},
+  "sessions": {
+    "s_484c32fd3735a0": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "65f27c41-34af-4eb0-8f56-2f0936e46a36",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "Dmitrii Gridnev <dgridnev@qase.io>"
+    }
+  }
+}

@@ -12,7 +12,18 @@ export default {
         useESM: true,
       },
     ],
+    // Transform ESM-only .js files from jose (and similar packages) so the CJS
+    // jest runner can consume them. ts-jest handles plain .js with useESM:true.
+    'node_modules/jose/.+\\.js$': [
+      'ts-jest',
+      {
+        useESM: true,
+      },
+    ],
   },
+  // Allow jest to process ESM-only packages (e.g. jose v6) rather than leaving
+  // them as untransformed native ESM which CJS jest cannot load.
+  transformIgnorePatterns: ['/node_modules/(?!(jose)/)'],
   collectCoverageFrom: [
     'src/**/*.ts',
     '!src/**/*.test.ts',

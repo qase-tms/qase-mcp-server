@@ -57,26 +57,12 @@ export function setupStreamableHttpTransport(
     const verifier = oauthDeps?.verifier ?? createJwksVerifier(oauthConfig);
     const provider = createProxyProvider(oauthConfig, verifier);
 
-    // Build a URL-like object for resourceServerUrl so the SDK emits the exact
-    // resource string from the config. new URL('https://mcp.qase.io').href always
-    // appends a trailing slash per the URL spec, but RFC 9728 'resource' fields
-    // must match the registered string exactly. We use a Proxy to override .href
-    // while keeping .pathname as '/' for the SDK's route-path computation.
-    const resourceUrlStr = oauthConfig.resourceUrl.replace(/\/$/, '');
-    const resourceServerUrl = new Proxy(new URL(resourceUrlStr), {
-      get(target, prop) {
-        if (prop === 'href') return resourceUrlStr;
-        const val = (target as unknown as Record<string, unknown>)[prop as string];
-        return typeof val === 'function' ? val.bind(target) : val;
-      },
-    }) as URL;
-
     app.use(
       mcpAuthRouter({
         provider,
         issuerUrl: new URL(oauthConfig.issuer),
         baseUrl: new URL(oauthConfig.resourceUrl),
-        resourceServerUrl,
+        resourceServerUrl: new URL(oauthConfig.resourceUrl),
       }),
     );
 

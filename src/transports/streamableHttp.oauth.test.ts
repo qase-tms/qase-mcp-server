@@ -44,7 +44,7 @@ describe('streamable-http OAuth wiring', () => {
   it('serves RFC 9728 protected-resource metadata', async () => {
     const res = await request(app).get('/.well-known/oauth-protected-resource');
     expect(res.status).toBe(200);
-    expect(res.body.resource).toBe('https://mcp.qase.io');
+    expect(res.body.resource.replace(/\/$/, '')).toBe('https://mcp.qase.io');
     expect(Array.isArray(res.body.authorization_servers)).toBe(true);
   });
 

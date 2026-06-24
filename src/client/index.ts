@@ -131,15 +131,17 @@ class QaseApiClient {
       ? { Authorization: `Bearer ${this.token}` }
       : { Token: this.token };
 
+    const { headers: optionHeaders, ...restOptions } = options;
+
     const response = await this.axiosInstance.request({
       method: options.method || 'GET',
       url: `${this.host}${path}`,
       headers: {
         ...authHeaders,
         'Content-Type': 'application/json',
-        ...options.headers,
+        ...optionHeaders,
       },
-      ...options,
+      ...restOptions,
     });
 
     return response.data;

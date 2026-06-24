@@ -31,6 +31,7 @@ import {
 } from 'qase-api-client';
 import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
 import { createKeepAliveAgent, attachRetry, attachInflightDedupe } from '../http/index.js';
+import { isJwt } from '../auth/token-type.js';
 import FormData from 'form-data';
 import { requestTokenStorage, getEffectiveToken } from '../utils/auth-context.js';
 import { VERSION } from '../version.js';
@@ -72,18 +73,32 @@ class QaseApiClient {
   private readonly host: string;
   private readonly axiosInstance: AxiosInstance;
 
-  constructor(config: ApiClientConfig) {
+  constructor(config: ApiClientConfig, axiosInstance?: AxiosInstance) {
     this.token = config.token;
     this.host = config.host;
 
+    const jwtToken = isJwt(config.token);
+
     const agent = createKeepAliveAgent({ maxSockets: 20 });
-    this.axiosInstance = axios.create({ httpsAgent: agent, headers: { 'User-Agent': USER_AGENT } });
+    this.axiosInstance =
+      axiosInstance ?? axios.create({ httpsAgent: agent, headers: { 'User-Agent': USER_AGENT } });
+
+    // For JWTs, forward verbatim as Authorization: Bearer on every request.
+    // Opaque tokens keep using the Qase `Token` header via Configuration.apiKey.
+    if (jwtToken) {
+      this.axiosInstance.interceptors.request.use((req) => {
+        req.headers = req.headers ?? {};
+        req.headers['Authorization'] = `Bearer ${config.token}`;
+        return req;
+      });
+    }
+
     attachRetry(this.axiosInstance);
     attachInflightDedupe(this.axiosInstance);
 
     const basePath = `${config.host}/v1`;
     const cfg = new Configuration({
-      apiKey: config.token,
+      ...(jwtToken ? {} : { apiKey: config.token }),
       basePath,
       formDataCtor: FormData as any,
     });
@@ -112,11 +127,15 @@ class QaseApiClient {
    * Make a direct API call for endpoints not fully covered by the SDK.
    */
   async request<T = any>(path: string, options: AxiosRequestConfig = {}): Promise<T> {
+    const authHeaders = isJwt(this.token)
+      ? { Authorization: `Bearer ${this.token}` }
+      : { Token: this.token };
+
     const response = await this.axiosInstance.request({
       method: options.method || 'GET',
       url: `${this.host}${path}`,
       headers: {
-        Token: this.token,
+        ...authHeaders,
         'Content-Type': 'application/json',
         ...options.headers,
       },
@@ -188,4 +207,4 @@ export function resetClientInstance(): void {
   clientInstance = null;
 }
 
-export type { QaseApiClient };
+export { QaseApiClient };

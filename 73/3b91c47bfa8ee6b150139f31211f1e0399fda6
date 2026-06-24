@@ -1,0 +1,48 @@
+src/auth/mcp-guard.test.ts
+  s_484c32fd3735a0::t_e4c6929c87a20b 59-70
+src/auth/oauth-config.test.ts
+  s_484c32fd3735a0::t_5434febab713e0 8
+  s_484c32fd3735a0::t_469e764902dcc5 42-46
+  s_484c32fd3735a0::t_02b0db13c13a88 26
+src/auth/proxy-provider.test.ts
+  s_484c32fd3735a0::t_514a95376cef5b 25,29-38
+  s_484c32fd3735a0::t_2028d4f0f10691 7
+src/auth/jwks-verifier.ts
+  s_484c32fd3735a0::t_a65160c944a0a3 29
+src/transports/streamableHttp.oauth.test.ts
+  s_484c32fd3735a0::t_397ccfd76dae0f 89-103
+src/auth/jwks-verifier.test.ts
+  s_484c32fd3735a0::t_1b40790ede9371 17
+  s_484c32fd3735a0::t_194e9ab728ab30 67-78
+jest.config.js
+  s_484c32fd3735a0::t_64614aac4bd350 15
+src/auth/client-context.ts
+  s_484c32fd3735a0::t_b01bf272706f5d 1-12
+src/transports/streamableHttp.ts
+  s_484c32fd3735a0::t_25e85a0443cac5 12
+  s_484c32fd3735a0::t_9c2d4348f20420 61-67
+src/client/forwarding.test.ts
+  s_484c32fd3735a0::t_5541aca9d3e626 50-62
+src/auth/proxy-provider.ts
+  s_484c32fd3735a0::t_05a36cf10247ae 6
+  s_484c32fd3735a0::t_075504bcee1f0c 29-37
+src/auth/oauth-config.ts
+  s_484c32fd3735a0::t_f3fa73325ed386 10
+  s_484c32fd3735a0::t_b027ac9ae66837 29-32
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.13",
+  "base_commit_sha": "733b91c47bfa8ee6b150139f31211f1e0399fda6",
+  "prompts": {},
+  "sessions": {
+    "s_484c32fd3735a0": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "65f27c41-34af-4eb0-8f56-2f0936e46a36",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "Dmitrii Gridnev <dgridnev@qase.io>"
+    }
+  }
+}

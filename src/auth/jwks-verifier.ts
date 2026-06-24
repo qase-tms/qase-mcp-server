@@ -26,6 +26,7 @@ export function createJwksVerifier(
       const { payload } = await jwtVerify(token, resolve, {
         issuer: config.issuer,
         audience: config.audience,
+        algorithms: config.jwtAlgorithms,
       });
 
       const scopes =

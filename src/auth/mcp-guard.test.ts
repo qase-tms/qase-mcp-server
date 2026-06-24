@@ -56,4 +56,16 @@ describe('createMcpGuard', () => {
       .send({});
     expect(res.status).toBe(200);
   });
+
+  it('strips a trailing slash on resourceUrl when building the metadata URL', async () => {
+    const cfgWithSlash = { resourceUrl: 'https://mcp.qase.io/' } as OAuthConfig;
+    const app = express();
+    app.use(express.json());
+    app.post('/mcp', createMcpGuard(acceptAll, cfgWithSlash), (_req, res) => {
+      res.status(200).json({ ok: true });
+    });
+    const res = await request(app).post('/mcp').send({});
+    expect(res.status).toBe(401);
+    expect(res.headers['www-authenticate']).toContain(`resource_metadata="${EXPECTED_RESOURCE}"`);
+  });
 });

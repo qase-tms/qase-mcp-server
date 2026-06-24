@@ -47,4 +47,17 @@ describe('Qase API token forwarding', () => {
     expect(headers['Authorization']).toBe(`Bearer ${JWT}`);
     expect(headers['Token']).toBeUndefined();
   });
+
+  it('sends an opaque token as Token on SDK calls and no Authorization', async () => {
+    const instance = axios.create();
+    const mock = new MockAdapter(instance);
+    mock.onGet(/\/v1\/project/).reply(200, { status: true, result: { entities: [], total: 0 } });
+
+    const client = new QaseApiClient({ token: OPAQUE, host: HOST }, instance);
+    await client.projects.getProjects(undefined, undefined, undefined);
+
+    const headers = mock.history.get[0].headers ?? {};
+    expect(headers['Token']).toBe(OPAQUE);
+    expect(headers['Authorization']).toBeUndefined();
+  });
 });

@@ -5,6 +5,7 @@ const OAUTH_KEYS = [
   'QASE_OAUTH_ENABLED', 'QASE_OAUTH_AUTHORIZATION_URL', 'QASE_OAUTH_TOKEN_URL',
   'QASE_OAUTH_REGISTRATION_URL', 'QASE_OAUTH_REVOCATION_URL', 'QASE_OAUTH_JWKS_URL',
   'QASE_OAUTH_ISSUER', 'QASE_OAUTH_AUDIENCE', 'QASE_OAUTH_RESOURCE_URL',
+  'QASE_OAUTH_JWT_ALGORITHMS',
 ];
 
 describe('getOAuthConfig', () => {
@@ -22,6 +23,7 @@ describe('getOAuthConfig', () => {
     expect(c.jwksUrl).toBe('https://auth.qase.io/oauth/jwks.json');
     expect(c.issuer).toBe('https://auth.qase.io');
     expect(c.audience).toBe('https://mcp.qase.io');
+    expect(c.jwtAlgorithms).toEqual(['RS256']);
     expect(c.resourceUrl).toBe('https://mcp.qase.io');
   });
 
@@ -36,5 +38,10 @@ describe('getOAuthConfig', () => {
     const c = getOAuthConfig();
     expect(c.issuer).toBe('https://auth.staging.qase.io');
     expect(c.audience).toBe('https://mcp.staging.qase.io');
+  });
+
+  it('parses comma-separated jwt algorithms override', () => {
+    process.env.QASE_OAUTH_JWT_ALGORITHMS = 'RS256, ES256';
+    expect(getOAuthConfig().jwtAlgorithms).toEqual(['RS256', 'ES256']);
   });
 });

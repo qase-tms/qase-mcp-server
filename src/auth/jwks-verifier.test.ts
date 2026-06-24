@@ -14,6 +14,7 @@ const config: OAuthConfig = {
   jwksUrl: 'https://auth.qase.io/oauth/jwks.json',
   issuer: 'https://auth.qase.io',
   audience: 'https://mcp.qase.io',
+  jwtAlgorithms: ['RS256'],
   resourceUrl: 'https://mcp.qase.io',
 };
 
@@ -61,6 +62,18 @@ describe('createJwksVerifier', () => {
 
   it('rejects an expired token', async () => {
     const token = await sign({}, { exp: '-1h' });
+    await expect(createJwksVerifier(config, resolver).verifyJwt(token)).rejects.toThrow();
+  });
+
+  it('rejects a token whose nbf is in the future', async () => {
+    const token = await new SignJWT({})
+      .setProtectedHeader({ alg: 'RS256', kid: 'test-key' })
+      .setIssuedAt()
+      .setIssuer(config.issuer)
+      .setAudience(config.audience)
+      .setNotBefore('1h')
+      .setExpirationTime('2h')
+      .sign(privateKey);
     await expect(createJwksVerifier(config, resolver).verifyJwt(token)).rejects.toThrow();
   });
 });

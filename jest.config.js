@@ -12,7 +12,7 @@ export default {
         useESM: true,
       },
     ],
-    // Transform ESM-only .js files from jose (and similar packages) so the CJS
+    // Transform ESM-only .js files from jose (jose only) so the CJS
     // jest runner can consume them. ts-jest handles plain .js with useESM:true.
     'node_modules/jose/.+\\.js$': [
       'ts-jest',

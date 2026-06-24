@@ -7,6 +7,7 @@ export interface OAuthConfig {
   jwksUrl: string;
   issuer: string;
   audience: string;
+  jwtAlgorithms: string[];
   resourceUrl: string;
 }
 
@@ -25,6 +26,10 @@ export function getOAuthConfig(): OAuthConfig {
     jwksUrl: env.QASE_OAUTH_JWKS_URL ?? 'https://auth.qase.io/oauth/jwks.json',
     issuer: env.QASE_OAUTH_ISSUER ?? 'https://auth.qase.io',
     audience: env.QASE_OAUTH_AUDIENCE ?? 'https://mcp.qase.io',
+    jwtAlgorithms: (env.QASE_OAUTH_JWT_ALGORITHMS ?? 'RS256')
+      .split(',')
+      .map((a) => a.trim())
+      .filter(Boolean),
     resourceUrl: env.QASE_OAUTH_RESOURCE_URL ?? 'https://mcp.qase.io',
   };
 }

@@ -86,4 +86,19 @@ describe('streamable-http OAuth wiring', () => {
     expect(res.status).toBe(200);
     expect(res.headers['mcp-session-id']).toBeDefined();
   });
+
+  it('proxies /authorize to auth.qase.io echoing the requested redirect_uri', async () => {
+    const res = await request(app).get('/authorize').query({
+      client_id: 'cli-1',
+      redirect_uri: 'https://client.example/callback',
+      response_type: 'code',
+      code_challenge: 'abc123def456',
+      code_challenge_method: 'S256',
+    });
+    expect(res.status).toBe(302);
+    const loc = res.headers['location'] as string;
+    expect(loc.startsWith('https://auth.qase.io/oauth/authorize')).toBe(true);
+    expect(loc).toContain('client_id=cli-1');
+    expect(loc).toContain('redirect_uri=https%3A%2F%2Fclient.example%2Fcallback');
+  });
 });

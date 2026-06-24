@@ -9,6 +9,7 @@ import { getOAuthConfig, type OAuthConfig } from '../auth/oauth-config.js';
 import { createJwksVerifier, type JwksVerifier } from '../auth/jwks-verifier.js';
 import { createProxyProvider } from '../auth/proxy-provider.js';
 import { createMcpGuard } from '../auth/mcp-guard.js';
+import { authorizeRedirectUriStorage } from '../auth/client-context.js';
 import type { RequestHandler } from 'express';
 
 export interface StreamableHttpConfig {
@@ -56,6 +57,13 @@ export function setupStreamableHttpTransport(
   if (oauthConfig.enabled) {
     const verifier = oauthDeps?.verifier ?? createJwksVerifier(oauthConfig);
     const provider = createProxyProvider(oauthConfig, verifier);
+
+    // Seed per-request redirect_uri so the proxy's getClient can echo it during /authorize.
+    app.use((req, _res, next) => {
+      const redirectUri =
+        typeof req.query.redirect_uri === 'string' ? req.query.redirect_uri : undefined;
+      authorizeRedirectUriStorage.run(redirectUri, () => next());
+    });
 
     app.use(
       mcpAuthRouter({

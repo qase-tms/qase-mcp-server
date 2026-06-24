@@ -3,6 +3,7 @@ import { ProxyOAuthServerProvider } from '@modelcontextprotocol/sdk/server/auth/
 import type { OAuthClientInformationFull } from '@modelcontextprotocol/sdk/shared/auth.js';
 import type { OAuthConfig } from './oauth-config.js';
 import type { JwksVerifier } from './jwks-verifier.js';
+import { authorizeRedirectUriStorage } from './client-context.js';
 
 /**
  * Build a ProxyOAuthServerProvider that transparently forwards /authorize,
@@ -25,9 +26,14 @@ export function createProxyProvider(
       revocationUrl: config.revocationUrl,
     },
     verifyAccessToken: (token) => verifier.verifyJwt(token),
-    getClient: async (clientId): Promise<OAuthClientInformationFull> => ({
-      client_id: clientId,
-      redirect_uris: [],
-    }),
+    getClient: async (clientId): Promise<OAuthClientInformationFull> => {
+      // Transparent proxy: echo the request's redirect_uri so the SDK's local
+      // /authorize check passes. auth.qase.io is the authoritative validator.
+      const redirectUri = authorizeRedirectUriStorage.getStore();
+      return {
+        client_id: clientId,
+        redirect_uris: redirectUri ? [redirectUri] : [],
+      };
+    },
   });
 }

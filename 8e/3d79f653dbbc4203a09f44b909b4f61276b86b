@@ -1,0 +1,26 @@
+src/auth/jwks-verifier.test.ts
+  s_484c32fd3735a0::t_e6f69b6d602702 1-66
+jest.config.js
+  s_484c32fd3735a0::t_a0a15586191977 15-22
+  s_484c32fd3735a0::t_21da551d74e853 24-26
+package.json
+  s_484c32fd3735a0::t_559512a95fdcbf 74
+src/auth/jwks-verifier.ts
+  s_484c32fd3735a0::t_d5ba99c79e8640 1-41
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.13",
+  "base_commit_sha": "8e3d79f653dbbc4203a09f44b909b4f61276b86b",
+  "prompts": {},
+  "sessions": {
+    "s_484c32fd3735a0": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "65f27c41-34af-4eb0-8f56-2f0936e46a36",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "Dmitrii Gridnev <dgridnev@qase.io>"
+    }
+  }
+}

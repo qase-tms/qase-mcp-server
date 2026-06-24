@@ -1,0 +1,21 @@
+src/auth/token-type.test.ts
+  s_484c32fd3735a0::t_545d9203404920 1-18
+src/auth/token-type.ts
+  s_484c32fd3735a0::t_641ffa1b37ee42 1-9
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.13",
+  "base_commit_sha": "d5b39e1bfb05c633637d4bcb0d1ee246a9c32ad9",
+  "prompts": {},
+  "sessions": {
+    "s_484c32fd3735a0": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "65f27c41-34af-4eb0-8f56-2f0936e46a36",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "Dmitrii Gridnev <dgridnev@qase.io>"
+    }
+  }
+}

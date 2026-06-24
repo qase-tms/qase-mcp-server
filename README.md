@@ -97,6 +97,26 @@ npm install --include=optional
 
 When Redis is not configured, the server uses an in-memory cache only (default for local/stdio usage).
 
+### OAuth (streamable-http transport)
+
+When running with `--transport streamable-http`, the server proxies OAuth to
+`auth.qase.io` and validates JWTs locally before forwarding them to the Qase API.
+Legacy opaque api-tokens continue to work via the `Token` header.
+
+| Variable | Default | Description |
+|---|---|---|
+| `QASE_OAUTH_ENABLED` | `true` | Set to `false` to disable the OAuth proxy. |
+| `QASE_OAUTH_AUTHORIZATION_URL` | `https://auth.qase.io/oauth/authorize` | Upstream authorization endpoint. |
+| `QASE_OAUTH_TOKEN_URL` | `https://auth.qase.io/oauth/token` | Upstream token endpoint. |
+| `QASE_OAUTH_REGISTRATION_URL` | `https://auth.qase.io/oauth/register` | Upstream dynamic client registration endpoint. |
+| `QASE_OAUTH_REVOCATION_URL` | `https://auth.qase.io/oauth/revoke` | Upstream token revocation endpoint. |
+| `QASE_OAUTH_JWKS_URL` | `https://auth.qase.io/oauth/jwks.json` | JWKS used to verify access tokens (cached 1 hour). |
+| `QASE_OAUTH_ISSUER` | `https://auth.qase.io` | Expected JWT `iss`. |
+| `QASE_OAUTH_AUDIENCE` | `https://mcp.qase.io` | Expected JWT `aud`. |
+| `QASE_OAUTH_RESOURCE_URL` | `https://mcp.qase.io` | Protected resource identifier (RFC 9728). |
+
+Discovery metadata is served at `GET /.well-known/oauth-protected-resource`.
+
 ## Integration
 
 ### Claude Desktop

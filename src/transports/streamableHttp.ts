@@ -1,9 +1,15 @@
 import express, { Express } from 'express';
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
+import { mcpAuthRouter } from '@modelcontextprotocol/sdk/server/auth/router.js';
 import { randomUUID } from 'crypto';
 import { requestTokenStorage } from '../utils/auth-context.js';
 import { getMetrics } from '../cache/index.js';
+import { getOAuthConfig, type OAuthConfig } from '../auth/oauth-config.js';
+import { createJwksVerifier, type JwksVerifier } from '../auth/jwks-verifier.js';
+import { createProxyProvider } from '../auth/proxy-provider.js';
+import { createMcpGuard } from '../auth/mcp-guard.js';
+import type { RequestHandler } from 'express';
 
 export interface StreamableHttpConfig {
   port: number;
@@ -21,6 +27,7 @@ function isInitializeRequest(body: unknown): boolean {
 export function setupStreamableHttpTransport(
   createServer: () => Server,
   config: StreamableHttpConfig,
+  oauthDeps?: { config: OAuthConfig; verifier: JwksVerifier },
 ): Express {
   const app = express();
 
@@ -42,8 +49,44 @@ export function setupStreamableHttpTransport(
 
   app.use(express.json());
 
+  // OAuth: mount proxy auth router + protected-resource metadata, and guard /mcp.
+  const oauthConfig = oauthDeps?.config ?? getOAuthConfig();
+  let mcpGuard: RequestHandler | null = null;
+
+  if (oauthConfig.enabled) {
+    const verifier = oauthDeps?.verifier ?? createJwksVerifier(oauthConfig);
+    const provider = createProxyProvider(oauthConfig, verifier);
+
+    // Build a URL-like object for resourceServerUrl so the SDK emits the exact
+    // resource string from the config. new URL('https://mcp.qase.io').href always
+    // appends a trailing slash per the URL spec, but RFC 9728 'resource' fields
+    // must match the registered string exactly. We use a Proxy to override .href
+    // while keeping .pathname as '/' for the SDK's route-path computation.
+    const resourceUrlStr = oauthConfig.resourceUrl.replace(/\/$/, '');
+    const resourceServerUrl = new Proxy(new URL(resourceUrlStr), {
+      get(target, prop) {
+        if (prop === 'href') return resourceUrlStr;
+        const val = (target as unknown as Record<string, unknown>)[prop as string];
+        return typeof val === 'function' ? val.bind(target) : val;
+      },
+    }) as URL;
+
+    app.use(
+      mcpAuthRouter({
+        provider,
+        issuerUrl: new URL(oauthConfig.issuer),
+        baseUrl: new URL(oauthConfig.resourceUrl),
+        resourceServerUrl,
+      }),
+    );
+
+    mcpGuard = createMcpGuard(verifier, oauthConfig);
+    console.error('[StreamableHTTP] OAuth proxy enabled');
+  }
+
   const endpoint = config.endpoint || '/mcp';
   const host = config.host || '0.0.0.0';
+  const guards: RequestHandler[] = mcpGuard ? [mcpGuard] : [];
 
   // Session management - store transport and last-seen timestamp per session
   const SESSION_TTL_MS = 30 * 60 * 1000; // 30 minutes
@@ -82,7 +125,7 @@ export function setupStreamableHttpTransport(
   });
 
   // MCP endpoint - DELETE for session cleanup
-  app.delete(endpoint, async (req, res): Promise<void> => {
+  app.delete(endpoint, ...guards, async (req, res): Promise<void> => {
     const sessionId = req.headers['mcp-session-id'] as string | undefined;
 
     if (!sessionId || !sessions.has(sessionId)) {
@@ -111,7 +154,7 @@ export function setupStreamableHttpTransport(
   });
 
   // MCP endpoint - GET for SSE streams (if needed)
-  app.get(endpoint, async (req, res): Promise<void> => {
+  app.get(endpoint, ...guards, async (req, res): Promise<void> => {
     const sessionId = req.headers['mcp-session-id'] as string | undefined;
 
     if (!sessionId || !sessions.has(sessionId)) {
@@ -136,7 +179,7 @@ export function setupStreamableHttpTransport(
   });
 
   // MCP endpoint - POST for messages
-  app.post(endpoint, async (req, res): Promise<void> => {
+  app.post(endpoint, ...guards, async (req, res): Promise<void> => {
     console.error(`[StreamableHTTP] POST ${endpoint} received`, {
       sessionId: req.headers['mcp-session-id'],
       body: req.body,

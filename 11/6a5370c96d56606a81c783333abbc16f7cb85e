@@ -1,0 +1,33 @@
+src/auth/jwks-verifier.test.ts
+  s_484c32fd3735a0::t_388abd255bd41a 19
+src/auth/oauth-config.test.ts
+  s_484c32fd3735a0::t_7a3cf3d8baa03e 8
+  s_484c32fd3735a0::t_de57c5a5f7ced1 28-36
+src/transports/streamableHttp.ts
+  s_484c32fd3735a0::t_9ad70e2b20b32b 72
+src/auth/mcp-guard.ts
+  s_484c32fd3735a0::t_776572e5902a09 18
+src/auth/mcp-guard.test.ts
+  s_484c32fd3735a0::t_4dd5c4b634f007 9
+  s_484c32fd3735a0::t_b941748847f984 71-85
+  s_484c32fd3735a0::t_dac2c4aee8f4bc 61
+src/auth/oauth-config.ts
+  s_484c32fd3735a0::t_33f6100c58b594 12
+  s_484c32fd3735a0::t_cc960d5797ef5e 21,35-36
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.13",
+  "base_commit_sha": "116a5370c96d56606a81c783333abbc16f7cb85e",
+  "prompts": {},
+  "sessions": {
+    "s_484c32fd3735a0": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "65f27c41-34af-4eb0-8f56-2f0936e46a36",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "Dmitrii Gridnev <dgridnev@qase.io>"
+    }
+  }
+}

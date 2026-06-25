@@ -37,6 +37,10 @@ export function setupStreamableHttpTransport(
     res.header('Access-Control-Allow-Origin', process.env.CORS_ORIGIN || '*');
     res.header('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
     res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, mcp-session-id');
+    // Expose auth challenge + session id so browser-based MCP clients (Inspector,
+    // Claude.ai web) can read them from cross-origin responses. Without this the
+    // 401 WWW-Authenticate challenge is invisible to client JS and OAuth never starts.
+    res.header('Access-Control-Expose-Headers', 'WWW-Authenticate, mcp-session-id');
 
     if (req.method === 'OPTIONS') {
       res.sendStatus(200);

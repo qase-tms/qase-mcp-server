@@ -9,6 +9,7 @@ export interface OAuthConfig {
   audience: string;
   jwtAlgorithms: string[];
   resourceUrl: string;
+  publicUrl: string;
 }
 
 /**
@@ -17,6 +18,7 @@ export interface OAuthConfig {
  */
 export function getOAuthConfig(): OAuthConfig {
   const env = process.env;
+  const resourceUrl = env.QASE_OAUTH_RESOURCE_URL ?? 'https://mcp.qase.io';
   return {
     enabled: env.QASE_OAUTH_ENABLED !== 'false',
     authorizationUrl: env.QASE_OAUTH_AUTHORIZATION_URL ?? 'https://auth.qase.io/oauth/authorize',
@@ -30,6 +32,7 @@ export function getOAuthConfig(): OAuthConfig {
       .split(',')
       .map((a) => a.trim())
       .filter(Boolean),
-    resourceUrl: env.QASE_OAUTH_RESOURCE_URL ?? 'https://mcp.qase.io',
+    resourceUrl,
+    publicUrl: env.QASE_OAUTH_PUBLIC_URL ?? resourceUrl,
   };
 }

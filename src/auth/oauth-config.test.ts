@@ -5,7 +5,7 @@ const OAUTH_KEYS = [
   'QASE_OAUTH_ENABLED', 'QASE_OAUTH_AUTHORIZATION_URL', 'QASE_OAUTH_TOKEN_URL',
   'QASE_OAUTH_REGISTRATION_URL', 'QASE_OAUTH_REVOCATION_URL', 'QASE_OAUTH_JWKS_URL',
   'QASE_OAUTH_ISSUER', 'QASE_OAUTH_AUDIENCE', 'QASE_OAUTH_RESOURCE_URL',
-  'QASE_OAUTH_JWT_ALGORITHMS',
+  'QASE_OAUTH_JWT_ALGORITHMS', 'QASE_OAUTH_PUBLIC_URL',
 ];
 
 describe('getOAuthConfig', () => {
@@ -25,6 +25,15 @@ describe('getOAuthConfig', () => {
     expect(c.audience).toBe('https://mcp.qase.io');
     expect(c.jwtAlgorithms).toEqual(['RS256']);
     expect(c.resourceUrl).toBe('https://mcp.qase.io');
+    expect(c.publicUrl).toBe('https://mcp.qase.io');
+  });
+
+  it('publicUrl defaults to resourceUrl and can be overridden independently', () => {
+    process.env.QASE_OAUTH_PUBLIC_URL = 'http://localhost:3000';
+    const c = getOAuthConfig();
+    expect(c.publicUrl).toBe('http://localhost:3000');
+    expect(c.resourceUrl).toBe('https://mcp.qase.io'); // resource identity unchanged
+    expect(c.audience).toBe('https://mcp.qase.io');
   });
 
   it('is disabled when QASE_OAUTH_ENABLED is "false"', () => {

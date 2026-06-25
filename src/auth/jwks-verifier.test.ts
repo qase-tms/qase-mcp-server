@@ -16,6 +16,7 @@ const config: OAuthConfig = {
   audience: 'https://mcp.qase.io',
   jwtAlgorithms: ['RS256'],
   resourceUrl: 'https://mcp.qase.io',
+  publicUrl: 'https://mcp.qase.io',
 };
 
 let privateKey: CryptoKey;

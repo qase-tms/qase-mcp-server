@@ -15,7 +15,7 @@ import type { OAuthConfig } from './oauth-config.js';
  * the Authorization header and stores it in requestTokenStorage.
  */
 export function createMcpGuard(verifier: JwksVerifier, config: OAuthConfig): RequestHandler {
-  const resourceMetadataUrl = `${config.resourceUrl.replace(/\/$/, '')}/.well-known/oauth-protected-resource`;
+  const resourceMetadataUrl = `${config.publicUrl.replace(/\/$/, '')}/.well-known/oauth-protected-resource`;
   const challenge = `Bearer resource_metadata="${resourceMetadataUrl}"`;
 
   const unauthorized = (res: Response, description: string): void => {

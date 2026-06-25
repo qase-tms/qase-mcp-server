@@ -69,7 +69,7 @@ export function setupStreamableHttpTransport(
       mcpAuthRouter({
         provider,
         issuerUrl: new URL(oauthConfig.issuer),
-        baseUrl: new URL(oauthConfig.resourceUrl),
+        baseUrl: new URL(oauthConfig.publicUrl),
         resourceServerUrl: new URL(oauthConfig.resourceUrl),
       }),
     );

@@ -6,7 +6,7 @@ import { createMcpGuard } from './mcp-guard.js';
 import type { JwksVerifier } from './jwks-verifier.js';
 import type { OAuthConfig } from './oauth-config.js';
 
-const config = { resourceUrl: 'https://mcp.qase.io' } as OAuthConfig;
+const config = { resourceUrl: 'https://mcp.qase.io', publicUrl: 'https://mcp.qase.io' } as OAuthConfig;
 const EXPECTED_RESOURCE = 'https://mcp.qase.io/.well-known/oauth-protected-resource';
 
 function buildApp(verifier: JwksVerifier) {
@@ -58,7 +58,7 @@ describe('createMcpGuard', () => {
   });
 
   it('strips a trailing slash on resourceUrl when building the metadata URL', async () => {
-    const cfgWithSlash = { resourceUrl: 'https://mcp.qase.io/' } as OAuthConfig;
+    const cfgWithSlash = { resourceUrl: 'https://mcp.qase.io/', publicUrl: 'https://mcp.qase.io/' } as OAuthConfig;
     const app = express();
     app.use(express.json());
     app.post('/mcp', createMcpGuard(acceptAll, cfgWithSlash), (_req, res) => {
@@ -67,5 +67,20 @@ describe('createMcpGuard', () => {
     const res = await request(app).post('/mcp').send({});
     expect(res.status).toBe(401);
     expect(res.headers['www-authenticate']).toContain(`resource_metadata="${EXPECTED_RESOURCE}"`);
+  });
+
+  it('uses publicUrl (not resourceUrl) for the WWW-Authenticate metadata URL', async () => {
+    const cfg = {
+      resourceUrl: 'https://mcp.qase.io',
+      publicUrl: 'http://localhost:3000',
+    } as OAuthConfig;
+    const app = express();
+    app.use(express.json());
+    app.post('/mcp', createMcpGuard(acceptAll, cfg), (_req, res) => res.status(200).json({ ok: true }));
+    const res = await request(app).post('/mcp').send({});
+    expect(res.status).toBe(401);
+    expect(res.headers['www-authenticate']).toContain(
+      'resource_metadata="http://localhost:3000/.well-known/oauth-protected-resource"',
+    );
   });
 });

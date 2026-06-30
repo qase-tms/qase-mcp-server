@@ -19,7 +19,7 @@ describe('getOAuthConfig', () => {
     expect(c.authorizationUrl).toBe('https://auth.qase.io/oauth/authorize');
     expect(c.tokenUrl).toBe('https://auth.qase.io/oauth/token');
     expect(c.registrationUrl).toBe('https://auth.qase.io/oauth/register');
-    expect(c.revocationUrl).toBe('https://auth.qase.io/oauth/revoke');
+    expect(c.revocationUrl).toBe('');
     expect(c.jwksUrl).toBe('https://auth.qase.io/oauth/jwks.json');
     expect(c.issuer).toBe('https://auth.qase.io');
     expect(c.audience).toBe('https://mcp.qase.io');
@@ -52,5 +52,11 @@ describe('getOAuthConfig', () => {
   it('parses comma-separated jwt algorithms override', () => {
     process.env.QASE_OAUTH_JWT_ALGORITHMS = 'RS256, ES256';
     expect(getOAuthConfig().jwtAlgorithms).toEqual(['RS256', 'ES256']);
+  });
+
+  it('enables revocation only when QASE_OAUTH_REVOCATION_URL is set', () => {
+    expect(getOAuthConfig().revocationUrl).toBe('');
+    process.env.QASE_OAUTH_REVOCATION_URL = 'https://auth.qase.io/oauth/revoke';
+    expect(getOAuthConfig().revocationUrl).toBe('https://auth.qase.io/oauth/revoke');
   });
 });

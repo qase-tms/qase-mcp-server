@@ -24,7 +24,7 @@ export function getOAuthConfig(): OAuthConfig {
     authorizationUrl: env.QASE_OAUTH_AUTHORIZATION_URL ?? 'https://auth.qase.io/oauth/authorize',
     tokenUrl: env.QASE_OAUTH_TOKEN_URL ?? 'https://auth.qase.io/oauth/token',
     registrationUrl: env.QASE_OAUTH_REGISTRATION_URL ?? 'https://auth.qase.io/oauth/register',
-    revocationUrl: env.QASE_OAUTH_REVOCATION_URL ?? 'https://auth.qase.io/oauth/revoke',
+    revocationUrl: env.QASE_OAUTH_REVOCATION_URL ?? '',
     jwksUrl: env.QASE_OAUTH_JWKS_URL ?? 'https://auth.qase.io/oauth/jwks.json',
     issuer: env.QASE_OAUTH_ISSUER ?? 'https://auth.qase.io',
     audience: env.QASE_OAUTH_AUDIENCE ?? 'https://mcp.qase.io',

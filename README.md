@@ -109,7 +109,7 @@ Legacy opaque api-tokens continue to work via the `Token` header.
 | `QASE_OAUTH_AUTHORIZATION_URL` | `https://auth.qase.io/oauth/authorize` | Upstream authorization endpoint. |
 | `QASE_OAUTH_TOKEN_URL` | `https://auth.qase.io/oauth/token` | Upstream token endpoint. |
 | `QASE_OAUTH_REGISTRATION_URL` | `https://auth.qase.io/oauth/register` | Upstream dynamic client registration endpoint. |
-| `QASE_OAUTH_REVOCATION_URL` | `https://auth.qase.io/oauth/revoke` | Upstream token revocation endpoint. |
+| `QASE_OAUTH_REVOCATION_URL` | _(empty)_ | Optional RFC 7009 revocation endpoint. Disabled and not advertised unless set; the Qase AS does not implement token revocation. |
 | `QASE_OAUTH_JWKS_URL` | `https://auth.qase.io/oauth/jwks.json` | JWKS used to verify access tokens (cached 1 hour). |
 | `QASE_OAUTH_ISSUER` | `https://auth.qase.io` | Expected JWT `iss`. |
 | `QASE_OAUTH_AUDIENCE` | `https://mcp.qase.io` | Expected JWT `aud`. |

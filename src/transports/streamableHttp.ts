@@ -32,6 +32,26 @@ export function setupStreamableHttpTransport(
 ): Express {
   const app = express();
 
+  // Behind a reverse proxy (k8s ingress, load balancer, ngrok) the client's
+  // X-Forwarded-For header is set. The SDK's OAuth router uses express-rate-limit,
+  // which throws on rate-limited endpoints (/register, /authorize, /token) unless
+  // Express `trust proxy` is configured — otherwise those endpoints return 500.
+  // Default to trusting 1 proxy hop; override with TRUST_PROXY (a hop count, or
+  // 'false' to disable when running with no proxy in front).
+  const trustProxyEnv = process.env.TRUST_PROXY;
+  app.set(
+    'trust proxy',
+    trustProxyEnv === undefined
+      ? 1
+      : /^\d+$/.test(trustProxyEnv)
+        ? Number(trustProxyEnv)
+        : trustProxyEnv === 'false'
+          ? false
+          : trustProxyEnv === 'true'
+            ? true
+            : trustProxyEnv,
+  );
+
   // CORS middleware for inspector
   app.use((req, res, next) => {
     res.header('Access-Control-Allow-Origin', process.env.CORS_ORIGIN || '*');

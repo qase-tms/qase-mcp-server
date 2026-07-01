@@ -1,0 +1,21 @@
+src/auth/proxy-provider.ts
+  s_484c32fd3735a0::t_7bbcc8207ddfa5 10-19,21-22,29-43,47-48
+src/auth/proxy-provider.test.ts
+  s_484c32fd3735a0::t_557f25a8dde4e4 63-102
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.5",
+  "base_commit_sha": "49e168b586947828e3aec456b6d92b4db687b7db",
+  "prompts": {},
+  "sessions": {
+    "s_484c32fd3735a0": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "65f27c41-34af-4eb0-8f56-2f0936e46a36",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "Dmitrii Gridnev <dgridnev@qase.io>"
+    }
+  }
+}

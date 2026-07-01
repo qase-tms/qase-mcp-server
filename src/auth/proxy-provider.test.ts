@@ -60,6 +60,46 @@ describe('createRegistrationSanitizingFetch', () => {
     const res = await f(REG_URL, {});
     expect(res.status).toBe(400);
   });
+
+  it('rewrites token_endpoint_auth_method client_secret_post -> none in the forwarded DCR request', async () => {
+    let sentBody: any = null;
+    const fake = async (_url: any, init: any) => {
+      sentBody = JSON.parse(String(init.body));
+      return jsonResponse(publicClientResponse);
+    };
+    const f = createRegistrationSanitizingFetch(REG_URL, fake);
+    await f(REG_URL, { method: 'POST', body: JSON.stringify({
+      redirect_uris: ['https://claude.ai/api/mcp/auth_callback'],
+      token_endpoint_auth_method: 'client_secret_post',
+      grant_types: ['authorization_code', 'refresh_token'],
+      response_types: ['code'],
+      client_name: 'Claude',
+    }) });
+    expect(sentBody.token_endpoint_auth_method).toBe('none');
+    expect(sentBody.redirect_uris).toEqual(['https://claude.ai/api/mcp/auth_callback']); // other fields preserved
+  });
+
+  it('leaves a supported token_endpoint_auth_method (none) unchanged in the request', async () => {
+    let sentBody: any = null;
+    const fake = async (_url: any, init: any) => {
+      sentBody = JSON.parse(String(init.body));
+      return jsonResponse(publicClientResponse);
+    };
+    const f = createRegistrationSanitizingFetch(REG_URL, fake);
+    await f(REG_URL, { method: 'POST', body: JSON.stringify({ token_endpoint_auth_method: 'none' }) });
+    expect(sentBody.token_endpoint_auth_method).toBe('none');
+  });
+
+  it('does not rewrite the request body for non-registration endpoints', async () => {
+    let sentBody: any = null;
+    const fake = async (_url: any, init: any) => {
+      sentBody = init?.body ? JSON.parse(String(init.body)) : null;
+      return jsonResponse({ ok: true });
+    };
+    const f = createRegistrationSanitizingFetch(REG_URL, fake);
+    await f('https://auth.qase.io/oauth/token', { method: 'POST', body: JSON.stringify({ token_endpoint_auth_method: 'client_secret_post' }) });
+    expect(sentBody.token_endpoint_auth_method).toBe('client_secret_post');
+  });
 });
 
 describe('createProxyProvider', () => {

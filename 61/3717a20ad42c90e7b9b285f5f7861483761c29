@@ -1,0 +1,19 @@
+src/transports/streamableHttp.ts
+  s_484c32fd3735a0::t_3f61c971e67d9f 35-54
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.5",
+  "base_commit_sha": "613717a20ad42c90e7b9b285f5f7861483761c29",
+  "prompts": {},
+  "sessions": {
+    "s_484c32fd3735a0": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "65f27c41-34af-4eb0-8f56-2f0936e46a36",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "Dmitrii Gridnev <dgridnev@qase.io>"
+    }
+  }
+}

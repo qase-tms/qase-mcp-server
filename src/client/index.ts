@@ -34,6 +34,7 @@ import { createKeepAliveAgent, attachRetry, attachInflightDedupe } from '../http
 import { isJwt } from '../auth/token-type.js';
 import FormData from 'form-data';
 import { requestTokenStorage, getEffectiveToken } from '../utils/auth-context.js';
+import { getServer } from '../utils/server-context.js';
 import { VERSION } from '../version.js';
 
 /**
@@ -101,6 +102,21 @@ class QaseApiClient {
         return req;
       });
     }
+
+    // Tag each Qase API request with the MCP client identity (which AI host/model
+    // is using the connector) for backend metrics. Sourced per-request from the
+    // MCP `initialize` clientInfo, read via serverStorage during tool execution.
+    this.axiosInstance.interceptors.request.use((req) => {
+      const client = getServer()?.getClientVersion();
+      if (client?.name) {
+        req.headers = req.headers ?? {};
+        req.headers['X-MCP-Client-Name'] = client.name;
+        if (client.version) {
+          req.headers['X-MCP-Client-Version'] = client.version;
+        }
+      }
+      return req;
+    });
 
     attachRetry(this.axiosInstance);
     attachInflightDedupe(this.axiosInstance);

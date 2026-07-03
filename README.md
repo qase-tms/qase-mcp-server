@@ -114,6 +114,7 @@ Legacy opaque api-tokens continue to work via the `Token` header.
 | `QASE_OAUTH_ISSUER` | `https://auth.qase.io` | Expected JWT `iss`. |
 | `QASE_OAUTH_AUDIENCE` | `https://mcp.qase.io` | Expected JWT `aud`. |
 | `QASE_OAUTH_RESOURCE_URL` | `https://mcp.qase.io` | Protected resource identifier (RFC 9728). |
+| `QASE_MCP_SOURCE` | `qase-mcp` | Source identifier sent to the Qase API as the `User-Agent`. Set to `qase-mcp-hosted` on the hosted deployment to distinguish it from the self-run CLI. |
 
 Discovery metadata is served at `GET /.well-known/oauth-protected-resource`.
 

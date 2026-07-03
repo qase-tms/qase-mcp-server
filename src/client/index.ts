@@ -36,7 +36,15 @@ import FormData from 'form-data';
 import { requestTokenStorage, getEffectiveToken } from '../utils/auth-context.js';
 import { VERSION } from '../version.js';
 
-const USER_AGENT = `qase-mcp/${VERSION}`;
+/**
+ * Build the User-Agent / source string sent to the Qase API. Qase uses this to
+ * attribute the request source. Defaults to `qase-mcp`; the hosted deployment
+ * sets `QASE_MCP_SOURCE=qase-mcp-hosted` to distinguish it from the self-run CLI.
+ */
+export function getUserAgent(): string {
+  const source = process.env.QASE_MCP_SOURCE?.trim() || 'qase-mcp';
+  return `${source}/${VERSION}`;
+}
 
 /**
  * Configuration for the Qase API client
@@ -81,7 +89,8 @@ class QaseApiClient {
 
     const agent = createKeepAliveAgent({ maxSockets: 20 });
     this.axiosInstance =
-      axiosInstance ?? axios.create({ httpsAgent: agent, headers: { 'User-Agent': USER_AGENT } });
+      axiosInstance ??
+      axios.create({ httpsAgent: agent, headers: { 'User-Agent': getUserAgent() } });
 
     // For JWTs, forward verbatim as Authorization: Bearer on every request.
     // Opaque tokens keep using the Qase `Token` header via Configuration.apiKey.

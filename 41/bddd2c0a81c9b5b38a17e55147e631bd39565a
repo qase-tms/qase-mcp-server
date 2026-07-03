@@ -1,0 +1,25 @@
+src/client/user-agent.test.ts
+  s_484c32fd3735a0::t_64cb55e7a9c2e9 1-24
+README.md
+  s_484c32fd3735a0::t_a78636357eaaa9 117
+src/client/index.ts
+  s_484c32fd3735a0::t_f348a91fc9c542 39-47
+  s_484c32fd3735a0::t_3228ccb5c51c18 92
+  s_484c32fd3735a0::t_98d6840b020e96 93
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.9",
+  "base_commit_sha": "41bddd2c0a81c9b5b38a17e55147e631bd39565a",
+  "prompts": {},
+  "sessions": {
+    "s_484c32fd3735a0": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "65f27c41-34af-4eb0-8f56-2f0936e46a36",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "Dmitrii Gridnev <dgridnev@qase.io>"
+    }
+  }
+}

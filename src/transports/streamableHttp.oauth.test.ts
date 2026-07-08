@@ -101,4 +101,14 @@ describe('streamable-http OAuth wiring', () => {
     expect(loc).toContain('client_id=cli-1');
     expect(loc).toContain('redirect_uri=https%3A%2F%2Fclient.example%2Fcallback');
   });
+
+  it('returns 404 (not 400) for an unknown session id so the client re-initializes', async () => {
+    const res = await request(app)
+      .post('/mcp')
+      .set('Authorization', `Bearer ${validJwt}`)
+      .set('Accept', 'application/json, text/event-stream')
+      .set('mcp-session-id', 'nonexistent-session-id')
+      .send({ jsonrpc: '2.0', id: 2, method: 'tools/list', params: {} });
+    expect(res.status).toBe(404);
+  });
 });

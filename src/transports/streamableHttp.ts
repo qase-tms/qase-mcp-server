@@ -146,10 +146,13 @@ export function setupStreamableHttpTransport(
   app.delete(endpoint, ...guards, async (req, res): Promise<void> => {
     const sessionId = req.headers['mcp-session-id'] as string | undefined;
 
-    if (!sessionId || !sessions.has(sessionId)) {
-      res.status(400).json({
-        error: 'Invalid or missing session ID',
-      });
+    if (!sessionId) {
+      res.status(400).json({ error: 'Missing mcp-session-id header' });
+      return;
+    }
+    if (!sessions.has(sessionId)) {
+      // Unknown session → 404 so the client re-initializes (see POST handler).
+      res.status(404).json({ error: 'Session not found. Reinitialize the session.' });
       return;
     }
 
@@ -175,10 +178,13 @@ export function setupStreamableHttpTransport(
   app.get(endpoint, ...guards, async (req, res): Promise<void> => {
     const sessionId = req.headers['mcp-session-id'] as string | undefined;
 
-    if (!sessionId || !sessions.has(sessionId)) {
-      res.status(400).json({
-        error: 'Invalid or missing session ID',
-      });
+    if (!sessionId) {
+      res.status(400).json({ error: 'Missing mcp-session-id header' });
+      return;
+    }
+    if (!sessions.has(sessionId)) {
+      // Unknown session → 404 so the client re-initializes (see POST handler).
+      res.status(404).json({ error: 'Session not found. Reinitialize the session.' });
       return;
     }
 
@@ -226,10 +232,17 @@ export function setupStreamableHttpTransport(
       await createServer().connect(transport);
 
       console.error(`[StreamableHTTP] New session created: ${newSessionId}`);
+    } else if (sessionId) {
+      // Session ID provided but unknown (expired, evicted, server restarted, or the
+      // request landed on a different instance). Per the MCP streamable-http spec,
+      // respond 404 so the client transparently starts a new session (re-initialize)
+      // instead of getting stuck on a 400. Auth (JWT) is client-side, so no re-login.
+      res.status(404).json({ error: 'Session not found. Reinitialize the session.' });
+      return;
     } else {
-      // Invalid request - has session ID but session not found
+      // No session ID and not an initialize request.
       res.status(400).json({
-        error: 'Invalid request: session not found or not an initialize request',
+        error: 'Bad Request: no session ID provided and not an initialize request',
       });
       return;
     }

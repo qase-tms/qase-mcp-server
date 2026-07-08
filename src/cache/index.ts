@@ -45,10 +45,23 @@ export async function buildCache(): Promise<CacheBackend> {
     return l1;
   }
 
-  const clientOpts = { maxRetriesPerRequest: 3, enableReadyCheck: true };
-  const l2Client = new Redis(redisUrl, clientOpts);
-  const pubClient = new Redis(redisUrl, clientOpts);
-  const subClient = new Redis(redisUrl, clientOpts);
+  // Fail fast when Redis is unreachable so cache ops degrade to L1 instead of
+  // hanging the request. Without enableOfflineQueue:false + timeouts, ioredis
+  // queues commands until (re)connect, which blocks getCache()/get()/set() and
+  // times out the whole tool call when Redis is misconfigured or down.
+  const commandOpts = {
+    maxRetriesPerRequest: 1,
+    enableReadyCheck: true,
+    enableOfflineQueue: false,
+    connectTimeout: 3000,
+    commandTimeout: 2000,
+  };
+  // The subscriber keeps its offline queue so the (re)subscribe survives
+  // reconnects and cross-instance invalidation resumes once Redis is back.
+  const subOpts = { maxRetriesPerRequest: 1, enableReadyCheck: true, connectTimeout: 3000 };
+  const l2Client = new Redis(redisUrl, commandOpts);
+  const pubClient = new Redis(redisUrl, commandOpts);
+  const subClient = new Redis(redisUrl, subOpts);
 
   const l2 = new RedisCache(l2Client);
   const bus = new RedisInvalidationBus(pubClient, subClient, INVALIDATION_CHANNEL);

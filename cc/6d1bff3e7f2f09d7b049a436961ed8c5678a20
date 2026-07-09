@@ -1,0 +1,21 @@
+README.md
+  s_484c32fd3735a0::t_2491f70e0394ff 118
+src/transports/streamableHttp.ts
+  s_484c32fd3735a0::t_70af019ad270b5 109-119
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "cc6d1bff3e7f2f09d7b049a436961ed8c5678a20",
+  "prompts": {},
+  "sessions": {
+    "s_484c32fd3735a0": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "65f27c41-34af-4eb0-8f56-2f0936e46a36",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "Dmitrii Gridnev <dgridnev@qase.io>"
+    }
+  }
+}

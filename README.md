@@ -115,6 +115,7 @@ Legacy opaque api-tokens continue to work via the `Token` header.
 | `QASE_OAUTH_AUDIENCE` | `https://mcp.qase.io` | Expected JWT `aud`. |
 | `QASE_OAUTH_RESOURCE_URL` | `https://mcp.qase.io` | Protected resource identifier (RFC 9728). |
 | `QASE_MCP_SOURCE` | `qase-mcp` | Source identifier sent to the Qase API as the `User-Agent`. Set to `qase-mcp-hosted` on the hosted deployment to distinguish it from the self-run CLI. |
+| `QASE_MCP_SESSION_TTL_MINUTES` | `1440` (24h) | Idle window before an in-memory streamable-http session is evicted. Higher values keep intermittently-used connectors alive longer (more memory held); the client transparently re-initializes on eviction. |
 
 Discovery metadata is served at `GET /.well-known/oauth-protected-resource`.
 

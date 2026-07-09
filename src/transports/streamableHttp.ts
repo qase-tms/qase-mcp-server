@@ -106,8 +106,17 @@ export function setupStreamableHttpTransport(
   const host = config.host || '0.0.0.0';
   const guards: RequestHandler[] = mcpGuard ? [mcpGuard] : [];
 
-  // Session management - store transport and last-seen timestamp per session
-  const SESSION_TTL_MS = 30 * 60 * 1000; // 30 minutes
+  // Session management - store transport and last-seen timestamp per session.
+  // Sessions are in-memory per pod; one idle longer than this window is evicted
+  // (the client transparently re-initializes on the resulting 404). Default 24h so
+  // intermittently-used hosted connectors aren't dropped on idle; tune via
+  // QASE_MCP_SESSION_TTL_MINUTES. Note: longer TTL keeps more sessions in memory.
+  const ttlMinutesRaw = process.env.QASE_MCP_SESSION_TTL_MINUTES;
+  const ttlMinutes =
+    ttlMinutesRaw && /^\d+$/.test(ttlMinutesRaw) && Number(ttlMinutesRaw) > 0
+      ? Number(ttlMinutesRaw)
+      : 1440; // 24 hours
+  const SESSION_TTL_MS = ttlMinutes * 60 * 1000;
   const sessions = new Map<string, StreamableHTTPServerTransport>();
   const sessionLastSeen = new Map<string, number>();
 

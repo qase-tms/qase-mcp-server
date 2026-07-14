@@ -1,0 +1,19 @@
+docs/superpowers/specs/2026-07-14-mcp-load-testing-design.md
+  s_d7d9b9a7b68070::t_de5fa5ece80d2a 1-111
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "8f39042236824be9fa5922be75010ba01de73e68",
+  "prompts": {},
+  "sessions": {
+    "s_d7d9b9a7b68070": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "380690b5-69af-4381-a419-f4f80bf5e9e6",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "Dmitrii Gridnev <dgridnev@qase.io>"
+    }
+  }
+}

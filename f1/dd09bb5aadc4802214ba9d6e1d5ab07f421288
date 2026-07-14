@@ -1,0 +1,27 @@
+loadtest/k8s/mock-qase.yaml
+  s_d7d9b9a7b68070::t_c5b04db5f84ef3 1-4,10,25-27
+loadtest/k8s/k6-job.yaml
+  s_d7d9b9a7b68070::t_35320b5e0b6b3f 20-22,25
+loadtest/k6/session-capacity.js
+  s_d7d9b9a7b68070::t_f7ff79677b7b39 28-29
+loadtest/k6/throughput.js
+  s_d7d9b9a7b68070::t_a0eae120e924fd 37
+loadtest/mock-qase/gen-cert.sh
+  s_d7d9b9a7b68070::t_ca2f2068c4b1b0 4
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "f1dd09bb5aadc4802214ba9d6e1d5ab07f421288",
+  "prompts": {},
+  "sessions": {
+    "s_d7d9b9a7b68070": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "380690b5-69af-4381-a419-f4f80bf5e9e6",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "Dmitrii Gridnev <dgridnev@qase.io>"
+    }
+  }
+}

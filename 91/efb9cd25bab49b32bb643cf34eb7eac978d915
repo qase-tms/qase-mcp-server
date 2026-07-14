@@ -1,0 +1,21 @@
+loadtest/k8s/k6-job.yaml
+  s_d7d9b9a7b68070::t_f9dda4d48c9cd0 17
+  s_d7d9b9a7b68070::t_7d2cee40426226 16
+  s_d7d9b9a7b68070::t_7e92cd0b184f13 26
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "91efb9cd25bab49b32bb643cf34eb7eac978d915",
+  "prompts": {},
+  "sessions": {
+    "s_d7d9b9a7b68070": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "380690b5-69af-4381-a419-f4f80bf5e9e6",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "Dmitrii Gridnev <dgridnev@qase.io>"
+    }
+  }
+}

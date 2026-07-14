@@ -1,0 +1,21 @@
+loadtest/k8s/k6-job.yaml
+  s_d7d9b9a7b68070::t_1a4a05f513f5c4 1-25
+loadtest/k8s/mock-qase.yaml
+  s_d7d9b9a7b68070::t_ce3373a184e7ef 1-53
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "bde0c7d6128ac1106d223b0d72580743f478d6e3",
+  "prompts": {},
+  "sessions": {
+    "s_d7d9b9a7b68070": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "380690b5-69af-4381-a419-f4f80bf5e9e6",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "Dmitrii Gridnev <dgridnev@qase.io>"
+    }
+  }
+}

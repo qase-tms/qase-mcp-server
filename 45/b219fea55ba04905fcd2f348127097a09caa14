@@ -1,0 +1,23 @@
+loadtest/mock-qase/.gitignore
+  s_d7d9b9a7b68070::t_a00026197c6375 1-2
+loadtest/mock-qase/gen-cert.sh
+  s_d7d9b9a7b68070::t_66c652af8da912 1-8
+loadtest/mock-qase/server.mjs
+  s_d7d9b9a7b68070::t_a8a88318e53a7c 1-27
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "45b219fea55ba04905fcd2f348127097a09caa14",
+  "prompts": {},
+  "sessions": {
+    "s_d7d9b9a7b68070": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "380690b5-69af-4381-a419-f4f80bf5e9e6",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "Dmitrii Gridnev <dgridnev@qase.io>"
+    }
+  }
+}

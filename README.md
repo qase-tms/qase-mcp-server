@@ -27,6 +27,19 @@ The Qase MCP Server provides seamless integration between AI assistants (Claude,
 
 If you're upgrading from v1.x, see [MIGRATION.md](MIGRATION.md) for the complete tool mapping table and breaking changes.
 
+## Use the hosted Qase MCP (Claude connector)
+
+The quickest way to use Qase in Claude — no install and no API token. Qase publishes an official **Qase Test Management** connector in Claude's directory; just enable it and sign in with your Qase account.
+
+1. In Claude open **Settings → Connectors** and find **Qase Test Management** in the directory.
+2. Click **Connect** and complete the Qase sign-in when prompted.
+
+Claude runs the OAuth flow automatically; the Qase tools appear once you've authorized. The hosted server authenticates with your Qase login, so no local installation or `QASE_API_TOKEN` is needed.
+
+> Using a different MCP client that supports remote servers? Point it at `https://mcp.qase.io/mcp`.
+
+Prefer to run the server yourself (local/stdio)? Continue with [Installation](#installation) below.
+
 ## Installation
 
 ### Prerequisites
@@ -66,9 +79,6 @@ QASE_API_TOKEN=your_api_token_here
 
 # Optional: Custom API domain for enterprise customers
 QASE_API_DOMAIN=api.qase.io
-
-# Optional: Redis URL for shared cache in hosted/multi-instance deployments
-QASE_MCP_REDIS_URL=redis://localhost:6379
 ```
 
 Get your API token from: https://app.qase.io/user/api/token
@@ -80,44 +90,6 @@ If you're using Qase Enterprise with a custom domain:
 ```bash
 QASE_API_DOMAIN=api.yourcompany.qase.io
 ```
-
-### Redis Cache (Hosted Deployments)
-
-For multi-instance deployments behind a load balancer, set `QASE_MCP_REDIS_URL` to enable shared L2 cache with pub/sub invalidation:
-
-```bash
-QASE_MCP_REDIS_URL=redis://your-redis-host:6379
-```
-
-This requires the optional `ioredis` dependency. Install with:
-
-```bash
-npm install --include=optional
-```
-
-When Redis is not configured, the server uses an in-memory cache only (default for local/stdio usage).
-
-### OAuth (streamable-http transport)
-
-When running with `--transport streamable-http`, the server proxies OAuth to
-`auth.qase.io` and validates JWTs locally before forwarding them to the Qase API.
-Legacy opaque api-tokens continue to work via the `Token` header.
-
-| Variable | Default | Description |
-|---|---|---|
-| `QASE_OAUTH_ENABLED` | `true` | Set to `false` to disable the OAuth proxy. |
-| `QASE_OAUTH_AUTHORIZATION_URL` | `https://auth.qase.io/oauth/authorize` | Upstream authorization endpoint. |
-| `QASE_OAUTH_TOKEN_URL` | `https://auth.qase.io/oauth/token` | Upstream token endpoint. |
-| `QASE_OAUTH_REGISTRATION_URL` | `https://auth.qase.io/oauth/register` | Upstream dynamic client registration endpoint. |
-| `QASE_OAUTH_REVOCATION_URL` | _(empty)_ | Optional RFC 7009 revocation endpoint. Disabled and not advertised unless set; the Qase AS does not implement token revocation. |
-| `QASE_OAUTH_JWKS_URL` | `https://auth.qase.io/oauth/jwks.json` | JWKS used to verify access tokens (cached 1 hour). |
-| `QASE_OAUTH_ISSUER` | `https://auth.qase.io` | Expected JWT `iss`. |
-| `QASE_OAUTH_AUDIENCE` | `https://mcp.qase.io` | Expected JWT `aud`. |
-| `QASE_OAUTH_RESOURCE_URL` | `https://mcp.qase.io` | Protected resource identifier (RFC 9728). |
-| `QASE_MCP_SOURCE` | `qase-mcp` | Source identifier sent to the Qase API as the `User-Agent`. Set to `qase-mcp-hosted` on the hosted deployment to distinguish it from the self-run CLI. |
-| `QASE_MCP_SESSION_TTL_MINUTES` | `1440` (24h) | Idle window before an in-memory streamable-http session is evicted. Higher values keep intermittently-used connectors alive longer (more memory held); the client transparently re-initializes on eviction. |
-
-Discovery metadata is served at `GET /.well-known/oauth-protected-resource`.
 
 ## Integration
 

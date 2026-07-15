@@ -33,6 +33,12 @@
       ]
     }
   ],
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://mcp.qase.io/mcp"
+    }
+  ],
   "_meta": {
     "io.modelcontextprotocol.registry/publisher-provided": {
       "privacyPolicyUrl": "https://qase.io/privacy"

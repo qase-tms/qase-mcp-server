@@ -24,7 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Upsert+delete tools** for all major entities: `qase_case_upsert`, `qase_case_delete`, `qase_suite_upsert`, `qase_suite_delete`, `qase_run_upsert`, `qase_run_complete`, `qase_run_delete`, `qase_result_record`, `qase_result_delete`, `qase_plan_upsert`, `qase_plan_delete`, `qase_defect_upsert`, `qase_defect_delete`, `qase_milestone_upsert`, `qase_milestone_delete`, `qase_environment_upsert`, `qase_environment_delete`, `qase_shared_step_upsert`, `qase_shared_step_delete`, `qase_attachment_upload`, `qase_attachment_delete`.
 - **HTTP keep-alive, automatic retry, and in-flight request deduplication** in the API client layer.
 - **Tenant-safe two-tier cache** — in-memory LRU cache with optional Redis L2. Cache keys are scoped per-tenant (token hash + API domain) eliminating the cross-tenant data leak present in v1.
-- **Prometheus `/metrics` endpoint** — exposes cache hit/miss rates, request latency, and error counts when running in HTTP transport mode.
+- **OAuth 2.1 support (streamable-http transport)** — the server proxies authorization, token, and dynamic client registration to the Qase authorization server, and verifies access-token JWTs locally against the upstream JWKS before forwarding them to the Qase API. Legacy opaque api-tokens continue to work. Protected-resource metadata is served per RFC 9728. This powers the hosted Qase MCP, available as the official **Qase Test Management** connector in Claude's directory (see the README).
 
 ### Fixed
 

@@ -1,0 +1,19 @@
+loadtest/RUNBOOK.md
+  s_d7d9b9a7b68070::t_c94d744c659a27 1-116
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "61984eab9a9da8233b8886335f84fd88c97109f4",
+  "prompts": {},
+  "sessions": {
+    "s_d7d9b9a7b68070": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "380690b5-69af-4381-a419-f4f80bf5e9e6",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "Dmitrii Gridnev <dgridnev@qase.io>"
+    }
+  }
+}

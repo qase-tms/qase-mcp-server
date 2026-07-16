@@ -36,6 +36,8 @@ The quickest way to use Qase in Claude — no install and no API token. Qase pub
 
 Claude runs the OAuth flow automatically; the Qase tools appear once you've authorized. The hosted server authenticates with your Qase login, so no local installation or `QASE_API_TOKEN` is needed.
 
+**Active workspace.** The connector operates on the workspace currently selected in your Qase UI. To work in a different workspace, just switch it in Qase — the connector automatically routes subsequent requests to the newly selected workspace, with no need to reconnect or re-authorize.
+
 > Using a different MCP client that supports remote servers? Point it at `https://mcp.qase.io/mcp`.
 
 Prefer to run the server yourself (local/stdio)? Continue with [Installation](#installation) below.

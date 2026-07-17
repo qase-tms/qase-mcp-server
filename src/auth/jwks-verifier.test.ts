@@ -13,7 +13,7 @@ const config: OAuthConfig = {
   revocationUrl: 'https://auth.qase.io/oauth/revoke',
   jwksUrl: 'https://auth.qase.io/oauth/jwks.json',
   issuer: 'https://auth.qase.io',
-  audience: 'https://mcp.qase.io',
+  audience: ['https://mcp.qase.io', 'https://mcp.qase.io/mcp'],
   jwtAlgorithms: ['RS256'],
   resourceUrl: 'https://mcp.qase.io',
   publicUrl: 'https://mcp.qase.io',
@@ -36,7 +36,7 @@ function sign(claims: Record<string, unknown>, opts: { iss?: string; aud?: strin
     .setProtectedHeader({ alg: 'RS256', kid: 'test-key' })
     .setIssuedAt()
     .setIssuer(opts.iss ?? config.issuer)
-    .setAudience(opts.aud ?? config.audience)
+    .setAudience(opts.aud ?? config.audience[0])
     .setExpirationTime(opts.exp ?? '1h')
     .sign(privateKey);
 }
@@ -61,6 +61,14 @@ describe('createJwksVerifier', () => {
     await expect(createJwksVerifier(config, resolver).verifyJwt(token)).rejects.toThrow();
   });
 
+  it('accepts a token whose aud matches a secondary configured audience', async () => {
+    // Codex sends resource=https://mcp.qase.io/mcp → token aud is the endpoint URL,
+    // which is the second entry in config.audience.
+    const token = await sign({ sub: 'user-1' }, { aud: 'https://mcp.qase.io/mcp' });
+    const info = await createJwksVerifier(config, resolver).verifyJwt(token);
+    expect(info.token).toBe(token);
+  });
+
   it('rejects an expired token', async () => {
     const token = await sign({}, { exp: '-1h' });
     await expect(createJwksVerifier(config, resolver).verifyJwt(token)).rejects.toThrow();
@@ -71,7 +79,7 @@ describe('createJwksVerifier', () => {
       .setProtectedHeader({ alg: 'RS256', kid: 'test-key' })
       .setIssuedAt()
       .setIssuer(config.issuer)
-      .setAudience(config.audience)
+      .setAudience(config.audience[0])
       .setNotBefore('1h')
       .setExpirationTime('2h')
       .sign(privateKey);

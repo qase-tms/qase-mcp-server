@@ -37,7 +37,7 @@ export function createJwksVerifier(
         clientId: (payload.client_id as string) ?? (payload.azp as string) ?? '',
         scopes,
         expiresAt: payload.exp,
-        resource: new URL(config.audience),
+        resource: new URL(config.audience[0]),
         extra: { sub: payload.sub },
       };
     },

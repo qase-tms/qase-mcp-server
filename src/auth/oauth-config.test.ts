@@ -22,7 +22,7 @@ describe('getOAuthConfig', () => {
     expect(c.revocationUrl).toBe('');
     expect(c.jwksUrl).toBe('https://auth.qase.io/oauth/jwks.json');
     expect(c.issuer).toBe('https://auth.qase.io');
-    expect(c.audience).toBe('https://mcp.qase.io');
+    expect(c.audience).toEqual(['https://mcp.qase.io']);
     expect(c.jwtAlgorithms).toEqual(['RS256']);
     expect(c.resourceUrl).toBe('https://mcp.qase.io');
     expect(c.publicUrl).toBe('https://mcp.qase.io');
@@ -33,7 +33,7 @@ describe('getOAuthConfig', () => {
     const c = getOAuthConfig();
     expect(c.publicUrl).toBe('http://localhost:3000');
     expect(c.resourceUrl).toBe('https://mcp.qase.io'); // resource identity unchanged
-    expect(c.audience).toBe('https://mcp.qase.io');
+    expect(c.audience).toEqual(['https://mcp.qase.io']);
   });
 
   it('is disabled when QASE_OAUTH_ENABLED is "false"', () => {
@@ -46,12 +46,17 @@ describe('getOAuthConfig', () => {
     process.env.QASE_OAUTH_AUDIENCE = 'https://mcp.staging.qase.io';
     const c = getOAuthConfig();
     expect(c.issuer).toBe('https://auth.staging.qase.io');
-    expect(c.audience).toBe('https://mcp.staging.qase.io');
+    expect(c.audience).toEqual(['https://mcp.staging.qase.io']);
   });
 
   it('parses comma-separated jwt algorithms override', () => {
     process.env.QASE_OAUTH_JWT_ALGORITHMS = 'RS256, ES256';
     expect(getOAuthConfig().jwtAlgorithms).toEqual(['RS256', 'ES256']);
+  });
+
+  it('parses comma-separated audiences (multiple MCP clients)', () => {
+    process.env.QASE_OAUTH_AUDIENCE = 'https://mcp.qase.io, https://mcp.qase.io/mcp';
+    expect(getOAuthConfig().audience).toEqual(['https://mcp.qase.io', 'https://mcp.qase.io/mcp']);
   });
 
   it('enables revocation only when QASE_OAUTH_REVOCATION_URL is set', () => {

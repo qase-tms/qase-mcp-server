@@ -6,7 +6,14 @@ export interface OAuthConfig {
   revocationUrl: string;
   jwksUrl: string;
   issuer: string;
-  audience: string;
+  /**
+   * Accepted JWT `aud` values. Multiple are supported because different MCP
+   * clients derive the RFC 8707 resource indicator differently (e.g. Claude
+   * sends `https://mcp.qase.io`, Codex sends the endpoint `https://mcp.qase.io/mcp`),
+   * and the AS mints the token audience from that resource. A token is accepted
+   * if its `aud` matches any entry. Configured via comma-separated QASE_OAUTH_AUDIENCE.
+   */
+  audience: string[];
   jwtAlgorithms: string[];
   resourceUrl: string;
   publicUrl: string;
@@ -27,7 +34,10 @@ export function getOAuthConfig(): OAuthConfig {
     revocationUrl: env.QASE_OAUTH_REVOCATION_URL ?? '',
     jwksUrl: env.QASE_OAUTH_JWKS_URL ?? 'https://auth.qase.io/oauth/jwks.json',
     issuer: env.QASE_OAUTH_ISSUER ?? 'https://auth.qase.io',
-    audience: env.QASE_OAUTH_AUDIENCE ?? 'https://mcp.qase.io',
+    audience: (env.QASE_OAUTH_AUDIENCE ?? 'https://mcp.qase.io')
+      .split(',')
+      .map((a) => a.trim())
+      .filter(Boolean),
     jwtAlgorithms: (env.QASE_OAUTH_JWT_ALGORITHMS ?? 'RS256')
       .split(',')
       .map((a) => a.trim())

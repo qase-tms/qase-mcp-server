@@ -29,7 +29,7 @@ beforeAll(async () => {
     .setProtectedHeader({ alg: 'RS256', kid: 'k1' })
     .setIssuedAt()
     .setIssuer(config.issuer)
-    .setAudience(config.audience)
+    .setAudience(config.audience[0])
     .setExpirationTime('1h')
     .sign(kp.privateKey as CryptoKey);
 

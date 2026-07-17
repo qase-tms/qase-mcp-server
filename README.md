@@ -27,18 +27,34 @@ The Qase MCP Server provides seamless integration between AI assistants (Claude,
 
 If you're upgrading from v1.x, see [MIGRATION.md](MIGRATION.md) for the complete tool mapping table and breaking changes.
 
-## Use the hosted Qase MCP (Claude connector)
+## Use the hosted Qase MCP
 
-The quickest way to use Qase in Claude — no install and no API token. Qase publishes an official **Qase Test Management** connector in Claude's directory; just enable it and sign in with your Qase account.
+The quickest way to use Qase — no install and no API token. Connect to the Qase-hosted MCP server and sign in with your Qase account. Works with any MCP client that supports remote servers (OAuth 2.1); Claude and Cursor are shown below.
 
-1. In Claude open **Settings → Connectors** and find **Qase Test Management** in the directory.
+**Claude** — Qase publishes an official **Qase Test Management** connector in Claude's directory:
+
+1. In Claude open **Settings → Connectors** and find **Qase Test Management**.
 2. Click **Connect** and complete the Qase sign-in when prompted.
 
-Claude runs the OAuth flow automatically; the Qase tools appear once you've authorized. The hosted server authenticates with your Qase login, so no local installation or `QASE_API_TOKEN` is needed.
+**Cursor** — add the hosted server by URL in `~/.cursor/mcp.json` (global) or `.cursor/mcp.json` (project):
+
+```json
+{
+  "mcpServers": {
+    "qase": {
+      "url": "https://mcp.qase.io/mcp"
+    }
+  }
+}
+```
+
+Cursor opens your browser to sign in to Qase; the tools appear once you've authorized.
+
+**Other clients** that support remote MCP servers: point them at `https://mcp.qase.io/mcp`.
+
+In every case the hosted server authenticates via your Qase login (OAuth) — no local installation or `QASE_API_TOKEN` needed.
 
 **Active workspace.** The connector operates on the workspace currently selected in your Qase UI. To work in a different workspace, just switch it in Qase — the connector automatically routes subsequent requests to the newly selected workspace, with no need to reconnect or re-authorize.
-
-> Using a different MCP client that supports remote servers? Point it at `https://mcp.qase.io/mcp`.
 
 Prefer to run the server yourself (local/stdio)? Continue with [Installation](#installation) below.
 
@@ -133,6 +149,10 @@ Or, if installed from source:
 ```
 
 ### Cursor
+
+> Prefer no install and no API token? Connect Cursor to the hosted server instead — see [Use the hosted Qase MCP](#use-the-hosted-qase-mcp).
+
+To run the server locally with your own token:
 
 1. Open Cursor Settings
 2. Navigate to MCP settings

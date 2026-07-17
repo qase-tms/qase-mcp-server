@@ -1,0 +1,20 @@
+README.md
+  s_d7d9b9a7b68070::t_c3acdc246e0f40 30,32,34-36,39,41-53,55-57
+  s_d7d9b9a7b68070::t_35da80f86c1777 153-156
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "22c5516a72d20c192f6c0ab1a24b70a8a8aefa3b",
+  "prompts": {},
+  "sessions": {
+    "s_d7d9b9a7b68070": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "380690b5-69af-4381-a419-f4f80bf5e9e6",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "Dmitrii Gridnev <dgridnev@qase.io>"
+    }
+  }
+}

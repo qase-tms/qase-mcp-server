@@ -1,0 +1,34 @@
+src/auth/jwks-verifier.ts
+  s_d7d9b9a7b68070::t_638bb2ecce33ca 40
+src/transports/streamableHttp.oauth.test.ts
+  s_d7d9b9a7b68070::t_78707c9a2bb8ba 32
+src/auth/jwks-verifier.test.ts
+  s_d7d9b9a7b68070::t_434d602236fc1b 39
+  s_d7d9b9a7b68070::t_d14fbc71b6c9d8 16
+  s_d7d9b9a7b68070::t_883e8d34769a20 82
+  s_d7d9b9a7b68070::t_59acb376b1393e 64-71
+src/auth/oauth-config.ts
+  s_d7d9b9a7b68070::t_4f289bbb7437c1 9-16
+  s_d7d9b9a7b68070::t_b73fdcd2815870 37-40
+src/auth/oauth-config.test.ts
+  s_d7d9b9a7b68070::t_563cefe0f885c6 36
+  s_d7d9b9a7b68070::t_a9fe84b68bf33f 49,57-59
+  s_d7d9b9a7b68070::t_d0ea1c9ca57e20 25
+  s_d7d9b9a7b68070::t_5b64147b2b2a30 60-61
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "3d02846f7f356a3f07ccf90aed3e8a1e08af7efa",
+  "prompts": {},
+  "sessions": {
+    "s_d7d9b9a7b68070": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "380690b5-69af-4381-a419-f4f80bf5e9e6",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "Dmitrii Gridnev <dgridnev@qase.io>"
+    }
+  }
+}

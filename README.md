@@ -29,7 +29,7 @@ If you're upgrading from v1.x, see [MIGRATION.md](MIGRATION.md) for the complete
 
 ## Use the hosted Qase MCP
 
-The quickest way to use Qase — no install and no API token. Connect to the Qase-hosted MCP server and sign in with your Qase account. Works with any MCP client that supports remote servers (OAuth 2.1); Claude and Cursor are shown below.
+The quickest way to use Qase — no install and no API token. Connect to the Qase-hosted MCP server and sign in with your Qase account. Works with any MCP client that supports remote servers (OAuth 2.1); Claude, Cursor, and Codex are shown below.
 
 **Claude** — Qase publishes an official **Qase Test Management** connector in Claude's directory:
 
@@ -49,6 +49,16 @@ The quickest way to use Qase — no install and no API token. Connect to the Qas
 ```
 
 Cursor opens your browser to sign in to Qase; the tools appear once you've authorized.
+
+**Codex** — in the ChatGPT / Codex app, open **Settings → MCPs → Add server**, enter the URL `https://mcp.qase.io/mcp`, and click **Authenticate**. For the Codex CLI, add to `~/.codex/config.toml`:
+
+```toml
+[mcp_servers.qase]
+url = "https://mcp.qase.io/mcp"
+auth = "oauth"
+```
+
+then run `codex mcp login qase` and complete the Qase sign-in in your browser. Enter the URL exactly as shown — without surrounding quotes.
 
 **Other clients** that support remote MCP servers: point them at `https://mcp.qase.io/mcp`.
 

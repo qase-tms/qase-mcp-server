@@ -1,0 +1,23 @@
+MIGRATION.md
+  s_d7d9b9a7b68070::t_89ae9b565aee32 10
+  s_d7d9b9a7b68070::t_de3acc025f9da2 3
+README.md
+  s_d7d9b9a7b68070::t_41458ea3c8f355 30
+  s_d7d9b9a7b68070::t_fbf808b3778d42 77
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "18a96fe433821ed0a9102c2ba7777bb0ddce46d9",
+  "prompts": {},
+  "sessions": {
+    "s_d7d9b9a7b68070": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "380690b5-69af-4381-a419-f4f80bf5e9e6",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "Dmitrii Gridnev <dgridnev@qase.io>"
+    }
+  }
+}

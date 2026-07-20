@@ -56,7 +56,6 @@ No install, no API token — connect to the Qase-hosted server and sign in with 
 
 - **Claude** — open **Settings → Connectors**, find **Qase Test Management**, click **Connect**.
 - **Cursor** — add `{"mcpServers": {"qase": {"url": "https://mcp.qase.io/mcp"}}}` to `.cursor/mcp.json`.
-- **VS Code** — add `{"servers": {"qase": {"type": "http", "url": "https://mcp.qase.io/mcp"}}}` to `.vscode/mcp.json`.
 - **Codex** — add the URL `https://mcp.qase.io/mcp` in **Settings → MCPs → Add server**, or configure `~/.codex/config.toml` for the CLI.
 
 Full per-client steps, other clients, and the active-workspace model: **[docs/connect.md](docs/connect.md)**.

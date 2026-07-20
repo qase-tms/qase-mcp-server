@@ -27,23 +27,6 @@ Add the hosted server by URL in `~/.cursor/mcp.json` (global) or `.cursor/mcp.js
 
 Cursor opens your browser to sign in to Qase; the tools appear once you've authorized.
 
-## VS Code
-
-Add manually to `.vscode/mcp.json`:
-
-```json
-{
-  "servers": {
-    "qase": {
-      "type": "http",
-      "url": "https://mcp.qase.io/mcp"
-    }
-  }
-}
-```
-
-VS Code opens your browser to sign in to Qase; the tools appear once you've authorized. Requires VS Code 1.101+ for remote MCP and OAuth support.
-
 ## Codex
 
 **ChatGPT / Codex app** — open **Settings → MCPs → Add server**, enter the URL `https://mcp.qase.io/mcp`, and click **Authenticate**.

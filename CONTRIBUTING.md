@@ -150,7 +150,7 @@ When adding a new tool:
 3. **Implement handler function** with error handling
 4. **Register tool** with the tool registry
 5. **Add unit tests** in `*.test.ts` file
-6. **Update README.md** with tool documentation
+6. **Update `docs/tools.md`** with tool documentation
 
 Example:
 ```typescript
@@ -223,7 +223,7 @@ describe('My Operation', () => {
 
 ### Documentation
 
-- Update README.md for new tools
+- Update `docs/tools.md` for new tools
 - Add JSDoc comments to functions
 - Include usage examples for complex features
 - Update CHANGELOG.md for notable changes

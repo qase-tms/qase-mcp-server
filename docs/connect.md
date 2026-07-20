@@ -13,7 +13,9 @@ Qase publishes an official **Qase Test Management** connector in Claude's direct
 
 ## Cursor
 
-Add the hosted server by URL in `~/.cursor/mcp.json` (global) or `.cursor/mcp.json` (project):
+[![Add to Cursor](https://cursor.com/deeplink/mcp-install-dark.png)](cursor://anysphere.cursor-deeplink/mcp/install?name=qase&config=eyJ1cmwiOiAiaHR0cHM6Ly9tY3AucWFzZS5pby9tY3AifQ==)
+
+Or add the hosted server by URL in `~/.cursor/mcp.json` (global) or `.cursor/mcp.json` (project):
 
 ```json
 {
@@ -26,6 +28,23 @@ Add the hosted server by URL in `~/.cursor/mcp.json` (global) or `.cursor/mcp.js
 ```
 
 Cursor opens your browser to sign in to Qase; the tools appear once you've authorized.
+
+## VS Code
+
+Add manually to `.vscode/mcp.json`:
+
+```json
+{
+  "servers": {
+    "qase": {
+      "type": "http",
+      "url": "https://mcp.qase.io/mcp"
+    }
+  }
+}
+```
+
+VS Code opens your browser to sign in to Qase; the tools appear once you've authorized. Requires VS Code 1.101+ for remote MCP and OAuth support.
 
 ## Codex
 

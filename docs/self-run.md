@@ -206,7 +206,7 @@ Add an `opencode.json` file to your project root (or `~/.config/opencode/opencod
 
 The server supports multiple transport types for different use cases.
 
-#### Stdio Transport (Default)
+### Stdio Transport (Default)
 
 Used by MCP clients like Claude Desktop and Cursor:
 
@@ -216,7 +216,7 @@ npm start
 npm run start:stdio
 ```
 
-#### SSE Transport
+### SSE Transport
 
 Server-Sent Events for web-based clients:
 
@@ -227,7 +227,7 @@ npm run start:sse
 # Metrics: http://localhost:3000/metrics
 ```
 
-#### Streamable HTTP Transport
+### Streamable HTTP Transport
 
 Full HTTP-based transport with session management:
 
@@ -238,7 +238,7 @@ npm run start:http
 # Metrics: http://localhost:3000/metrics
 ```
 
-#### Custom Configuration
+### Custom Configuration
 
 ```bash
 # Custom port and host
@@ -264,3 +264,7 @@ Metrics include:
 - `qase_mcp_circuit_breaker_state` - Redis circuit breaker state (0=closed, 1=half_open, 2=open)
 
 > **Note:** This page covers running the server yourself with your own `QASE_API_TOKEN` (self-run). It does not cover operating the hosted OAuth proxy — that is internal operator documentation, not part of this guide.
+
+## Troubleshooting
+
+Server not starting, authentication errors, or connection issues? See [Troubleshooting](troubleshooting.md).

@@ -55,7 +55,7 @@ See [Tools](#tools) and [docs/tools.md](docs/tools.md) for the full reference.
 No install, no API token — connect to the Qase-hosted server and sign in with your Qase account.
 
 - **Claude** — open **Settings → Connectors**, find **Qase Test Management**, click **Connect**.
-- **Cursor** — [![Add to Cursor](https://cursor.com/deeplink/mcp-install-dark.png)](cursor://anysphere.cursor-deeplink/mcp/install?name=qase&config=eyJ1cmwiOiAiaHR0cHM6Ly9tY3AucWFzZS5pby9tY3AifQ==) or add `{"mcpServers": {"qase": {"url": "https://mcp.qase.io/mcp"}}}` to `.cursor/mcp.json`.
+- **Cursor** — add `{"mcpServers": {"qase": {"url": "https://mcp.qase.io/mcp"}}}` to `.cursor/mcp.json`, or one-click: <a href="cursor://anysphere.cursor-deeplink/mcp/install?name=qase&config=eyJ1cmwiOiAiaHR0cHM6Ly9tY3AucWFzZS5pby9tY3AifQ=="><img src="https://cursor.com/deeplink/mcp-install-dark.svg" height="28" alt="Add Qase to Cursor"></a>
 - **VS Code** — add `{"servers": {"qase": {"type": "http", "url": "https://mcp.qase.io/mcp"}}}` to `.vscode/mcp.json`.
 - **Codex** — add the URL `https://mcp.qase.io/mcp` in **Settings → MCPs → Add server**, or configure `~/.codex/config.toml` for the CLI.
 

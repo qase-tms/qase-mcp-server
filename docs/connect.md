@@ -13,9 +13,7 @@ Qase publishes an official **Qase Test Management** connector in Claude's direct
 
 ## Cursor
 
-<a href="cursor://anysphere.cursor-deeplink/mcp/install?name=qase&config=eyJ1cmwiOiAiaHR0cHM6Ly9tY3AucWFzZS5pby9tY3AifQ=="><img src="https://cursor.com/deeplink/mcp-install-dark.svg" height="28" alt="Add Qase to Cursor"></a>
-
-Or add the hosted server by URL in `~/.cursor/mcp.json` (global) or `.cursor/mcp.json` (project):
+Add the hosted server by URL in `~/.cursor/mcp.json` (global) or `.cursor/mcp.json` (project):
 
 ```json
 {

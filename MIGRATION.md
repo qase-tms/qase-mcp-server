@@ -1,13 +1,13 @@
 # Migration Guide: v1 → v2
 
-> **Breaking change**: v2 replaces all 83 v1 tool names with a consolidated set of 29 tools.
+> **Breaking change**: v2 replaces all 83 v1 tool names with a consolidated set of 29 task-oriented tools (30 total, including the `qase_discover_tools` discovery tool).
 > Every tool name has changed. Update your prompts, workflows, and any automation that references tool names.
 
 ## What changed at a glance
 
 | Area | v1 | v2 |
 |---|---|---|
-| Tool count | 83 | 29 |
+| Tool count | 83 | 29 task-oriented (30 total) |
 | Naming convention | snake_case verbs (`list_cases`, `create_run`) | `qase_` prefix + noun+verb (`qase_case_upsert`) |
 | Read tools | One tool per entity type | `qase_get` handles all entity types |
 | List/search | Separate `list_*` per entity | `qql_search` with `entity=` parameter |

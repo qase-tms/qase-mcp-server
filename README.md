@@ -27,7 +27,7 @@ The Qase MCP Server lets AI assistants (Claude, Cursor, Codex, and any other MCP
 
 **Features:**
 
-- **30 task-oriented tools** — consolidated from 83 v1 tools for lower token usage and better LLM accuracy
+- **29 task-oriented tools** (30 total, including `qase_discover_tools`) — consolidated from 83 v1 tools for lower token usage and better LLM accuracy
 - **Composite tools** — multi-step workflows in a single call: CI reporting, defect triage, regression run setup
 - **QQL support** — Qase Query Language for advanced searches across cases, runs, results, defects, and plans
 - **Project context bootstrap** — one call returns full project structure (suites, milestones, environments, users, custom fields)
@@ -74,7 +74,7 @@ Then point your MCP client's stdio config at the `@qase/mcp-server` binary. Full
 
 ## Upgrading from v1
 
-v2 consolidates 83 v1 tools into 30. Tool names and response shapes have changed. See **[MIGRATION.md](MIGRATION.md)** for the complete tool mapping table, response format changes, and before/after examples.
+v2 consolidates 83 v1 tools into **29 task-oriented tools** (30 total, including a discovery tool). Tool names and response shapes have changed. See **[MIGRATION.md](MIGRATION.md)** for the complete tool mapping table, response format changes, and before/after examples.
 
 ## Tools
 

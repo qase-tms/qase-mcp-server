@@ -54,6 +54,8 @@ See [Tools](#tools) and [docs/tools.md](docs/tools.md) for the full reference.
 
 No install, no API token — connect to the Qase-hosted server and sign in with your Qase account.
 
+> **Note:** The hosted Qase MCP is available on the **Enterprise** plan in Qase. On other plans, [run the server yourself](#run-it-yourself) with your own API token.
+
 - **Claude** — open **Settings → Connectors**, find **Qase Test Management**, click **Connect**.
 - **Cursor** — add `{"mcpServers": {"qase": {"url": "https://mcp.qase.io/mcp"}}}` to `.cursor/mcp.json`.
 - **Codex** — add the URL `https://mcp.qase.io/mcp` in **Settings → MCPs → Add server**, or configure `~/.codex/config.toml` for the CLI.

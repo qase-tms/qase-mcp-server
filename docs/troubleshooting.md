@@ -18,6 +18,12 @@ This means the server is running locally (self-run) and rejected the token it wa
 
 These apply when connecting to the Qase-hosted server (`https://mcp.qase.io/mcp`) — see [Connect to the hosted Qase MCP](connect.md). There's no `QASE_API_TOKEN` here; authentication is a browser-based OAuth sign-in to your Qase account.
 
+### Access denied / Enterprise plan required
+
+The hosted Qase MCP is available on the **Enterprise** plan in Qase. If your workspace is on another plan, requests are rejected with an access/plan error — the connector may sign in but tool calls fail with a plan-related message.
+
+**Solution**: upgrade to the Enterprise plan, or [run the server yourself](self-run.md) with your own `QASE_API_TOKEN` (works on any plan).
+
 ### Connector doesn't appear, or won't connect
 
 **Solution**:

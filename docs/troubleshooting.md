@@ -60,6 +60,12 @@ That stray character poisons the OAuth callback — it changes the client's regi
 
 The hosted connector authenticates via OAuth in your default browser — there's no token to paste in. If your MCP client is running in an environment without a browser available (e.g. certain headless or remote setups), the sign-in step can't complete. Use a client/environment that can open a browser, or fall back to the [self-run guide](self-run.md) with your own `QASE_API_TOKEN`.
 
+### Session expires after 7 days of inactivity
+
+An active hosted-connector session stays valid for **7 days**. As long as you use the connector within any 7-day window, it keeps working with no re-authorization. If a full week passes with no activity, the session expires and you'll be asked to sign in again.
+
+**Solution**: when the client reports that authorization is needed, re-run the sign-in flow — it opens your browser; complete the Qase login and the connector resumes. No need to remove and re-add the server.
+
 ## Connection Errors
 
 **Error**: `Network error` or `ECONNREFUSED`

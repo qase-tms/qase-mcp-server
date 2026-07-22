@@ -45,14 +45,27 @@ describe('streamable-http OAuth wiring', () => {
     const res = await request(app).get('/.well-known/oauth-protected-resource');
     expect(res.status).toBe(200);
     expect(res.body.resource.replace(/\/$/, '')).toBe('https://mcp.qase.io');
-    expect(Array.isArray(res.body.authorization_servers)).toBe(true);
+    // authorization_servers must equal the AS issuer EXACTLY — no trailing slash, so a
+    // strict client's RFC 8414 issuer match against the AS metadata succeeds.
+    expect(res.body.authorization_servers).toEqual(['https://auth.qase.io']);
   });
 
   it('serves path-aware protected-resource metadata for the /mcp endpoint (VS Code)', async () => {
     const res = await request(app).get('/.well-known/oauth-protected-resource/mcp');
     expect(res.status).toBe(200);
     expect(res.body.resource).toBe('https://mcp.qase.io/mcp');
-    expect(Array.isArray(res.body.authorization_servers)).toBe(true);
+    expect(res.body.authorization_servers).toEqual(['https://auth.qase.io']);
+  });
+
+  it('emits authorization_servers with no trailing slash on either PRM document', async () => {
+    for (const path of [
+      '/.well-known/oauth-protected-resource',
+      '/.well-known/oauth-protected-resource/mcp',
+    ]) {
+      const res = await request(app).get(path);
+      expect(res.status).toBe(200);
+      expect(res.body.authorization_servers[0].endsWith('/')).toBe(false);
+    }
   });
 
   it('rejects /mcp without a token (401 + path-aware WWW-Authenticate)', async () => {

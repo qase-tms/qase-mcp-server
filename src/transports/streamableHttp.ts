@@ -89,25 +89,37 @@ export function setupStreamableHttpTransport(
       authorizeRedirectUriStorage.run(redirectUri, () => next());
     });
 
-    // RFC 9728 protected-resource metadata is served at TWO paths for client compat:
+    // RFC 9728 protected-resource metadata — served at TWO paths by OUR OWN handlers:
     //
-    //  - Path-aware `/.well-known/oauth-protected-resource/mcp` with
-    //    resource="https://mcp.qase.io/mcp" — mounted by the SDK because
-    //    resourceServerUrl carries the `/mcp` path. Modern clients (VS Code) use the
-    //    full endpoint URL as the resource identifier and discover here first.
-    //  - Root `/.well-known/oauth-protected-resource` with resource=origin (the SDK
-    //    only mounts the path-aware document, so we add the root one ourselves).
-    //    Older clients (Claude, Cursor, Codex) discover at the root with the origin as
-    //    the resource; kept for backward compatibility.
+    //  - `/.well-known/oauth-protected-resource/mcp` (resource="https://mcp.qase.io/mcp")
+    //    for clients that use the full endpoint URL as the resource identifier (VS Code).
+    //  - `/.well-known/oauth-protected-resource` (root, resource=origin) for clients that
+    //    discover at the root (Claude, Cursor, Codex). Backward compatible.
     //
-    // The AS accepts every resource variant and canonicalizes the token audience, so a
-    // token obtained via either document validates the same way.
+    // Why our own handlers instead of the SDK's mcpAuthMetadataRouter: the SDK derives
+    // authorization_servers from `new URL(issuer).href`, which appends a trailing slash
+    // ("https://auth.qase.io/"). The AS's own metadata advertises the issuer WITHOUT the
+    // slash ("https://auth.qase.io"), and RFC 8414 §3.3 requires the issuer a client used
+    // to discover the AS to match the metadata's `issuer` EXACTLY. That slash mismatch
+    // makes strict clients (VS Code) reject the AS metadata and refuse automatic client
+    // registration (DCR). So authorization_servers must be exactly oauthConfig.issuer,
+    // un-normalized. These routes are registered BEFORE mcpAuthRouter so they take
+    // precedence over the SDK's own (slash-normalized) PRM mount; the SDK still serves the
+    // AS metadata document + the proxy authorize/token/register endpoints.
+    const authorizationServers = [oauthConfig.issuer];
     const rootResourceMetadata = {
       resource: new URL(oauthConfig.publicUrl).href,
-      authorization_servers: [new URL(oauthConfig.issuer).href],
+      authorization_servers: authorizationServers,
+    };
+    const mcpResourceMetadata = {
+      resource: new URL(oauthConfig.resourceUrl).href,
+      authorization_servers: authorizationServers,
     };
     app.get('/.well-known/oauth-protected-resource', (_req, res) => {
       res.json(rootResourceMetadata);
+    });
+    app.get('/.well-known/oauth-protected-resource/mcp', (_req, res) => {
+      res.json(mcpResourceMetadata);
     });
 
     app.use(
@@ -118,8 +130,8 @@ export function setupStreamableHttpTransport(
         // /register) and AS metadata mount here. MUST stay the origin — decoupled from
         // resourceUrl — or the resource's `/mcp` path would leak into these paths.
         baseUrl: new URL(oauthConfig.publicUrl),
-        // resourceServerUrl carries the `/mcp` path → SDK serves the path-aware PRM at
-        // /.well-known/oauth-protected-resource/mcp with resource="…/mcp".
+        // Still passed so the SDK generates its AS-metadata document; its own PRM mount is
+        // shadowed by the explicit routes above.
         resourceServerUrl: new URL(oauthConfig.resourceUrl),
       }),
     );

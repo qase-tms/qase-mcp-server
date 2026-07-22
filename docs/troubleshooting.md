@@ -133,6 +133,6 @@ To find your certificate:
 
 ## Still stuck?
 
-- **Documentation**: https://help.qase.io
+- **Documentation**: https://docs.qase.io/en/articles/14984302-qase-mcp-server
 - **Email**: support@qase.io
 - **GitHub Issues**: https://github.com/qase-tms/qase-mcp-server/issues

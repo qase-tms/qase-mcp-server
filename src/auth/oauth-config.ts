@@ -15,7 +15,21 @@ export interface OAuthConfig {
    */
   audience: string[];
   jwtAlgorithms: string[];
+  /**
+   * The RFC 9728 resource identifier for the protected `/mcp` endpoint, e.g.
+   * `https://mcp.qase.io/mcp`. Modern clients (VS Code) use the FULL endpoint
+   * URL as the resource identifier and do path-aware metadata discovery, so
+   * this carries the `/mcp` path. Drives the path-aware protected-resource
+   * metadata document + the WWW-Authenticate challenge path.
+   */
   resourceUrl: string;
+  /**
+   * The public ORIGIN the server is reached at, e.g. `https://mcp.qase.io`
+   * (no path). This is the OAuth proxy base — `/authorize`, `/token`,
+   * `/register` and the AS metadata are mounted here. Kept decoupled from
+   * `resourceUrl` so the `/mcp` path on the resource identifier never leaks
+   * into the proxy endpoint paths.
+   */
   publicUrl: string;
 }
 
@@ -25,7 +39,7 @@ export interface OAuthConfig {
  */
 export function getOAuthConfig(): OAuthConfig {
   const env = process.env;
-  const resourceUrl = env.QASE_OAUTH_RESOURCE_URL ?? 'https://mcp.qase.io';
+  const resourceUrl = env.QASE_OAUTH_RESOURCE_URL ?? 'https://mcp.qase.io/mcp';
   return {
     enabled: env.QASE_OAUTH_ENABLED !== 'false',
     authorizationUrl: env.QASE_OAUTH_AUTHORIZATION_URL ?? 'https://auth.qase.io/oauth/authorize',
@@ -34,7 +48,11 @@ export function getOAuthConfig(): OAuthConfig {
     revocationUrl: env.QASE_OAUTH_REVOCATION_URL ?? '',
     jwksUrl: env.QASE_OAUTH_JWKS_URL ?? 'https://auth.qase.io/oauth/jwks.json',
     issuer: env.QASE_OAUTH_ISSUER ?? 'https://auth.qase.io',
-    audience: (env.QASE_OAUTH_AUDIENCE ?? 'https://mcp.qase.io')
+    // The AS canonicalizes the token audience to the origin WITH a trailing
+    // slash (`https://mcp.qase.io/`), regardless of which resource variant the
+    // client sent, so that value MUST be accepted. The `/mcp` form is kept for
+    // defense in depth. Override with comma-separated QASE_OAUTH_AUDIENCE.
+    audience: (env.QASE_OAUTH_AUDIENCE ?? 'https://mcp.qase.io/,https://mcp.qase.io/mcp')
       .split(',')
       .map((a) => a.trim())
       .filter(Boolean),
@@ -43,6 +61,8 @@ export function getOAuthConfig(): OAuthConfig {
       .map((a) => a.trim())
       .filter(Boolean),
     resourceUrl,
-    publicUrl: env.QASE_OAUTH_PUBLIC_URL ?? resourceUrl,
+    // Decoupled from resourceUrl: default to its ORIGIN so the proxy base never
+    // inherits the `/mcp` path. Override independently with QASE_OAUTH_PUBLIC_URL.
+    publicUrl: env.QASE_OAUTH_PUBLIC_URL ?? new URL(resourceUrl).origin,
   };
 }

@@ -22,18 +22,27 @@ describe('getOAuthConfig', () => {
     expect(c.revocationUrl).toBe('');
     expect(c.jwksUrl).toBe('https://auth.qase.io/oauth/jwks.json');
     expect(c.issuer).toBe('https://auth.qase.io');
-    expect(c.audience).toEqual(['https://mcp.qase.io']);
+    // The AS canonicalizes the token audience to the origin with a trailing slash.
+    expect(c.audience).toEqual(['https://mcp.qase.io/', 'https://mcp.qase.io/mcp']);
     expect(c.jwtAlgorithms).toEqual(['RS256']);
-    expect(c.resourceUrl).toBe('https://mcp.qase.io');
+    // resourceUrl is the RFC 9728 identifier for the /mcp endpoint (path-aware).
+    expect(c.resourceUrl).toBe('https://mcp.qase.io/mcp');
+    // publicUrl is the origin, decoupled from resourceUrl (no /mcp path).
     expect(c.publicUrl).toBe('https://mcp.qase.io');
   });
 
-  it('publicUrl defaults to resourceUrl and can be overridden independently', () => {
+  it('publicUrl defaults to the ORIGIN of resourceUrl (decoupled, no path leak)', () => {
+    process.env.QASE_OAUTH_RESOURCE_URL = 'https://mcp.example.io/mcp';
+    const c = getOAuthConfig();
+    expect(c.resourceUrl).toBe('https://mcp.example.io/mcp');
+    expect(c.publicUrl).toBe('https://mcp.example.io'); // origin only, /mcp dropped
+  });
+
+  it('publicUrl can be overridden independently of resourceUrl', () => {
     process.env.QASE_OAUTH_PUBLIC_URL = 'http://localhost:3000';
     const c = getOAuthConfig();
     expect(c.publicUrl).toBe('http://localhost:3000');
-    expect(c.resourceUrl).toBe('https://mcp.qase.io'); // resource identity unchanged
-    expect(c.audience).toEqual(['https://mcp.qase.io']);
+    expect(c.resourceUrl).toBe('https://mcp.qase.io/mcp'); // resource identity unchanged
   });
 
   it('is disabled when QASE_OAUTH_ENABLED is "false"', () => {

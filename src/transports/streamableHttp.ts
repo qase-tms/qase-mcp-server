@@ -89,11 +89,37 @@ export function setupStreamableHttpTransport(
       authorizeRedirectUriStorage.run(redirectUri, () => next());
     });
 
+    // RFC 9728 protected-resource metadata is served at TWO paths for client compat:
+    //
+    //  - Path-aware `/.well-known/oauth-protected-resource/mcp` with
+    //    resource="https://mcp.qase.io/mcp" — mounted by the SDK because
+    //    resourceServerUrl carries the `/mcp` path. Modern clients (VS Code) use the
+    //    full endpoint URL as the resource identifier and discover here first.
+    //  - Root `/.well-known/oauth-protected-resource` with resource=origin (the SDK
+    //    only mounts the path-aware document, so we add the root one ourselves).
+    //    Older clients (Claude, Cursor, Codex) discover at the root with the origin as
+    //    the resource; kept for backward compatibility.
+    //
+    // The AS accepts every resource variant and canonicalizes the token audience, so a
+    // token obtained via either document validates the same way.
+    const rootResourceMetadata = {
+      resource: new URL(oauthConfig.publicUrl).href,
+      authorization_servers: [new URL(oauthConfig.issuer).href],
+    };
+    app.get('/.well-known/oauth-protected-resource', (_req, res) => {
+      res.json(rootResourceMetadata);
+    });
+
     app.use(
       mcpAuthRouter({
         provider,
         issuerUrl: new URL(oauthConfig.issuer),
+        // baseUrl = the public ORIGIN: the OAuth proxy endpoints (/authorize, /token,
+        // /register) and AS metadata mount here. MUST stay the origin — decoupled from
+        // resourceUrl — or the resource's `/mcp` path would leak into these paths.
         baseUrl: new URL(oauthConfig.publicUrl),
+        // resourceServerUrl carries the `/mcp` path → SDK serves the path-aware PRM at
+        // /.well-known/oauth-protected-resource/mcp with resource="…/mcp".
         resourceServerUrl: new URL(oauthConfig.resourceUrl),
       }),
     );

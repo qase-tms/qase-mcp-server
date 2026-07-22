@@ -41,21 +41,28 @@ beforeAll(async () => {
 });
 
 describe('streamable-http OAuth wiring', () => {
-  it('serves RFC 9728 protected-resource metadata', async () => {
+  it('serves RFC 9728 protected-resource metadata at the root (backward compat)', async () => {
     const res = await request(app).get('/.well-known/oauth-protected-resource');
     expect(res.status).toBe(200);
     expect(res.body.resource.replace(/\/$/, '')).toBe('https://mcp.qase.io');
     expect(Array.isArray(res.body.authorization_servers)).toBe(true);
   });
 
-  it('rejects /mcp without a token (401 + WWW-Authenticate)', async () => {
+  it('serves path-aware protected-resource metadata for the /mcp endpoint (VS Code)', async () => {
+    const res = await request(app).get('/.well-known/oauth-protected-resource/mcp');
+    expect(res.status).toBe(200);
+    expect(res.body.resource).toBe('https://mcp.qase.io/mcp');
+    expect(Array.isArray(res.body.authorization_servers)).toBe(true);
+  });
+
+  it('rejects /mcp without a token (401 + path-aware WWW-Authenticate)', async () => {
     const res = await request(app)
       .post('/mcp')
       .set('Accept', 'application/json, text/event-stream')
       .send({ jsonrpc: '2.0', id: 1, method: 'initialize', params: {} });
     expect(res.status).toBe(401);
     expect(res.headers['www-authenticate']).toContain(
-      'resource_metadata="https://mcp.qase.io/.well-known/oauth-protected-resource"',
+      'resource_metadata="https://mcp.qase.io/.well-known/oauth-protected-resource/mcp"',
     );
   });
 

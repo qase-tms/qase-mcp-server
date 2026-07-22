@@ -69,7 +69,22 @@ describe('createMcpGuard', () => {
     expect(res.headers['www-authenticate']).toContain(`resource_metadata="${EXPECTED_RESOURCE}"`);
   });
 
-  it('uses publicUrl (not resourceUrl) for the WWW-Authenticate metadata URL', async () => {
+  it('emits a path-aware metadata URL when resourceUrl carries a path (RFC 9728)', async () => {
+    const cfg = {
+      resourceUrl: 'https://mcp.qase.io/mcp',
+      publicUrl: 'https://mcp.qase.io',
+    } as OAuthConfig;
+    const app = express();
+    app.use(express.json());
+    app.post('/mcp', createMcpGuard(acceptAll, cfg), (_req, res) => res.status(200).json({ ok: true }));
+    const res = await request(app).post('/mcp').send({});
+    expect(res.status).toBe(401);
+    expect(res.headers['www-authenticate']).toContain(
+      'resource_metadata="https://mcp.qase.io/.well-known/oauth-protected-resource/mcp"',
+    );
+  });
+
+  it('uses publicUrl origin (not resourceUrl) for the WWW-Authenticate metadata URL', async () => {
     const cfg = {
       resourceUrl: 'https://mcp.qase.io',
       publicUrl: 'http://localhost:3000',

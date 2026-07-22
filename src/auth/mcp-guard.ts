@@ -15,7 +15,15 @@ import type { OAuthConfig } from './oauth-config.js';
  * the Authorization header and stores it in requestTokenStorage.
  */
 export function createMcpGuard(verifier: JwksVerifier, config: OAuthConfig): RequestHandler {
-  const resourceMetadataUrl = `${config.publicUrl.replace(/\/$/, '')}/.well-known/oauth-protected-resource`;
+  // RFC 9728 path-aware discovery: the metadata URL must carry the resource's
+  // path so clients that use the full endpoint URL as the resource identifier
+  // (e.g. VS Code) resolve the matching document. Origin comes from publicUrl
+  // (the reachable server), the path segment from resourceUrl (`/mcp`).
+  const origin = config.publicUrl.replace(/\/$/, '');
+  const resourcePath = new URL(config.resourceUrl).pathname;
+  const resourceMetadataUrl = `${origin}/.well-known/oauth-protected-resource${
+    resourcePath === '/' ? '' : resourcePath
+  }`;
   const challenge = `Bearer resource_metadata="${resourceMetadataUrl}"`;
 
   const unauthorized = (res: Response, description: string): void => {

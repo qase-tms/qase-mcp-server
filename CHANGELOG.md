@@ -30,6 +30,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Security: cross-tenant cache data leak eliminated.** v1 cached responses globally; v2 scopes every cache key to the authenticated tenant.
 
+## [1.1.6]
+
+### Added
+
+- Support for nested substeps in `create_case`, `update_case`, and `bulk_create_cases` tools ([#42](https://github.com/qase-tms/qase-mcp-server/issues/42))
+
 ## [1.1.5]
 
 ### Fixed

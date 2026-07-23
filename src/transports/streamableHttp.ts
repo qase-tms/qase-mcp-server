@@ -1,8 +1,16 @@
 import express, { Express } from 'express';
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
+import { mcpAuthRouter } from '@modelcontextprotocol/sdk/server/auth/router.js';
 import { randomUUID } from 'crypto';
 import { requestTokenStorage } from '../utils/auth-context.js';
+import { getMetrics } from '../cache/index.js';
+import { getOAuthConfig, type OAuthConfig } from '../auth/oauth-config.js';
+import { createJwksVerifier, type JwksVerifier } from '../auth/jwks-verifier.js';
+import { createProxyProvider } from '../auth/proxy-provider.js';
+import { createMcpGuard } from '../auth/mcp-guard.js';
+import { authorizeRedirectUriStorage } from '../auth/client-context.js';
+import type { RequestHandler } from 'express';
 
 export interface StreamableHttpConfig {
   port: number;
@@ -20,14 +28,39 @@ function isInitializeRequest(body: unknown): boolean {
 export function setupStreamableHttpTransport(
   createServer: () => Server,
   config: StreamableHttpConfig,
+  oauthDeps?: { config: OAuthConfig; verifier: JwksVerifier },
 ): Express {
   const app = express();
+
+  // Behind a reverse proxy (k8s ingress, load balancer, ngrok) the client's
+  // X-Forwarded-For header is set. The SDK's OAuth router uses express-rate-limit,
+  // which throws on rate-limited endpoints (/register, /authorize, /token) unless
+  // Express `trust proxy` is configured — otherwise those endpoints return 500.
+  // Default to trusting 1 proxy hop; override with TRUST_PROXY (a hop count, or
+  // 'false' to disable when running with no proxy in front).
+  const trustProxyEnv = process.env.TRUST_PROXY;
+  app.set(
+    'trust proxy',
+    trustProxyEnv === undefined
+      ? 1
+      : /^\d+$/.test(trustProxyEnv)
+        ? Number(trustProxyEnv)
+        : trustProxyEnv === 'false'
+          ? false
+          : trustProxyEnv === 'true'
+            ? true
+            : trustProxyEnv,
+  );
 
   // CORS middleware for inspector
   app.use((req, res, next) => {
     res.header('Access-Control-Allow-Origin', process.env.CORS_ORIGIN || '*');
     res.header('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
     res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, mcp-session-id');
+    // Expose auth challenge + session id so browser-based MCP clients (Inspector,
+    // Claude.ai web) can read them from cross-origin responses. Without this the
+    // 401 WWW-Authenticate challenge is invisible to client JS and OAuth never starts.
+    res.header('Access-Control-Expose-Headers', 'WWW-Authenticate, mcp-session-id');
 
     if (req.method === 'OPTIONS') {
       res.sendStatus(200);
@@ -41,11 +74,87 @@ export function setupStreamableHttpTransport(
 
   app.use(express.json());
 
+  // OAuth: mount proxy auth router + protected-resource metadata, and guard /mcp.
+  const oauthConfig = oauthDeps?.config ?? getOAuthConfig();
+  let mcpGuard: RequestHandler | null = null;
+
+  if (oauthConfig.enabled) {
+    const verifier = oauthDeps?.verifier ?? createJwksVerifier(oauthConfig);
+    const provider = createProxyProvider(oauthConfig, verifier);
+
+    // Seed per-request redirect_uri so the proxy's getClient can echo it during /authorize.
+    app.use((req, _res, next) => {
+      const redirectUri =
+        typeof req.query.redirect_uri === 'string' ? req.query.redirect_uri : undefined;
+      authorizeRedirectUriStorage.run(redirectUri, () => next());
+    });
+
+    // RFC 9728 protected-resource metadata — served at TWO paths by OUR OWN handlers:
+    //
+    //  - `/.well-known/oauth-protected-resource/mcp` (resource="https://mcp.qase.io/mcp")
+    //    for clients that use the full endpoint URL as the resource identifier (VS Code).
+    //  - `/.well-known/oauth-protected-resource` (root, resource=origin) for clients that
+    //    discover at the root (Claude, Cursor, Codex). Backward compatible.
+    //
+    // Why our own handlers instead of the SDK's mcpAuthMetadataRouter: the SDK derives
+    // authorization_servers from `new URL(issuer).href`, which appends a trailing slash
+    // ("https://auth.qase.io/"). The AS's own metadata advertises the issuer WITHOUT the
+    // slash ("https://auth.qase.io"), and RFC 8414 §3.3 requires the issuer a client used
+    // to discover the AS to match the metadata's `issuer` EXACTLY. That slash mismatch
+    // makes strict clients (VS Code) reject the AS metadata and refuse automatic client
+    // registration (DCR). So authorization_servers must be exactly oauthConfig.issuer,
+    // un-normalized. These routes are registered BEFORE mcpAuthRouter so they take
+    // precedence over the SDK's own (slash-normalized) PRM mount; the SDK still serves the
+    // AS metadata document + the proxy authorize/token/register endpoints.
+    const authorizationServers = [oauthConfig.issuer];
+    const rootResourceMetadata = {
+      resource: new URL(oauthConfig.publicUrl).href,
+      authorization_servers: authorizationServers,
+    };
+    const mcpResourceMetadata = {
+      resource: new URL(oauthConfig.resourceUrl).href,
+      authorization_servers: authorizationServers,
+    };
+    app.get('/.well-known/oauth-protected-resource', (_req, res) => {
+      res.json(rootResourceMetadata);
+    });
+    app.get('/.well-known/oauth-protected-resource/mcp', (_req, res) => {
+      res.json(mcpResourceMetadata);
+    });
+
+    app.use(
+      mcpAuthRouter({
+        provider,
+        issuerUrl: new URL(oauthConfig.issuer),
+        // baseUrl = the public ORIGIN: the OAuth proxy endpoints (/authorize, /token,
+        // /register) and AS metadata mount here. MUST stay the origin — decoupled from
+        // resourceUrl — or the resource's `/mcp` path would leak into these paths.
+        baseUrl: new URL(oauthConfig.publicUrl),
+        // Still passed so the SDK generates its AS-metadata document; its own PRM mount is
+        // shadowed by the explicit routes above.
+        resourceServerUrl: new URL(oauthConfig.resourceUrl),
+      }),
+    );
+
+    mcpGuard = createMcpGuard(verifier, oauthConfig);
+    console.error('[StreamableHTTP] OAuth proxy enabled');
+  }
+
   const endpoint = config.endpoint || '/mcp';
   const host = config.host || '0.0.0.0';
+  const guards: RequestHandler[] = mcpGuard ? [mcpGuard] : [];
 
-  // Session management - store transport and last-seen timestamp per session
-  const SESSION_TTL_MS = 30 * 60 * 1000; // 30 minutes
+  // Session management - store transport and last-seen timestamp per session.
+  // Sessions are in-memory per pod; one idle longer than this window is evicted
+  // (the client transparently re-initializes on the resulting 404). Default 24h so
+  // intermittently-used hosted connectors aren't dropped on idle; tune via
+  // QASE_MCP_SESSION_TTL_MINUTES. Note: longer TTL keeps more sessions in memory.
+  const ttlMinutesRaw = process.env.QASE_MCP_SESSION_TTL_MINUTES;
+  const ttlMinutes =
+    ttlMinutesRaw && /^\d+$/.test(ttlMinutesRaw) && Number(ttlMinutesRaw) > 0
+      ? Number(ttlMinutesRaw)
+      : 1440; // 24 hours
+  const SESSION_TTL_MS = ttlMinutes * 60 * 1000;
   const sessions = new Map<string, StreamableHTTPServerTransport>();
   const sessionLastSeen = new Map<string, number>();
 
@@ -74,14 +183,23 @@ export function setupStreamableHttpTransport(
     res.json({ status: 'ok', transport: 'streamable-http' });
   });
 
+  // Prometheus metrics endpoint
+  app.get('/metrics', (_req, res) => {
+    res.set('Content-Type', 'text/plain; version=0.0.4');
+    res.send(getMetrics().renderPrometheus());
+  });
+
   // MCP endpoint - DELETE for session cleanup
-  app.delete(endpoint, async (req, res): Promise<void> => {
+  app.delete(endpoint, ...guards, async (req, res): Promise<void> => {
     const sessionId = req.headers['mcp-session-id'] as string | undefined;
 
-    if (!sessionId || !sessions.has(sessionId)) {
-      res.status(400).json({
-        error: 'Invalid or missing session ID',
-      });
+    if (!sessionId) {
+      res.status(400).json({ error: 'Missing mcp-session-id header' });
+      return;
+    }
+    if (!sessions.has(sessionId)) {
+      // Unknown session → 404 so the client re-initializes (see POST handler).
+      res.status(404).json({ error: 'Session not found. Reinitialize the session.' });
       return;
     }
 
@@ -104,13 +222,16 @@ export function setupStreamableHttpTransport(
   });
 
   // MCP endpoint - GET for SSE streams (if needed)
-  app.get(endpoint, async (req, res): Promise<void> => {
+  app.get(endpoint, ...guards, async (req, res): Promise<void> => {
     const sessionId = req.headers['mcp-session-id'] as string | undefined;
 
-    if (!sessionId || !sessions.has(sessionId)) {
-      res.status(400).json({
-        error: 'Invalid or missing session ID',
-      });
+    if (!sessionId) {
+      res.status(400).json({ error: 'Missing mcp-session-id header' });
+      return;
+    }
+    if (!sessions.has(sessionId)) {
+      // Unknown session → 404 so the client re-initializes (see POST handler).
+      res.status(404).json({ error: 'Session not found. Reinitialize the session.' });
       return;
     }
 
@@ -129,7 +250,7 @@ export function setupStreamableHttpTransport(
   });
 
   // MCP endpoint - POST for messages
-  app.post(endpoint, async (req, res): Promise<void> => {
+  app.post(endpoint, ...guards, async (req, res): Promise<void> => {
     console.error(`[StreamableHTTP] POST ${endpoint} received`, {
       sessionId: req.headers['mcp-session-id'],
       body: req.body,
@@ -158,10 +279,17 @@ export function setupStreamableHttpTransport(
       await createServer().connect(transport);
 
       console.error(`[StreamableHTTP] New session created: ${newSessionId}`);
+    } else if (sessionId) {
+      // Session ID provided but unknown (expired, evicted, server restarted, or the
+      // request landed on a different instance). Per the MCP streamable-http spec,
+      // respond 404 so the client transparently starts a new session (re-initialize)
+      // instead of getting stuck on a 400. Auth (JWT) is client-side, so no re-login.
+      res.status(404).json({ error: 'Session not found. Reinitialize the session.' });
+      return;
     } else {
-      // Invalid request - has session ID but session not found
+      // No session ID and not an initialize request.
       res.status(400).json({
-        error: 'Invalid request: session not found or not an initialize request',
+        error: 'Bad Request: no session ID provided and not an initialize request',
       });
       return;
     }

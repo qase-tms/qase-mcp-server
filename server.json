@@ -8,12 +8,12 @@
     "url": "https://github.com/qase-tms/qase-mcp-server",
     "source": "github"
   },
-  "version": "1.1.8",
+  "version": "2.0.0",
   "packages": [
     {
       "registryType": "npm",
       "identifier": "@qase/mcp-server",
-      "version": "1.1.8",
+      "version": "2.0.0",
       "transport": {
         "type": "stdio"
       },
@@ -31,6 +31,12 @@
           "default": "api.qase.io"
         }
       ]
+    }
+  ],
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://mcp.qase.io/mcp"
     }
   ],
   "_meta": {

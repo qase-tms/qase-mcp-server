@@ -29,12 +29,23 @@ import {
   UsersApi,
   SharedParametersApi,
 } from 'qase-api-client';
-import axios, { AxiosRequestConfig } from 'axios';
+import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
+import { createKeepAliveAgent, attachRetry, attachInflightDedupe } from '../http/index.js';
+import { isJwt } from '../auth/token-type.js';
 import FormData from 'form-data';
-import { requestTokenStorage } from '../utils/auth-context.js';
+import { requestTokenStorage, getEffectiveToken } from '../utils/auth-context.js';
+import { getServer } from '../utils/server-context.js';
 import { VERSION } from '../version.js';
 
-const USER_AGENT = `qase-mcp/${VERSION}`;
+/**
+ * Build the User-Agent / source string sent to the Qase API. Qase uses this to
+ * attribute the request source. Defaults to `qase-mcp`; the hosted deployment
+ * sets `QASE_MCP_SOURCE=qase-mcp-hosted` to distinguish it from the self-run CLI.
+ */
+export function getUserAgent(): string {
+  const source = process.env.QASE_MCP_SOURCE?.trim() || 'qase-mcp';
+  return `${source}/${VERSION}`;
+}
 
 /**
  * Configuration for the Qase API client
@@ -69,54 +80,93 @@ class QaseApiClient {
 
   private readonly token: string;
   private readonly host: string;
+  private readonly axiosInstance: AxiosInstance;
 
-  constructor(config: ApiClientConfig) {
+  constructor(config: ApiClientConfig, axiosInstance?: AxiosInstance) {
     this.token = config.token;
     this.host = config.host;
 
-    const cfg = new Configuration({
-      apiKey: config.token,
-      basePath: `${config.host}/v1`,
-      formDataCtor: FormData as any,
-      baseOptions: {
-        headers: { 'User-Agent': USER_AGENT },
-      },
+    const jwtToken = isJwt(config.token);
+
+    const agent = createKeepAliveAgent({ maxSockets: 20 });
+    this.axiosInstance =
+      axiosInstance ??
+      axios.create({ httpsAgent: agent, headers: { 'User-Agent': getUserAgent() } });
+
+    // For JWTs, forward verbatim as Authorization: Bearer on every request.
+    // Opaque tokens keep using the Qase `Token` header via Configuration.apiKey.
+    if (jwtToken) {
+      this.axiosInstance.interceptors.request.use((req) => {
+        req.headers = req.headers ?? {};
+        req.headers['Authorization'] = `Bearer ${config.token}`;
+        return req;
+      });
+    }
+
+    // Tag each Qase API request with the MCP client identity (which AI host/model
+    // is using the connector) for backend metrics. Sourced per-request from the
+    // MCP `initialize` clientInfo, read via serverStorage during tool execution.
+    this.axiosInstance.interceptors.request.use((req) => {
+      const client = getServer()?.getClientVersion();
+      if (client?.name) {
+        req.headers = req.headers ?? {};
+        req.headers['X-MCP-Client-Name'] = client.name;
+        if (client.version) {
+          req.headers['X-MCP-Client-Version'] = client.version;
+        }
+      }
+      return req;
     });
 
-    this.projects = new ProjectsApi(cfg);
-    this.cases = new CasesApi(cfg);
-    this.suites = new SuitesApi(cfg);
-    this.runs = new RunsApi(cfg);
-    this.results = new ResultsApi(cfg);
-    this.plans = new PlansApi(cfg);
-    this.milestones = new MilestonesApi(cfg);
-    this.defects = new DefectsApi(cfg);
-    this.environment = new EnvironmentsApi(cfg);
-    this.attachments = new AttachmentsApi(cfg);
-    this.sharedSteps = new SharedStepsApi(cfg);
-    this.authors = new AuthorsApi(cfg);
-    this.customFields = new CustomFieldsApi(cfg);
-    this.search = new SearchApi(cfg);
-    this.configurations = new ConfigurationsApi(cfg);
-    this.systemFields = new SystemFieldsApi(cfg);
-    this.users = new UsersApi(cfg);
-    this.sharedParameters = new SharedParametersApi(cfg);
+    attachRetry(this.axiosInstance);
+    attachInflightDedupe(this.axiosInstance);
+
+    const basePath = `${config.host}/v1`;
+    const cfg = new Configuration({
+      ...(jwtToken ? {} : { apiKey: config.token }),
+      basePath,
+      formDataCtor: FormData as any,
+    });
+
+    this.projects = new ProjectsApi(cfg, basePath, this.axiosInstance);
+    this.cases = new CasesApi(cfg, basePath, this.axiosInstance);
+    this.suites = new SuitesApi(cfg, basePath, this.axiosInstance);
+    this.runs = new RunsApi(cfg, basePath, this.axiosInstance);
+    this.results = new ResultsApi(cfg, basePath, this.axiosInstance);
+    this.plans = new PlansApi(cfg, basePath, this.axiosInstance);
+    this.milestones = new MilestonesApi(cfg, basePath, this.axiosInstance);
+    this.defects = new DefectsApi(cfg, basePath, this.axiosInstance);
+    this.environment = new EnvironmentsApi(cfg, basePath, this.axiosInstance);
+    this.attachments = new AttachmentsApi(cfg, basePath, this.axiosInstance);
+    this.sharedSteps = new SharedStepsApi(cfg, basePath, this.axiosInstance);
+    this.authors = new AuthorsApi(cfg, basePath, this.axiosInstance);
+    this.customFields = new CustomFieldsApi(cfg, basePath, this.axiosInstance);
+    this.search = new SearchApi(cfg, basePath, this.axiosInstance);
+    this.configurations = new ConfigurationsApi(cfg, basePath, this.axiosInstance);
+    this.systemFields = new SystemFieldsApi(cfg, basePath, this.axiosInstance);
+    this.users = new UsersApi(cfg, basePath, this.axiosInstance);
+    this.sharedParameters = new SharedParametersApi(cfg, basePath, this.axiosInstance);
   }
 
   /**
    * Make a direct API call for endpoints not fully covered by the SDK.
    */
   async request<T = any>(path: string, options: AxiosRequestConfig = {}): Promise<T> {
-    const response = await axios({
+    const authHeaders = isJwt(this.token)
+      ? { Authorization: `Bearer ${this.token}` }
+      : { Token: this.token };
+
+    const { headers: optionHeaders, ...restOptions } = options;
+
+    const response = await this.axiosInstance.request({
       method: options.method || 'GET',
       url: `${this.host}${path}`,
       headers: {
-        Token: this.token,
+        ...authHeaders,
         'Content-Type': 'application/json',
-        'User-Agent': USER_AGENT,
-        ...options.headers,
+        ...optionHeaders,
       },
-      ...options,
+      ...restOptions,
     });
 
     return response.data;
@@ -137,29 +187,6 @@ function getHost(): string {
   }
 
   return `https://${domain}`;
-}
-
-/**
- * Get the effective API token for the current request.
- *
- * Priority:
- *   1. Per-request Bearer token from Authorization header (AsyncLocalStorage)
- *   2. Shared QASE_API_TOKEN environment variable
- */
-function getEffectiveToken(): string {
-  const requestToken = requestTokenStorage.getStore();
-  if (requestToken) {
-    return requestToken;
-  }
-
-  const envToken = process.env.QASE_API_TOKEN;
-  if (!envToken) {
-    throw new Error(
-      'QASE_API_TOKEN environment variable is required. ' +
-        'Get your token from: https://app.qase.io/user/api/token',
-    );
-  }
-  return envToken;
 }
 
 /**
@@ -207,4 +234,4 @@ export function resetClientInstance(): void {
   clientInstance = null;
 }
 
-export type { QaseApiClient };
+export { QaseApiClient };

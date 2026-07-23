@@ -1,6 +1,6 @@
 # Connect to the hosted Qase MCP
 
-The quickest way to use Qase — no install and no API token. Connect to the Qase-hosted MCP server at `https://mcp.qase.io/mcp` and sign in with your Qase account. Any MCP client that supports remote servers (OAuth 2.1) works; the client handles the OAuth flow for you — Claude, Cursor, and Codex are shown below.
+The quickest way to use Qase — no install and no API token. Connect to the Qase-hosted MCP server at `https://mcp.qase.io/mcp` and sign in with your Qase account. Any MCP client that supports remote servers (OAuth 2.1) works; the client handles the OAuth flow for you — Claude, Cursor, Codex, and VS Code are shown below.
 
 > **Note:** The hosted Qase MCP is available on the **Enterprise** plan in Qase. On other plans you'll be denied access when connecting — [run the server yourself](self-run.md) with your own API token instead.
 
@@ -44,6 +44,23 @@ auth = "oauth"
 Then run `codex mcp login qase` and complete the Qase sign-in in your browser.
 
 > **Note:** Enter the URL exactly as shown — without surrounding quotes. A stray quote (or its encoded form, `%22`) in the server URL breaks OAuth; if a connection ever fails to authenticate, remove the server entry and re-add it, typing the URL by hand.
+
+## VS Code
+
+Add the hosted server to `.vscode/mcp.json` (workspace-scoped):
+
+```json
+{
+  "servers": {
+    "qase": {
+      "type": "http",
+      "url": "https://mcp.qase.io/mcp"
+    }
+  }
+}
+```
+
+Or run **MCP: Add Server** from the Command Palette (`⇧⌘P` / `Ctrl+Shift+P`), choose **HTTP**, and enter the URL. VS Code opens your browser to sign in to Qase; the tools appear once you've authorized.
 
 ## Other remote clients
 

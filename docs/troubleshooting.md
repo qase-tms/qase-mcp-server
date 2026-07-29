@@ -134,7 +134,7 @@ To find your certificate:
 
 **Solution**:
 1. Ensure you're using the latest version: `npm update -g @qase/mcp-server` (self-run) — the hosted connector always runs the latest version
-2. If upgrading from v1, tool names have changed — see [MIGRATION.md](../MIGRATION.md)
+2. If upgrading from v1, tool names have changed — see [docs/migration.md](migration.md)
 3. Restart your MCP client after updating
 
 ## Still stuck?

@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Breaking Changes
 
-- **All 83 v1 tool names have been removed.** The tool set has been consolidated from 83 tools to 29. See [MIGRATION.md](./MIGRATION.md) for a complete v1→v2 tool mapping table.
+- **All 83 v1 tool names have been removed.** The tool set has been consolidated from 83 tools to 29. See [docs/migration.md](docs/migration.md) for a complete v1→v2 tool mapping table.
 - Response format is now compact JSON with null values stripped (no indentation). This reduces token usage but changes the raw string format of responses.
 
 ### Added

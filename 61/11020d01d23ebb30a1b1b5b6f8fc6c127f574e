@@ -1,0 +1,21 @@
+docs/troubleshooting.md
+  s_f72e5ad760b495::t_b2189b5a9a921a 137
+CHANGELOG.md
+  s_f72e5ad760b495::t_47f3de295dcbd6 12
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "6111020d01d23ebb30a1b1b5b6f8fc6c127f574e",
+  "prompts": {},
+  "sessions": {
+    "s_f72e5ad760b495": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "3c202911-d387-47bf-aeed-fe3392e6db1d",
+        "model": "claude-opus-5"
+      },
+      "human_author": "Manju R <cskmnrpt@gmail.com>"
+    }
+  }
+}

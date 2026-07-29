@@ -76,7 +76,7 @@ Then point your MCP client's stdio config at the `@qase/mcp-server` binary. Full
 
 ## Upgrading from v1
 
-v2 consolidates 83 v1 tools into **29 task-oriented tools** (30 total, including a discovery tool). Tool names and response shapes have changed. See **[MIGRATION.md](MIGRATION.md)** for the complete tool mapping table, response format changes, and before/after examples.
+v2 consolidates 83 v1 tools into **29 task-oriented tools** (30 total, including a discovery tool). Tool names and response shapes have changed. See **[docs/migration.md](docs/migration.md)** for the complete tool mapping table, response format changes, and before/after examples.
 
 ## Tools
 
@@ -99,7 +99,7 @@ Full tool-by-tool reference with parameters and the discovery model: **[docs/too
 - **[docs/self-run.md](docs/self-run.md)** — install and run the server yourself (config, clients, transports)
 - **[docs/tools.md](docs/tools.md)** — full tool reference, groups, and the discovery model
 - **[docs/troubleshooting.md](docs/troubleshooting.md)** — auth, OAuth/connector, and SSL issues
-- **[MIGRATION.md](MIGRATION.md)** — v1 → v2 tool mapping and migration guide
+- **[docs/migration.md](docs/migration.md)** — v1 → v2 tool mapping and migration guide
 
 ## Contributing
 

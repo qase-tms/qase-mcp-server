@@ -1,13 +1,13 @@
 # Tool Reference
 
-The Qase MCP Server exposes **30 tools** across 6 groups: Read, QQL, Write, Composite, Escape hatch, and Meta.
+The Qase MCP Server exposes **31 tools** across 6 groups: Read, QQL, Write, Composite, Escape hatch, and Meta.
 
 ## Discovery model
 
 To keep context-token usage low, tools are split into two visibility tiers:
 
 - **`core`** — always listed to the MCP client, no activation needed (13 tools).
-- **`discoverable`** — hidden by default; the LLM finds and activates them on demand via `qase_discover_tools`, which searches tool names/descriptions and activates matches for the rest of the session (17 tools, mostly deletes and secondary write operations).
+- **`discoverable`** — hidden by default; the LLM finds and activates them on demand via `qase_discover_tools`, which searches tool names/descriptions and activates matches for the rest of the session (18 tools, mostly deletes and secondary write operations).
 
 If a tool you need isn't showing up in your client's tool list, call `qase_discover_tools` with a query (e.g. `"delete"`, `"milestone"`, `"attachment"`) to activate it first.
 
@@ -17,7 +17,7 @@ Every tool's schema uses "label or numeric ID" strings for Qase's configurable e
 
 | Tool | Description | Key params | Visibility |
 | --- | --- | --- | --- |
-| `qase_get` | Get any Qase entity by type and ID. Supports field projection via `fields`. `code` is required for project-scoped entities (case, suite, run, result, plan, defect, milestone, environment, shared_step, shared_parameter, configuration); optional for global entities (user, author, attachment, custom_field). | `entity` (enum: case, suite, run, result, plan, defect, milestone, environment, shared_step, shared_parameter, configuration, attachment, author, user, custom_field), `code` (optional), `id` (number or hash string), `fields` (optional string array — pass `["*"]` for all) | core |
+| `qase_get` | Get any Qase entity by type and ID. Supports field projection via `fields`. `code` is required for project-scoped entities (case, suite, run, result, plan, defect, milestone, environment, shared_step, shared_parameter, configuration); optional for global entities (user, author, attachment, custom_field). Cases and runs automatically request their external issue links (`external_issues` / `external_issue`); override with `include`. | `entity` (enum: case, suite, run, result, plan, defect, milestone, environment, shared_step, shared_parameter, configuration, attachment, author, user, custom_field), `code` (optional), `id` (number or hash string), `fields` (optional string array — pass `["*"]` for all), `include` (optional string) | core |
 | `qase_project_context` | Get full project context in one call: project details, suites tree, milestones, environments, custom fields, and users. Cached for 5 minutes. Recommended as the first call when starting work with a project. | `code` | core |
 
 ## QQL tools
@@ -30,7 +30,7 @@ Every tool's schema uses "label or numeric ID" strings for Qase's configurable e
 ## Write tools
 
 <details>
-<summary>Write tools (21)</summary>
+<summary>Write tools (22)</summary>
 
 | Tool | Description | Key params | Visibility |
 | --- | --- | --- | --- |
@@ -55,6 +55,7 @@ Every tool's schema uses "label or numeric ID" strings for Qase's configurable e
 | `qase_environment_delete` | Delete a test environment by project code and environment ID. | `code`, `id` | discoverable |
 | `qase_attachment_upload` | Upload a file attachment. Accepts the file as a base64 encoded string or an absolute path. Returns the attachment hash that can be referenced in test cases and results. | `code`, `file` (base64 string or absolute path), `filename` | discoverable |
 | `qase_attachment_delete` | Delete an attachment by its hash. | `hash` | discoverable |
+| `qase_external_issue_link` | Link or unlink test cases and test runs to issues in an external tracker (Jira Cloud or Jira Server). A case can be linked to several issues; a run can have only one link, and attaching a new issue replaces the previous one. Detaching a run clears its link. Read linked issues back with `qase_get`. | `code`, `entity` (enum: case, run), `action` (enum: attach, detach), `type` (enum: jira-cloud, jira-server), `links` (array: `id`, `issues` — issue keys such as `PROJ-1234`) | discoverable |
 
 </details>
 

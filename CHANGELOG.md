@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **`qase_external_issue_link`** — Link or unlink test cases and test runs to issues in an external tracker (Jira Cloud / Jira Server), wrapping `POST /v1/case/{code}/external-issue/attach`, `.../detach`, and `POST /v1/run/{code}/external-issue`. A case can hold several links; a run holds one, and detaching clears it. ([#64](https://github.com/qase-tms/qase-mcp-server/issues/64))
+- **`qase_get`** now requests external issue links for cases and runs by default (`include=external_issues` / `include=external_issue`), so a link created via `qase_external_issue_link` can be verified without leaving the MCP client. The new `include` parameter overrides the default; if a deployment rejects the value, the request is retried without it. ([#65](https://github.com/qase-tms/qase-mcp-server/issues/65))
+
 ## [2.0.0]
 
 ### Breaking Changes

@@ -47,12 +47,33 @@ const Schema = z.object({
     .describe(
       'Optional field projection — only return these top-level fields. Pass ["*"] for all fields.',
     ),
+  include: z
+    .string()
+    .optional()
+    .describe(
+      'Comma-separated list of related entities to include in the response. ' +
+        'Cases and runs already request their external issue links by default ' +
+        '("external_issues" / "external_issue"); pass this only to override that.',
+    ),
 });
 
-const FETCHERS: Record<string, (client: any, code: string, id: any) => Promise<any>> = {
-  case: (c, code, id) => c.cases.getCase(code, id),
+/**
+ * Related entities requested automatically so linked issues are visible without
+ * the caller knowing about the `include` query parameter. The Qase API omits
+ * these fields entirely unless they are asked for.
+ */
+const DEFAULT_INCLUDE: Record<string, string> = {
+  case: 'external_issues',
+  run: 'external_issue',
+};
+
+const FETCHERS: Record<
+  string,
+  (client: any, code: string, id: any, include?: string) => Promise<any>
+> = {
+  case: (c, code, id, include) => c.cases.getCase(code, id, include),
   suite: (c, code, id) => c.suites.getSuite(code, id),
-  run: (c, code, id) => c.runs.getRun(code, id),
+  run: (c, code, id, include) => c.runs.getRun(code, id, include),
   result: (c, code, id) => c.results.getResult(code, id),
   plan: (c, code, id) => c.plans.getPlan(code, id),
   defect: (c, code, id) => c.defects.getDefect(code, id),
@@ -68,7 +89,7 @@ const FETCHERS: Record<string, (client: any, code: string, id: any) => Promise<a
 };
 
 async function handler(args: z.infer<typeof Schema>) {
-  const { entity, code, id, fields: fieldList } = args;
+  const { entity, code, id, fields: fieldList, include } = args;
 
   if (ENTITIES_REQUIRING_CODE.has(entity) && !code) {
     throw createToolError(`Project code is required for entity type "${entity}"`, 'get operation');
@@ -78,7 +99,18 @@ async function handler(args: z.infer<typeof Schema>) {
   const fetcher = FETCHERS[entity];
   if (!fetcher) throw createToolError(`Unknown entity type: ${entity}`, 'get operation');
 
-  const result = await toResultAsync(fetcher(client, code || '', id));
+  const effectiveInclude = include ?? DEFAULT_INCLUDE[entity];
+  const isDefaultInclude = !include && effectiveInclude !== undefined;
+
+  let result = await toResultAsync(fetcher(client, code || '', id, effectiveInclude));
+
+  // Deployments that don't know the `include` value (older self-hosted
+  // instances) reject the request outright — retry without it rather than
+  // failing a plain get. An explicit `include` from the caller is never
+  // silently dropped.
+  if (result.isErr() && isDefaultInclude) {
+    result = await toResultAsync(fetcher(client, code || '', id, undefined));
+  }
 
   return result.match(
     (response) => {

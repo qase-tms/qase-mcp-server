@@ -1,0 +1,45 @@
+src/smoke.test.ts
+  s_32f27f1cd7f02c::t_77635e95630a5f 335
+  s_32f27f1cd7f02c::t_6acdba4764923c 389
+src/operations-v2/index.ts
+  s_32f27f1cd7f02c::t_d4024729ad4782 19
+docs/tools.md
+  s_32f27f1cd7f02c::t_0583762f242338 3,33
+  s_32f27f1cd7f02c::t_d73bd3d55c3430 58
+  s_32f27f1cd7f02c::t_9c5e5b3bacfd6a 10
+  s_32f27f1cd7f02c::t_cd548238c13e5f 20
+CHANGELOG.md
+  s_32f27f1cd7f02c::t_e6aa337e729adf 8-14
+src/operations-v2/write/external-issues.test.ts
+  s_32f27f1cd7f02c::t_db8023d4917b48 1-53,92-182,187-266
+  s_32f27f1cd7f02c::t_475723c777faf5 54-91
+  s_32f27f1cd7f02c::t_8171a36bcafed8 183-186
+src/operations-v2/write/external-issues.ts
+  s_32f27f1cd7f02c::t_8171a36bcafed8 29
+  s_32f27f1cd7f02c::t_72119faad0db0b 86-97
+  s_32f27f1cd7f02c::t_749ce23732c369 1-28,30-85,98-125
+src/operations-v2/read/get.test.ts
+  s_32f27f1cd7f02c::t_911908130eb33d 1-122
+src/operations-v2/read/get.ts
+  s_32f27f1cd7f02c::t_4b109dfa22c877 50-57,60-69,74,76
+  s_32f27f1cd7f02c::t_6e11305136b181 92,102-113
+  s_32f27f1cd7f02c::t_8171a36bcafed8 70-73
+README.md
+  s_32f27f1cd7f02c::t_ae0b45abd6f4ea 30,83,89
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "a913d725abb2bc7520faa7b41fe7d9460c912775",
+  "prompts": {},
+  "sessions": {
+    "s_32f27f1cd7f02c": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "0936f964-5683-4ee5-9978-0cc822fc17e9",
+        "model": "claude-opus-5"
+      },
+      "human_author": "Dmitrii Gridnev <dgridnev@qase.io>"
+    }
+  }
+}

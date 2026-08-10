@@ -41,7 +41,7 @@ All 83 v1 tools mapped to their v2 equivalents.
 | `create_case` | `qase_case_upsert` (omit `id`) | Pass all case fields; no `id` = create |
 | `update_case` | `qase_case_upsert` (include `id`) | Include `id` to update existing case |
 | `delete_case` | `qase_case_delete` | — |
-| `bulk_create_cases` | `qase_case_upsert` (call per case) | Call once per case without `id` |
+| `bulk_create_cases` | `qase_case_bulk_create` | Same shape: `cases` array, up to 100 per call |
 | `attach_external_issue` | `qase_api` | Use escape hatch: `POST /case/{code}/{id}/external-issues` |
 | `detach_external_issue` | `qase_api` | Use escape hatch: `DELETE /case/{code}/{id}/external-issues` |
 

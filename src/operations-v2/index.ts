@@ -7,6 +7,7 @@ import './qql/index.js';
 
 // Write tools
 import './write/cases.js';
+import './write/cases-bulk.js';
 import './write/runs.js';
 import './write/results.js';
 import './write/defects.js';

@@ -27,7 +27,7 @@ The Qase MCP Server lets AI assistants (Claude, Cursor, Codex, and any other MCP
 
 **Features:**
 
-- **30 task-oriented tools** (31 total, including `qase_discover_tools`) — consolidated from 83 v1 tools for lower token usage and better LLM accuracy
+- **31 task-oriented tools** (32 total, including `qase_discover_tools`) — consolidated from 83 v1 tools for lower token usage and better LLM accuracy
 - **Composite tools** — multi-step workflows in a single call: CI reporting, defect triage, regression run setup
 - **QQL support** — Qase Query Language for advanced searches across cases, runs, results, defects, and plans
 - **Project context bootstrap** — one call returns full project structure (suites, milestones, environments, users, custom fields)
@@ -80,13 +80,13 @@ v2 consolidates 83 v1 tools into **29 task-oriented tools** (30 total, including
 
 ## Tools
 
-31 tools across 6 groups (30 task-oriented tools plus `qase_discover_tools` for on-demand activation of secondary tools):
+32 tools across 6 groups (31 task-oriented tools plus `qase_discover_tools` for on-demand activation of secondary tools):
 
 | Group | Count | Description |
 | --- | --- | --- |
 | Read | 2 | Fetch any entity by type/ID, or bootstrap full project context in one call |
 | QQL | 2 | Search across cases, runs, results, defects, and plans with Qase Query Language |
-| Write | 22 | Create, update, and delete cases, runs, results, defects, suites, milestones, plans, shared steps, environments, and attachments; link cases and runs to Jira issues |
+| Write | 23 | Create, update, and delete cases (single or up to 100 at once), runs, results, defects, suites, milestones, plans, shared steps, environments, and attachments; link cases and runs to Jira issues |
 | Composite | 3 | Multi-step workflows in one call: CI reporting, defect triage, regression run setup |
 | Escape hatch | 1 | Direct REST API access for any endpoint not covered by the tools above |
 | Meta | 1 | `qase_discover_tools` — find and activate secondary tools on demand |

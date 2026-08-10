@@ -312,6 +312,7 @@ describe('Tool Smoke Tests', () => {
       'qql_search',
       'qql_help',
       'qase_case_upsert',
+      'qase_case_bulk_create',
       'qase_case_delete',
       'qase_run_upsert',
       'qase_run_complete',
@@ -369,6 +370,7 @@ describe('Tool Smoke Tests', () => {
   it('discoverable tools are NOT in getTools() by default', () => {
     const coreTools = toolRegistry.getTools().map((t) => t.name);
     const discoverableTools = [
+      'qase_case_bulk_create',
       'qase_case_delete',
       'qase_suite_upsert',
       'qase_suite_delete',

@@ -1,13 +1,13 @@
 # Tool Reference
 
-The Qase MCP Server exposes **31 tools** across 6 groups: Read, QQL, Write, Composite, Escape hatch, and Meta.
+The Qase MCP Server exposes **32 tools** across 6 groups: Read, QQL, Write, Composite, Escape hatch, and Meta.
 
 ## Discovery model
 
 To keep context-token usage low, tools are split into two visibility tiers:
 
 - **`core`** — always listed to the MCP client, no activation needed (13 tools).
-- **`discoverable`** — hidden by default; the LLM finds and activates them on demand via `qase_discover_tools`, which searches tool names/descriptions and activates matches for the rest of the session (18 tools, mostly deletes and secondary write operations).
+- **`discoverable`** — hidden by default; the LLM finds and activates them on demand via `qase_discover_tools`, which searches tool names/descriptions and activates matches for the rest of the session (19 tools, mostly deletes and secondary write operations).
 
 If a tool you need isn't showing up in your client's tool list, call `qase_discover_tools` with a query (e.g. `"delete"`, `"milestone"`, `"attachment"`) to activate it first.
 
@@ -30,11 +30,12 @@ Every tool's schema uses "label or numeric ID" strings for Qase's configurable e
 ## Write tools
 
 <details>
-<summary>Write tools (22)</summary>
+<summary>Write tools (23)</summary>
 
 | Tool | Description | Key params | Visibility |
 | --- | --- | --- | --- |
 | `qase_case_upsert` | Create or update a test case. If `id` is provided, updates the existing case; if omitted, creates a new one. Enum fields (priority, severity, type, etc.) accept both labels ("high", "blocker") and numeric IDs — the server normalizes automatically. | `code`, `id` (optional), `title` (1-255 chars), `description`, `preconditions`, `postconditions`, `severity`, `priority`, `type`, `layer`, `behavior`, `automation`, `status` (all label-or-ID strings), `is_flaky`, `suite_id`, `milestone_id`, `steps` (array, supports nesting), `steps_type` (enum: classic, gherkin), `tags`, `attachments`, `custom_field` | core |
+| `qase_case_bulk_create` | Create up to 100 test cases in a single request. Use instead of calling `qase_case_upsert` repeatedly when importing or generating several cases at once. Enum fields accept labels or numeric IDs. Creates only — use `qase_case_upsert` with an `id` to update. Returns the IDs of the created cases in submission order. | `code`, `cases` (array, 1-100 — same fields as `qase_case_upsert` without `id`) | discoverable |
 | `qase_case_delete` | Delete a test case by project code and case ID. | `code`, `id` | discoverable |
 | `qase_defect_upsert` | Create or update a defect. If `id` is provided, updates (including status changes and resolve). If omitted, creates a new defect. Set `status: "resolved"` to resolve an existing defect. | `code`, `id` (optional), `title` (1-255 chars), `actual_result`, `severity` (enum, see [below](#case-enum-values)), `status` (enum: open, in_progress, resolved, invalid), `tags`, `attachments`, `custom_field` | core |
 | `qase_defect_delete` | Delete a defect by project code and defect ID. | `code`, `id` | discoverable |

@@ -332,6 +332,7 @@ describe('Tool Smoke Tests', () => {
       'qase_environment_delete',
       'qase_attachment_upload',
       'qase_attachment_delete',
+      'qase_external_issue_link',
       'qase_api',
       'qase_ci_report',
       'qase_triage_defect',
@@ -385,6 +386,7 @@ describe('Tool Smoke Tests', () => {
       'qase_defect_delete',
       'qase_attachment_upload',
       'qase_attachment_delete',
+      'qase_external_issue_link',
     ];
     for (const name of discoverableTools) {
       expect(coreTools).not.toContain(name);

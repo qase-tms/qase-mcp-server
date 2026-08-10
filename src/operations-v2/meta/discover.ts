@@ -30,7 +30,10 @@ const Schema = z.object({
 });
 
 async function handler(args: z.infer<typeof Schema>) {
-  const { query, category, activate } = args;
+  const { query, category } = args;
+  // Handlers receive raw MCP arguments, so the schema default never runs —
+  // apply it here or discovery silently stops activating anything.
+  const activate = args.activate ?? true;
 
   let matches = query ? toolRegistry.searchTools(query) : toolRegistry.getAllTools();
 

@@ -1,0 +1,41 @@
+src/operations-v2/write/case-fields.ts
+  s_32f27f1cd7f02c::t_905925f4803ce8 63
+  s_32f27f1cd7f02c::t_98c59ba8614f37 1-62,64-89
+src/operations-v2/index.ts
+  s_32f27f1cd7f02c::t_8a329ae530173e 10
+src/operations-v2/write/cases.ts
+  s_32f27f1cd7f02c::t_c0f4b47d495d68 7
+src/smoke.test.ts
+  s_32f27f1cd7f02c::t_fdc9ff0b5323f1 315
+  s_32f27f1cd7f02c::t_92e7acbab31084 373
+CHANGELOG.md
+  s_32f27f1cd7f02c::t_d14eca20b84720 15-16
+README.md
+  s_32f27f1cd7f02c::t_d14eca20b84720 30,83,89
+docs/migration.md
+  s_32f27f1cd7f02c::t_d14eca20b84720 44
+src/operations-v2/write/cases-bulk.test.ts
+  s_32f27f1cd7f02c::t_115fa1f09cc553 1-121,126-184
+  s_32f27f1cd7f02c::t_905925f4803ce8 122-125
+docs/tools.md
+  s_32f27f1cd7f02c::t_d14eca20b84720 3,10,33,38
+src/operations-v2/write/cases-bulk.ts
+  s_32f27f1cd7f02c::t_7843d616b8196f 41-42
+  s_32f27f1cd7f02c::t_3e7eee42c33e05 1-40,43-67
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "95d65fc6bc2b39fb0c0b66d87ef0321ba238e811",
+  "prompts": {},
+  "sessions": {
+    "s_32f27f1cd7f02c": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "0936f964-5683-4ee5-9978-0cc822fc17e9",
+        "model": "claude-opus-5"
+      },
+      "human_author": "Dmitrii Gridnev <dgridnev@qase.io>"
+    }
+  }
+}

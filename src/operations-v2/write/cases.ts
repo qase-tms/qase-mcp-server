@@ -4,7 +4,7 @@ import { toolRegistry, CreateAnnotation, DeleteAnnotation } from '../../utils/re
 import { toResultAsync, createToolError } from '../../utils/errors.js';
 import { ProjectCodeSchema, IdSchema } from '../../utils/validation.js';
 import { normalizeCaseEnums } from '../../utils/case-enums.js';
-import { CaseFieldsSchema, applyAutomationMapping } from './case-fields.js';
+import { CaseFieldsSchema, applyAutomationMapping, resolveSharedStepRefs } from './case-fields.js';
 
 const UpsertSchema = z.object({
   code: ProjectCodeSchema,
@@ -23,6 +23,10 @@ async function upsert(args: z.infer<typeof UpsertSchema>) {
   const client = getApiClient();
   const { code, id, ...data } = args;
   const normalized = applyAutomationMapping(await normalizeCaseEnums(data));
+
+  if (normalized.steps !== undefined) {
+    normalized.steps = resolveSharedStepRefs(normalized.steps);
+  }
 
   const result = await toResultAsync(
     id

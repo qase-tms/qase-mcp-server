@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **Shared steps can now be referenced from a test case.** `qase_case_upsert` and `qase_case_bulk_create` document a `shared` property on step objects, taking the hash returned by `qase_shared_step_upsert`; `action` is not required for such a step and nesting works at any depth. `shared_step_hash` — the name the API uses when reading a case back — is accepted as an alias and translated to `shared` before the request is sent, so the field seen on read now also works on write. ([#66](https://github.com/qase-tms/qase-mcp-server/issues/66))
+
+### Changed
+
+- Updated `qase-api-client` to 1.1.13, which adds `shared` to the test step create model.
+
 ## [2.0.1]
 
 ### Added

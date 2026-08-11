@@ -34,8 +34,8 @@ Every tool's schema uses "label or numeric ID" strings for Qase's configurable e
 
 | Tool | Description | Key params | Visibility |
 | --- | --- | --- | --- |
-| `qase_case_upsert` | Create or update a test case. If `id` is provided, updates the existing case; if omitted, creates a new one. Enum fields (priority, severity, type, etc.) accept both labels ("high", "blocker") and numeric IDs — the server normalizes automatically. | `code`, `id` (optional), `title` (1-255 chars), `description`, `preconditions`, `postconditions`, `severity`, `priority`, `type`, `layer`, `behavior`, `automation`, `status` (all label-or-ID strings), `is_flaky`, `suite_id`, `milestone_id`, `steps` (array, supports nesting), `steps_type` (enum: classic, gherkin), `tags`, `attachments`, `custom_field` | core |
-| `qase_case_bulk_create` | Create up to 100 test cases in a single request. Use instead of calling `qase_case_upsert` repeatedly when importing or generating several cases at once. Enum fields accept labels or numeric IDs. Creates only — use `qase_case_upsert` with an `id` to update. Returns the IDs of the created cases in submission order. | `code`, `cases` (array, 1-100 — same fields as `qase_case_upsert` without `id`) | discoverable |
+| `qase_case_upsert` | Create or update a test case. If `id` is provided, updates the existing case; if omitted, creates a new one. Enum fields (priority, severity, type, etc.) accept both labels ("high", "blocker") and numeric IDs — the server normalizes automatically. | `code`, `id` (optional), `title` (1-255 chars), `description`, `preconditions`, `postconditions`, `severity`, `priority`, `type`, `layer`, `behavior`, `automation`, `status` (all label-or-ID strings), `is_flaky`, `suite_id`, `milestone_id`, `steps` (array, supports nesting; a step may reference a shared step via `shared` — the shared step hash — instead of `action`), `steps_type` (enum: classic, gherkin), `tags`, `attachments`, `custom_field` | core |
+| `qase_case_bulk_create` | Create up to 100 test cases in a single request. Use instead of calling `qase_case_upsert` repeatedly when importing or generating several cases at once. Enum fields accept labels or numeric IDs. Creates only — use `qase_case_upsert` with an `id` to update. Returns the IDs of the created cases in submission order. | `code`, `cases` (array, 1-100 — same fields as `qase_case_upsert` without `id`, including `shared` step references) | discoverable |
 | `qase_case_delete` | Delete a test case by project code and case ID. | `code`, `id` | discoverable |
 | `qase_defect_upsert` | Create or update a defect. If `id` is provided, updates (including status changes and resolve). If omitted, creates a new defect. Set `status: "resolved"` to resolve an existing defect. | `code`, `id` (optional), `title` (1-255 chars), `actual_result`, `severity` (enum, see [below](#case-enum-values)), `status` (enum: open, in_progress, resolved, invalid), `tags`, `attachments`, `custom_field` | core |
 | `qase_defect_delete` | Delete a defect by project code and defect ID. | `code`, `id` | discoverable |
@@ -59,6 +59,9 @@ Every tool's schema uses "label or numeric ID" strings for Qase's configurable e
 | `qase_external_issue_link` | Link or unlink test cases and test runs to issues in an external tracker (Jira Cloud or Jira Server). A case can be linked to several issues; a run can have only one link, and attaching a new issue replaces the previous one. Detaching a run clears its link. Read linked issues back with `qase_get`. | `code`, `entity` (enum: case, run), `action` (enum: attach, detach), `type` (enum: jira-cloud, jira-server), `links` (array: `id`, `issues` — issue keys such as `PROJ-1234`) | discoverable |
 
 </details>
+
+To insert a shared step into a test case, pass its hash as `shared` on a step object in `qase_case_upsert` or `qase_case_bulk_create`: `{"steps": [{"shared": "<hash>"}]}`. `action` is not required for such a step, and nesting is supported. The read side of the API reports the link as `shared_step_hash`; that spelling is accepted on write too and is translated automatically.
+
 
 ## Composite tools
 

@@ -102,6 +102,40 @@ describe('qase_case_bulk_create — request shape', () => {
   });
 });
 
+describe('qase_case_bulk_create — shared step references', () => {
+  const HASH = '9f8f0ce2660523589bfd34889c47e0647a1460c0';
+
+  it('passes `shared` through for each case', async () => {
+    await invoke({
+      code: 'DEMO',
+      cases: [
+        { title: 'A', steps: [{ shared: HASH }] },
+        { title: 'B', steps: [{ action: 'inline' }] },
+      ],
+    });
+
+    expect(sentCases()[0].steps).toEqual([{ shared: HASH }]);
+    expect(sentCases()[1].steps).toEqual([{ action: 'inline' }]);
+  });
+
+  it('translates the `shared_step_hash` alias, including nested steps', async () => {
+    await invoke({
+      code: 'DEMO',
+      cases: [
+        {
+          title: 'A',
+          steps: [{ shared_step_hash: HASH }, { action: 'p', steps: [{ shared_step_hash: HASH }] }],
+        },
+      ],
+    });
+
+    expect(sentCases()[0].steps).toEqual([
+      { shared: HASH },
+      { action: 'p', steps: [{ shared: HASH }] },
+    ]);
+  });
+});
+
 describe('qase_case_bulk_create — enum normalisation', () => {
   it('resolves string labels to numeric IDs for every case', async () => {
     await invoke({

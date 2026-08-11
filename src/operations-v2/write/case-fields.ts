@@ -9,11 +9,28 @@
 import { z } from 'zod';
 
 const stepFields = {
-  action: z.string().optional().describe('Step action (classic steps)'),
+  action: z
+    .string()
+    .optional()
+    .describe('Step action (classic steps). Not needed when `shared` is set.'),
   expected_result: z.string().optional().describe('Expected result'),
   data: z.string().optional().describe('Test data'),
   value: z.string().optional().describe('Gherkin scenario text (when steps_type is "gherkin")'),
   attachments: z.array(z.string()).optional().describe('Attachment hashes'),
+  shared: z
+    .string()
+    .optional()
+    .describe(
+      'Hash of an existing shared step to insert at this position, from `qase_shared_step_upsert`. ' +
+        'The step then reuses that shared step instead of defining its own content, so `action` ' +
+        'can be omitted. Reading the case back reports the link as `shared_step_hash`.',
+    ),
+  shared_step_hash: z
+    .string()
+    .optional()
+    .describe(
+      'Alias for `shared` — the name used when reading a case. Sent to the API as `shared`.',
+    ),
 };
 
 export const TestStepSchema = z.object({
@@ -53,6 +70,35 @@ export const CaseFieldsSchema = z.object({
   attachments: z.array(z.string()).optional(),
   custom_field: z.record(z.any()).optional(),
 });
+
+/**
+ * Rewrite `shared_step_hash` to `shared` throughout a step tree.
+ *
+ * The API links a step to a shared step through `shared`, but reports the same
+ * link back as `shared_step_hash` — so that is the name callers reach for after
+ * reading a case, and sending it produces a confusing "Action field is
+ * required". Accept both spellings and send the one the API understands.
+ */
+export function resolveSharedStepRefs(steps: unknown): unknown {
+  if (!Array.isArray(steps)) return steps;
+
+  return steps.map((step) => {
+    if (typeof step !== 'object' || step === null) return step;
+
+    const { shared_step_hash: alias, ...rest } = step as Record<string, unknown>;
+    const resolved: Record<string, unknown> = rest;
+
+    if (alias !== undefined && resolved.shared === undefined) {
+      resolved.shared = alias;
+    }
+
+    if (resolved.steps !== undefined) {
+      resolved.steps = resolveSharedStepRefs(resolved.steps);
+    }
+
+    return resolved;
+  });
+}
 
 /**
  * Map the user-facing `automation` enum (0=Manual, 1=To be automated,

@@ -4,7 +4,7 @@ import { toolRegistry, CreateAnnotation } from '../../utils/registry.js';
 import { toResultAsync, createToolError } from '../../utils/errors.js';
 import { ProjectCodeSchema } from '../../utils/validation.js';
 import { normalizeCaseEnums } from '../../utils/case-enums.js';
-import { CaseFieldsSchema, applyAutomationMapping } from './case-fields.js';
+import { CaseFieldsSchema, applyAutomationMapping, resolveSharedStepRefs } from './case-fields.js';
 
 const CONTEXT = 'bulk case creation';
 
@@ -35,7 +35,13 @@ async function handler(rawArgs: unknown) {
   // Same enum handling as qase_case_upsert, so "high" and "blocker" work here
   // too. System fields are cached, so this does not fan out into N API calls.
   const normalized = await Promise.all(
-    cases.map(async (testCase) => applyAutomationMapping(await normalizeCaseEnums(testCase))),
+    cases.map(async (testCase) => {
+      const mapped = applyAutomationMapping(await normalizeCaseEnums(testCase));
+      if (mapped.steps !== undefined) {
+        mapped.steps = resolveSharedStepRefs(mapped.steps);
+      }
+      return mapped;
+    }),
   );
 
   const client = getApiClient();

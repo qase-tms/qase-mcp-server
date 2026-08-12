@@ -136,7 +136,9 @@ export class ToolRegistry {
    * Used by the ListToolsRequestSchema handler
    */
   getTools(): Tool[] {
-    return Array.from(this.tools.values()).filter((t) => this.activeTools.has(t.name));
+    return Array.from(this.tools.values())
+      .filter((t) => this.activeTools.has(t.name))
+      .sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
   }
 
   /**
@@ -144,7 +146,9 @@ export class ToolRegistry {
    * Used for discovery search and testing.
    */
   getAllTools(): Tool[] {
-    return Array.from(this.tools.values());
+    return Array.from(this.tools.values()).sort((a, b) =>
+      a.name < b.name ? -1 : a.name > b.name ? 1 : 0,
+    );
   }
 
   /**

@@ -221,13 +221,15 @@ const prompts: PromptDef[] = [
   },
 ];
 
-/** Get all prompt definitions for ListPrompts */
+/** Get all prompt definitions for ListPrompts, in deterministic (name-sorted) order */
 export function listPrompts() {
-  return prompts.map((p) => ({
-    name: p.name,
-    description: p.description,
-    arguments: p.arguments,
-  }));
+  return [...prompts]
+    .sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0))
+    .map((p) => ({
+      name: p.name,
+      description: p.description,
+      arguments: p.arguments,
+    }));
 }
 
 /** Build prompt messages for GetPrompt */

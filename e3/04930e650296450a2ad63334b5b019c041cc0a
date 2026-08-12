@@ -1,0 +1,26 @@
+src/transports/streamableHttp.ts
+  s_febb7d893f86f5::t_58e0a16751dbf8 59-64
+src/prompts/index.ts
+  s_febb7d893f86f5::t_7a6e12d4eb5358 224,226-232
+src/utils/registry.ts
+  s_febb7d893f86f5::t_dfd17c1b05f0e0 139-140
+  s_febb7d893f86f5::t_f0ba2f886dc5f2 141,149-151
+src/utils/registry.test.ts
+  s_febb7d893f86f5::t_da68702ac62cb6 257
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "e304930e650296450a2ad63334b5b019c041cc0a",
+  "prompts": {},
+  "sessions": {
+    "s_febb7d893f86f5": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "1224a5a6-6d47-4860-83a4-72b0f7bcba6d",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "Dmitrii Gridnev <dgridnev@qase.io>"
+    }
+  }
+}

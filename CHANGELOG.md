@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.3]
+
+### Changed
+
+- `tools/list` and `prompts/list` now return entries in deterministic, name-sorted order instead of registration order, per the MCP spec's guidance for improving client-side caching and LLM prompt cache hit rates.
+- The Streamable HTTP transport now allows the `Mcp-Method` and `Mcp-Name` request headers via CORS, ahead of client adoption of MCP spec [2026-07-28](https://blog.modelcontextprotocol.io/posts/2026-07-28/).
+
 ## [2.0.2]
 
 ### Added

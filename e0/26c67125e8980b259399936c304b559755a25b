@@ -1,0 +1,25 @@
+CHANGELOG.md
+  s_febb7d893f86f5::t_c3712a98a8e7da 8-14
+server.json
+  s_febb7d893f86f5::t_459952a91920a4 11,16
+package.json
+  s_febb7d893f86f5::t_52196df25763ed 3
+package-lock.json
+  s_febb7d893f86f5::t_357fab9ac5cc44 3,9
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "e026c67125e8980b259399936c304b559755a25b",
+  "prompts": {},
+  "sessions": {
+    "s_febb7d893f86f5": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "1224a5a6-6d47-4860-83a4-72b0f7bcba6d",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "Dmitrii Gridnev <dgridnev@qase.io>"
+    }
+  }
+}

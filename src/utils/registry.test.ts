@@ -254,7 +254,7 @@ describe('ToolRegistry', () => {
       expect(active).toEqual(['core_a', 'core_c']);
 
       const all = registry.getAllTools().map((t) => t.name);
-      expect(all).toEqual(['core_a', 'disc_b', 'core_c']);
+      expect(all).toEqual(['core_a', 'core_c', 'disc_b']);
     });
   });
 

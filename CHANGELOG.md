@@ -23,7 +23,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`qql_help` now documents aggregation.** QQL supports `SELECT (...)` with `COUNT`/`MIN`/`MAX`/`AVG`/`SUM`/`FIRST`/`LAST`, plus `GROUP BY` and `HAVING`, but the help never mentioned it — so a count that one query can answer was being computed by paging through rows. The parentheses after `SELECT` are mandatory (the query fails without them), which is not guessable, and two response quirks that quietly corrupt reports are now called out: aggregates return enums as numeric IDs (`result.status` 1 = Passed, 2 = Failed, 5 = Skipped, 8 = Invalid; `automation` 0/1/2), and grouping by a string field returns it with a `_title` suffix (`GROUP BY suite` → `suite_title`).
+- **`qql_help` now lists the fields of each entity**, replacing six label-only lines. Field names are not uniform across entities, which is the main source of failing queries, so the traps are stated explicitly: `case.suite` is a title but `result.suite` is a numeric ID; `result` has no run-ID field (`run` matches the run title, so results cannot be tied to a run ID in QQL); `result` has no `environment`; `requirement` has no link to cases; and `case.suiteTree` (a suite plus all descendants) is documented for the first time.
+- **`qql_help` gained an `enumValues` topic** covering the valid values per field, including two that fail when guessed: `priority` has no `"critical"` (that is a `severity`), and `run.status` is `In Progress`/`Passed`/`Failed`/`Aborted` — `"active"` is not a status. `result.status` has no `Untested`.
 - **`qase_project_context` accepts `full: true`** to page through every collection instead of fetching only the first 100 of each. Full and partial responses are cached under separate keys, and pagination stops early if a page comes back empty rather than looping.
+
+### Changed
+
+- `qql_search` accepts queries up to 2 000 characters, matching what the REST endpoint allows. The previous 1 000-character cap halved how many IDs fit in an `in (...)` clause — roughly 80 instead of 170 — doubling the round-trips needed for any set-based analysis.
 
 ## [2.0.3]
 

@@ -8,7 +8,7 @@
 import { z } from 'zod';
 import { getApiClient } from '../../client/index.js';
 import { toolRegistry, ReadAnnotation } from '../../utils/registry.js';
-import { toResultAsync, createToolError } from '../../utils/errors.js';
+import { toResultAsync, createToolError, ToolExecutionError } from '../../utils/errors.js';
 import { QqlExamples } from '../../utils/qql-helpers.js';
 import { QqlSearchOutput } from '../../utils/output-schemas.js';
 import { richResult, summaryBlock, dataBlock, markdownTable } from '../../utils/rich-response.js';
@@ -51,16 +51,39 @@ const QqlSearchSchema = z.object({
 });
 
 /**
+ * Help topics. `topic` is required: returning every section at once sends the
+ * whole reference into the context on each call, and the sections are large
+ * enough that it is worth asking for only the one needed.
+ */
+const HELP_TOPICS = [
+  'overview',
+  'syntax',
+  'entities',
+  'operators',
+  'functions',
+  'examples',
+  'aggregation',
+  'enumValues',
+] as const;
+
+/**
  * Schema for QQL help
  */
 const GetQqlHelpSchema = z.object({
   topic: z
-    .enum(['syntax', 'entities', 'operators', 'functions', 'examples', 'aggregation', 'enumValues'])
-    .optional()
+    .enum(HELP_TOPICS)
     .describe(
-      'Specific help topic, or omit for general overview. Use "entities" for the per-entity ' +
-        'field lists (field names are NOT uniform across entities), "aggregation" for ' +
-        'SELECT/COUNT/GROUP BY, and "enumValues" for valid enum values.',
+      'Which section to return (required — one section per call):\n' +
+        '- overview: what QQL is, overall query structure, subscription requirement\n' +
+        '- syntax: structure, ordering, custom fields, case-sensitivity, boolean and date fields\n' +
+        '- entities: the fields available on each entity — field names are NOT uniform across ' +
+        'entities, so read this before writing a query against an unfamiliar one\n' +
+        '- operators: comparison, matching, set, null, and logical operators\n' +
+        '- functions: currentUser, activeUsers, and the now/startOf*/endOf* date functions\n' +
+        '- examples: ready-made queries for common questions\n' +
+        '- aggregation: SELECT (COUNT/MIN/MAX/AVG/SUM/FIRST/LAST), GROUP BY, HAVING — use this ' +
+        'to count or summarise instead of paging through rows\n' +
+        '- enumValues: the valid values for priority, severity, and the per-entity status fields',
     ),
 });
 
@@ -240,11 +263,17 @@ async function getQqlHelp(args: z.infer<typeof GetQqlHelpSchema>) {
     examples: QqlExamples,
   };
 
-  if (topic) {
-    return { topic, content: help[topic as keyof typeof help] };
+  // Handlers receive raw MCP arguments, so the schema's `required` is not
+  // enforced at runtime — reject a missing or unknown topic with the list of
+  // valid ones rather than returning undefined content.
+  if (!topic || !(topic in help)) {
+    throw new ToolExecutionError(
+      `Unknown help topic${topic ? ` "${topic}"` : ''}. ` +
+        `Pass one of: ${HELP_TOPICS.join(', ')}.`,
+    );
   }
 
-  return help;
+  return { topic, content: help[topic] };
 }
 
 // ============================================================================
@@ -263,7 +292,11 @@ toolRegistry.register({
 
 toolRegistry.register({
   name: 'qql_help',
-  description: 'Get help and examples for Qase Query Language (QQL) syntax',
+  description:
+    'Get one section of the Qase Query Language (QQL) reference. `topic` is required — ask for ' +
+    'the section you need rather than the whole reference. Start with "entities" when you are ' +
+    'unsure which fields an entity has (they differ per entity), "aggregation" to count or ' +
+    'summarise without paging, and "enumValues" for valid field values.',
   schema: GetQqlHelpSchema,
   handler: getQqlHelp,
   annotations: ReadAnnotation,

@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`qase_triage_defect` no longer accepts `run_id` or `failed_result_ids`.** Both were read from the arguments and then ignored — the tool only ever created the defect. `POST /v1/defect/{code}` accepts `title`, `actual_result`, `severity`, `milestone_id`, `attachments`, `custom_field`, and `tags`; there is no field for runs or results, and no endpoint to attach them afterwards. The `runs`/`results` arrays visible on a defect are populated by the test runner when a result is reported as a defect. Reference failing results in `actual_result` instead.
 - **`qase_triage_defect` now requires `actual_result` and `severity`**, which the API has always required. Marking them optional produced requests the API rejects, with nothing in the tool contract to warn about it.
+- **`qql_help` now requires `topic`** and returns that one section. Previously omitting `topic` returned every section at once, which sends the whole reference into the context on each call — and the reference grew substantially in this release. `overview` is now a topic of its own, so the old default is still reachable as `topic: "overview"`. An omitted or unknown topic returns an error listing the valid ones.
 
 ### Fixed
 

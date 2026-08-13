@@ -150,6 +150,41 @@ describe('qql_help — corrections to previous content', () => {
   });
 });
 
+describe('qql_help — topic is required', () => {
+  it('declares topic as required in the schema', () => {
+    const schema = toolRegistry.getTool('qql_help')!.inputSchema as any;
+
+    // Returning every section at once put the whole reference into context on
+    // each call.
+    expect(schema.required).toContain('topic');
+  });
+
+  it('serves the overview as a topic of its own', async () => {
+    const { topic, content } = await help('overview');
+
+    expect(topic).toBe('overview');
+    expect(textOf(content)).toContain('Qase Query Language');
+  });
+
+  it('rejects a missing topic with the list of valid ones', async () => {
+    // Handlers get raw MCP arguments, so `required` is not enforced at runtime.
+    await expect(help()).rejects.toThrow(/Pass one of:.*aggregation/s);
+  });
+
+  it('rejects an unknown topic by name', async () => {
+    await expect(help('syntaxx')).rejects.toThrow(/Unknown help topic "syntaxx"/);
+  });
+
+  it('returns one section, not the whole reference', async () => {
+    const { content } = await help('operators');
+
+    // The operators section only — no sibling sections leaking in.
+    expect(content).toHaveProperty('comparison');
+    expect(content).not.toHaveProperty('entities');
+    expect(content).not.toHaveProperty('aggregation');
+  });
+});
+
 describe('qql_search — query length', () => {
   it('allows the 2000 characters the REST endpoint accepts', () => {
     const schema = toolRegistry.getTool('qql_search')!.inputSchema as any;

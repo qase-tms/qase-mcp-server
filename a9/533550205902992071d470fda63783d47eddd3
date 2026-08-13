@@ -1,0 +1,28 @@
+src/utils/output-schemas.ts
+  s_febb7d893f86f5::t_7a19c6e309ab6c 37
+src/operations-v2/composites/triage-defect.ts
+  s_febb7d893f86f5::t_cff0f497cd05ef 54,61
+  s_febb7d893f86f5::t_18e64e91302a81 69-72
+  s_febb7d893f86f5::t_5faef47b47841b 12-13,16-17,26
+  s_febb7d893f86f5::t_edb667bea958cd 5
+src/operations-v2/composites/triage-defect.test.ts
+  s_febb7d893f86f5::t_e863a6e6370749 1-99
+CHANGELOG.md
+  s_febb7d893f86f5::t_1e66a01656a4a6 10-14,17
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "a9533550205902992071d470fda63783d47eddd3",
+  "prompts": {},
+  "sessions": {
+    "s_febb7d893f86f5": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "1224a5a6-6d47-4860-83a4-72b0f7bcba6d",
+        "model": "claude-opus-5"
+      },
+      "human_author": "Dmitrii Gridnev <dgridnev@qase.io>"
+    }
+  }
+}

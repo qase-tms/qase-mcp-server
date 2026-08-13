@@ -56,8 +56,15 @@ export const ProjectContextOutput: OutputSchema = {
     environments: { type: 'object', description: 'Environments list' },
     custom_fields: { type: 'object', description: 'Custom fields list' },
     users: { type: 'object', description: 'Team members list' },
+    coverage: {
+      type: 'object',
+      description:
+        'Per-collection completeness: each of suites, milestones, environments, custom_fields, ' +
+        'and users maps to { total, loaded, truncated }. When truncated is true the list holds ' +
+        'only the first `loaded` of `total` entities — re-call with full: true for the rest.',
+    },
   },
-  required: ['project', 'suites', 'milestones', 'environments'],
+  required: ['project', 'suites', 'milestones', 'environments', 'coverage'],
 };
 
 export const DeleteOutput: OutputSchema = {

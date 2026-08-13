@@ -9,9 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`qase_project_context` no longer truncates collections silently.** Suites, milestones, environments, custom fields, and users were each capped at the first 100 entities with no indication in the response — a project with 2 711 suites reported "Suites: 100" and the consumer had no way to learn it was seeing 3.7% of the data. The result now carries a `coverage` field with `{ total, loaded, truncated }` per collection, and the summary spells out `100 of 2711 ⚠️ truncated` plus how to get the rest. The "Top-level suites (N of M total)" header no longer presents the loaded slice as the project total.
+- `qase_project_context` requested users with no `limit` at all, so the API's own (smaller) default applied. It now asks for a full page like every other collection.
 - **`qql_search` no longer advertises an invalid QQL query.** The `recentFailures` example filtered failed results with `created >= now("-7d")`, but the `result` entity has no `created` field — the only timestamp it exposes is `ended`. The broken query was surfaced both in the `qql_search` tool description and in `qql_help` output, so models were being taught the error at the schema level. It now reads `ended >= now("-7d")`.
 - `qql_help` claimed that "queries are case-sensitive for field values". Enum values in fact accept either the display label or its slug (`severity = "Blocker"` and `severity = "blocker"` match the same value); only `status` and `type` on the `requirement` entity are case-sensitive. The help text now says so, and additionally documents which date fields each entity exposes and that boolean fields accept both `is true` and `= true`.
 - `qql_help` omitted the `!~` operator and the `startOfWeek` / `endOfWeek` / `startOfMonth` / `endOfMonth` functions.
+
+### Added
+
+- **`qase_project_context` accepts `full: true`** to page through every collection instead of fetching only the first 100 of each. Full and partial responses are cached under separate keys, and pagination stops early if a page comes back empty rather than looping.
 
 ## [2.0.3]
 

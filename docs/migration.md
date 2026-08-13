@@ -1,4 +1,42 @@
-# Migration Guide: v1 → v2
+# Migration Guide
+
+Two migrations are covered here: the v1 → v2 tool rename (the bulk of this document), and the smaller [2.0.x → 2.1.0](#20x--210) change to `qase_triage_defect`.
+
+---
+
+## 2.0.x → 2.1.0
+
+### `qase_triage_defect` dropped `run_id` and `failed_result_ids`
+
+Both arguments were accepted and then ignored — the tool only ever created the defect. It also reported `Linked results: N` in its summary and `linked_results: N` in its structured output, both computed from the length of the ignored `failed_result_ids` array, so it claimed linking work it had not performed.
+
+This cannot be fixed by forwarding the arguments: `POST /v1/defect/{code}` accepts only `title`, `actual_result`, `severity`, `milestone_id`, `attachments`, `custom_field`, and `tags`, and the defects API has no endpoint for attaching runs or results afterwards. The `runs`/`results` arrays you see on a defect are populated by the test runner when a result is reported as a defect.
+
+**If you passed either argument**, remove it and put the context in `actual_result` instead:
+
+```diff
+ qase_triage_defect {
+   code: "PROJ",
+   title: "Checkout fails on empty cart",
+   severity: "blocker",
+-  actual_result: "HTTP 500",
+-  run_id: 7,
+-  failed_result_ids: ["a1b2c3", "d4e5f6"]
++  actual_result: "HTTP 500 — failing results a1b2c3, d4e5f6 in run #7"
+ }
+```
+
+**If you read `linked_results`** from the response, drop it — it was never a real count. The response is now `{ defect_id, defect }`.
+
+To associate results with a defect for real, report the result as a defect from the test runner (`is_defect` on the result), or link the defect to an external tracker issue with `qase_external_issue_link`.
+
+### `qase_triage_defect` now requires `actual_result` and `severity`
+
+The API has always required both. They were optional in the tool schema, which meant the tool advertised calls the API rejects. Any call that already succeeded is unaffected.
+
+---
+
+## Migration Guide: v1 → v2
 
 > **Breaking change**: v2 replaces all 83 v1 tool names with a consolidated set of 29 task-oriented tools (30 total, including the `qase_discover_tools` discovery tool).
 > Every tool name has changed. Update your prompts, workflows, and any automation that references tool names.
@@ -14,6 +52,8 @@
 | Metadata bootstrap | 6 separate list calls | `qase_project_context` (single call, cached) |
 | CI reporting | 3–4 manual steps | `qase_ci_report` composite |
 | Response format | Pretty-printed JSON, nulls included | Compact JSON (no indent), nulls stripped |
+
+> **Replacing a `list_*` tool with `qase_project_context`?** Each collection in the context response holds only its first 100 entities by default, where the v1 `list_*` tools let you page explicitly. Check the `coverage` field — it reports `{ total, loaded, truncated }` per collection — and pass `full: true` when you need the complete set. On a project with more than 100 suites, milestones, environments, custom fields, or users, treating the default response as complete gives you a partial answer. (Before 2.1.0 the truncation was not reported at all.)
 
 ---
 
@@ -237,9 +277,11 @@ Accepts a project code, run title, and an array of test results. Creates the run
 
 ### `qase_triage_defect`
 
-Streamlines the defect triage workflow. Creates a defect from a test failure description and optionally links it to failed result hashes from a run.
+Creates a defect from a test failure description. Requires `title`, `actual_result`, and `severity`.
 
-Replaces: `create_defect` (then manual linking).
+Note: the tool does **not** link the defect to runs or results — the API has no field or endpoint for that (see [2.0.x → 2.1.0](#20x--210) above). Reference the failing results in `actual_result`.
+
+Replaces: `create_defect`.
 
 ### `qase_regression_run`
 

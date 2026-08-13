@@ -29,7 +29,7 @@ const QqlSearchSchema = z.object({
       'QQL query expression. Examples:\n' +
         '- entity = "case" and project = "DEMO" and status = "Actual"\n' +
         '- entity = "defect" and severity = "blocker" and status = "open"\n' +
-        '- entity = "result" and status = "failed" and created >= now("-7d")\n' +
+        '- entity = "result" and status = "failed" and ended >= now("-7d")\n' +
         '- entity = "run" and milestone ~ "Sprint 12"\n' +
         'See QQL documentation for full syntax and examples.',
     ),
@@ -126,8 +126,15 @@ async function getQqlHelp(args: z.infer<typeof GetQqlHelpSchema>) {
       basicStructure: 'entity = "TYPE" and CONDITION [and CONDITION...]',
       ordering: 'ORDER BY field ASC/DESC',
       customFields: 'cf["Field Name"] = value',
-      caseNotes: 'Queries are case-sensitive for field values',
+      caseNotes:
+        'Enum values accept either the display label or its slug — severity = "Blocker" and ' +
+        'severity = "blocker" match the same value. Exception: on the requirement entity, ' +
+        'status and type ARE case-sensitive (type = "User story", not "user-story").',
       stringMatching: '~ operator is case-insensitive substring match',
+      booleanFields: 'Boolean fields accept `is true` / `is false` as well as `= true` / `= false`',
+      dateFields:
+        'case, defect, plan, and requirement have created/updated; result has only `ended` ' +
+        '(no created/updated); run has started/ended',
     },
     entities: {
       case: 'Test cases - entity = "case"',
@@ -139,7 +146,7 @@ async function getQqlHelp(args: z.infer<typeof GetQqlHelpSchema>) {
     },
     operators: {
       comparison: ['=', '!=', '<', '<=', '>', '>='],
-      string: ['~', 'is', 'is not'],
+      string: ['~', '!~', 'is', 'is not'],
       array: ['in', 'not in'],
       null: ['is empty', 'is not empty'],
       logical: ['and', 'or', 'not'],
@@ -147,9 +154,14 @@ async function getQqlHelp(args: z.infer<typeof GetQqlHelpSchema>) {
     functions: {
       currentUser: 'currentUser() - Returns current user ID',
       activeUsers: 'activeUsers() - Returns all active user IDs',
-      now: 'now("+/-Nd/w/m") - Current timestamp with optional offset (d=days, w=weeks, m=months)',
-      startOfDay: 'startOfDay("YYYY-MM-DD") - Start of specified day',
-      endOfDay: 'endOfDay("YYYY-MM-DD") - End of specified day',
+      now: 'now("+/-Nd/w/m") - Current timestamp with optional offset (d=days, w=weeks, m=months; hours and years are NOT supported)',
+      startOfDay: 'startOfDay("YYYY-MM-DD") - Start of specified day (also accepts an offset)',
+      endOfDay: 'endOfDay("YYYY-MM-DD") - End of specified day (also accepts an offset)',
+      startOfWeek: 'startOfWeek("YYYY-MM-DD") - Start of specified week (also accepts an offset)',
+      endOfWeek: 'endOfWeek("YYYY-MM-DD") - End of specified week (also accepts an offset)',
+      startOfMonth:
+        'startOfMonth("YYYY-MM-DD") - Start of specified month (also accepts an offset)',
+      endOfMonth: 'endOfMonth("YYYY-MM-DD") - End of specified month (also accepts an offset)',
     },
     examples: QqlExamples,
   };

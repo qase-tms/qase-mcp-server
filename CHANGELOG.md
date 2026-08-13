@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- **`qql_search` no longer advertises an invalid QQL query.** The `recentFailures` example filtered failed results with `created >= now("-7d")`, but the `result` entity has no `created` field — the only timestamp it exposes is `ended`. The broken query was surfaced both in the `qql_search` tool description and in `qql_help` output, so models were being taught the error at the schema level. It now reads `ended >= now("-7d")`.
+- `qql_help` claimed that "queries are case-sensitive for field values". Enum values in fact accept either the display label or its slug (`severity = "Blocker"` and `severity = "blocker"` match the same value); only `status` and `type` on the `requirement` entity are case-sensitive. The help text now says so, and additionally documents which date fields each entity exposes and that boolean fields accept both `is true` and `= true`.
+- `qql_help` omitted the `!~` operator and the `startOfWeek` / `endOfWeek` / `startOfMonth` / `endOfMonth` functions.
+
 ## [2.0.3]
 
 ### Changed

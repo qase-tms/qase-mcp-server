@@ -84,7 +84,9 @@ describe('QQL Helpers', () => {
       expect(query).toContain('entity = "result"');
       expect(query).toContain('project = "DEMO"');
       expect(query).toContain('status = "failed"');
-      expect(query).toContain('now("-7d")');
+      expect(query).toContain('ended >= now("-7d")');
+      // Results have no `created` field — filtering on it makes the query invalid
+      expect(query).not.toContain('created');
     });
 
     it('should generate blocker defects query', () => {

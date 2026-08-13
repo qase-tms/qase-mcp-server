@@ -75,9 +75,10 @@ export class QqlQueryBuilder {
  * Common QQL query examples
  */
 export const QqlExamples = {
-  // Find all failed test results in last 7 days
+  // Find all failed test results in last 7 days.
+  // Results have no `created` field — `ended` is the only timestamp to filter on.
   recentFailures: (projectCode: string) =>
-    `entity = "result" and project = "${projectCode}" and status = "failed" and created >= now("-7d")`,
+    `entity = "result" and project = "${projectCode}" and status = "failed" and ended >= now("-7d")`,
 
   // Find all open blocker defects
   blockerDefects: (projectCode: string) =>

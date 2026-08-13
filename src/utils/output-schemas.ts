@@ -33,9 +33,8 @@ export const TriageDefectOutput: OutputSchema = {
   properties: {
     defect_id: { type: 'integer', description: 'Created defect ID' },
     defect: { type: 'object', description: 'Full defect entity' },
-    linked_results: { type: 'integer', description: 'Number of linked result hashes' },
   },
-  required: ['defect_id', 'linked_results'],
+  required: ['defect_id'],
 };
 
 export const QqlSearchOutput: OutputSchema = {

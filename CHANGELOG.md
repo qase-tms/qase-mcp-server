@@ -7,8 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [2.0.4]
 
+### Breaking Changes
+
+- **`qase_triage_defect` no longer accepts `run_id` or `failed_result_ids`.** Both were read from the arguments and then ignored — the tool only ever created the defect. `POST /v1/defect/{code}` accepts `title`, `actual_result`, `severity`, `milestone_id`, `attachments`, `custom_field`, and `tags`; there is no field for runs or results, and no endpoint to attach them afterwards. The `runs`/`results` arrays visible on a defect are populated by the test runner when a result is reported as a defect. Reference failing results in `actual_result` instead.
+- **`qase_triage_defect` now requires `actual_result` and `severity`**, which the API has always required. Marking them optional produced requests the API rejects, with nothing in the tool contract to warn about it.
+
 ### Fixed
 
+- **`qase_triage_defect` reported linking it never performed.** The summary printed `Linked results: N` and the structured result carried `linked_results: N`, both derived from the length of the ignored `failed_result_ids` argument — so the tool reported work it had not done. Both are gone, along with `linked_results` from `TriageDefectOutput`. The tool description no longer promises "create defect → link to failing tests" either.
 - **`qase_project_context` no longer truncates collections silently.** Suites, milestones, environments, custom fields, and users were each capped at the first 100 entities with no indication in the response — a project with 2 711 suites reported "Suites: 100" and the consumer had no way to learn it was seeing 3.7% of the data. The result now carries a `coverage` field with `{ total, loaded, truncated }` per collection, and the summary spells out `100 of 2711 ⚠️ truncated` plus how to get the rest. The "Top-level suites (N of M total)" header no longer presents the loaded slice as the project total.
 - `qase_project_context` requested users with no `limit` at all, so the API's own (smaller) default applied. It now asks for a full page like every other collection.
 - **`qql_search` no longer advertises an invalid QQL query.** The `recentFailures` example filtered failed results with `created >= now("-7d")`, but the `result` entity has no `created` field — the only timestamp it exposes is `ended`. The broken query was surfaced both in the `qql_search` tool description and in `qql_help` output, so models were being taught the error at the schema level. It now reads `ended >= now("-7d")`.

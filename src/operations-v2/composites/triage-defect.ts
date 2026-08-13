@@ -2,23 +2,20 @@ import { z } from 'zod';
 import { getApiClient } from '../../client/index.js';
 import { toolRegistry, CreateAnnotation } from '../../utils/registry.js';
 import { toResultAsync, createToolError } from '../../utils/errors.js';
-import { ProjectCodeSchema, IdSchema } from '../../utils/validation.js';
+import { ProjectCodeSchema } from '../../utils/validation.js';
 import { TriageDefectOutput } from '../../utils/output-schemas.js';
 import { richResult, summaryBlock, dataBlock } from '../../utils/rich-response.js';
 
 const Schema = z.object({
   code: ProjectCodeSchema,
   title: z.string().min(1).max(255).describe('Defect title'),
+  // title, actual_result, and severity are all required by POST /v1/defect/{code} —
+  // marking them optional here only produced requests the API rejects.
   severity: z
     .enum(['undefined', 'blocker', 'critical', 'major', 'normal', 'minor', 'trivial'])
-    .optional(),
-  actual_result: z.string().optional().describe('Observed behavior'),
+    .describe('Required by the API'),
+  actual_result: z.string().describe('Observed behavior. Required by the API'),
   description: z.string().optional(),
-  run_id: IdSchema.optional().describe('Run containing the failed results'),
-  failed_result_ids: z
-    .array(z.string())
-    .optional()
-    .describe('Result hashes to link to this defect (from the run)'),
   tags: z.array(z.string()).optional(),
   attachments: z.array(z.string()).optional(),
   custom_field: z.record(z.any()).optional(),
@@ -26,7 +23,7 @@ const Schema = z.object({
 
 async function handler(args: z.infer<typeof Schema>) {
   const client = getApiClient();
-  const { code, run_id: _run_id, failed_result_ids, ...defectData } = args;
+  const { code, ...defectData } = args;
 
   // Create defect
   const defectRes = await toResultAsync(client.defects.createDefect(code, defectData as any));
@@ -39,7 +36,6 @@ async function handler(args: z.infer<typeof Schema>) {
 
   const defectId = (defect as any).id;
 
-  const linkedCount = failed_result_ids?.length ?? 0;
   const severityIcon: Record<string, string> = {
     blocker: '🔴',
     critical: '🟠',
@@ -55,15 +51,14 @@ async function handler(args: z.infer<typeof Schema>) {
     '',
     `- **Defect ID:** ${defectId}`,
     `- **Project:** ${code}`,
-    `- **Severity:** ${args.severity || 'undefined'}`,
-    `- **Linked results:** ${linkedCount}`,
+    `- **Severity:** ${args.severity}`,
   ];
 
   if (args.actual_result) {
     lines.push('', '**Actual result:**', `> ${args.actual_result}`);
   }
 
-  const structured = { defect_id: defectId, defect, linked_results: linkedCount };
+  const structured = { defect_id: defectId, defect };
 
   return richResult([summaryBlock(lines.join('\n')), dataBlock(structured)], structured);
 }
@@ -71,8 +66,10 @@ async function handler(args: z.infer<typeof Schema>) {
 toolRegistry.register({
   name: 'qase_triage_defect',
   description:
-    'Create a defect from a test failure and optionally link it to failed results. ' +
-    'Streamlines the triage workflow: create defect → link to failing tests.',
+    'Create a defect from a test failure. Requires title, actual_result, and severity. ' +
+    'Note: the API offers no way to attach existing runs or results to a defect — the ' +
+    'runs/results seen on a defect are populated by the test runner when a result is ' +
+    'reported as a defect. Reference failing results in actual_result instead.',
   schema: Schema,
   handler,
   annotations: CreateAnnotation,

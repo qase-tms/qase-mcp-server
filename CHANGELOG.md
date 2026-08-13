@@ -5,6 +5,34 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.0]
+
+### Breaking Changes
+
+- **`qase_triage_defect` no longer accepts `run_id` or `failed_result_ids`.** Both were read from the arguments and then ignored — the tool only ever created the defect. `POST /v1/defect/{code}` accepts `title`, `actual_result`, `severity`, `milestone_id`, `attachments`, `custom_field`, and `tags`; there is no field for runs or results, and no endpoint to attach them afterwards. The `runs`/`results` arrays visible on a defect are populated by the test runner when a result is reported as a defect. Reference failing results in `actual_result` instead.
+- **`qase_triage_defect` now requires `actual_result` and `severity`**, which the API has always required. Marking them optional produced requests the API rejects, with nothing in the tool contract to warn about it.
+- **`qql_help` now requires `topic`** and returns that one section. Previously omitting `topic` returned every section at once, which sends the whole reference into the context on each call — and the reference grew substantially in this release. `overview` is now a topic of its own, so the old default is still reachable as `topic: "overview"`. An omitted or unknown topic returns an error listing the valid ones.
+
+### Fixed
+
+- **`qase_triage_defect` reported linking it never performed.** The summary printed `Linked results: N` and the structured result carried `linked_results: N`, both derived from the length of the ignored `failed_result_ids` argument — so the tool reported work it had not done. Both are gone, along with `linked_results` from `TriageDefectOutput`. The tool description no longer promises "create defect → link to failing tests" either.
+- **`qase_project_context` no longer truncates collections silently.** Suites, milestones, environments, custom fields, and users were each capped at the first 100 entities with no indication in the response — a project with 2 711 suites reported "Suites: 100" and the consumer had no way to learn it was seeing 3.7% of the data. The result now carries a `coverage` field with `{ total, loaded, truncated }` per collection, and the summary spells out `100 of 2711 ⚠️ truncated` plus how to get the rest. The "Top-level suites (N of M total)" header no longer presents the loaded slice as the project total.
+- `qase_project_context` requested users with no `limit` at all, so the API's own (smaller) default applied. It now asks for a full page like every other collection.
+- **`qql_search` no longer advertises an invalid QQL query.** The `recentFailures` example filtered failed results with `created >= now("-7d")`, but the `result` entity has no `created` field — the only timestamp it exposes is `ended`. The broken query was surfaced both in the `qql_search` tool description and in `qql_help` output, so models were being taught the error at the schema level. It now reads `ended >= now("-7d")`.
+- `qql_help` claimed that "queries are case-sensitive for field values". Enum values in fact accept either the display label or its slug (`severity = "Blocker"` and `severity = "blocker"` match the same value); only `status` and `type` on the `requirement` entity are case-sensitive. The help text now says so, and additionally documents which date fields each entity exposes and that boolean fields accept both `is true` and `= true`.
+- `qql_help` omitted the `!~` operator and the `startOfWeek` / `endOfWeek` / `startOfMonth` / `endOfMonth` functions.
+
+### Added
+
+- **`qql_help` now documents aggregation.** QQL supports `SELECT (...)` with `COUNT`/`MIN`/`MAX`/`AVG`/`SUM`/`FIRST`/`LAST`, plus `GROUP BY` and `HAVING`, but the help never mentioned it — so a count that one query can answer was being computed by paging through rows. The parentheses after `SELECT` are mandatory (the query fails without them), which is not guessable, and two response quirks that quietly corrupt reports are now called out: aggregates return enums as numeric IDs (`result.status` 1 = Passed, 2 = Failed, 5 = Skipped, 8 = Invalid; `automation` 0/1/2), and grouping by a string field returns it with a `_title` suffix (`GROUP BY suite` → `suite_title`).
+- **`qql_help` now lists the fields of each entity**, replacing six label-only lines. Field names are not uniform across entities, which is the main source of failing queries, so the traps are stated explicitly: `case.suite` is a title but `result.suite` is a numeric ID; `result` has no run-ID field (`run` matches the run title, so results cannot be tied to a run ID in QQL); `result` has no `environment`; `requirement` has no link to cases; and `case.suiteTree` (a suite plus all descendants) is documented for the first time.
+- **`qql_help` gained an `enumValues` topic** covering the valid values per field, including two that fail when guessed: `priority` has no `"critical"` (that is a `severity`), and `run.status` is `In Progress`/`Passed`/`Failed`/`Aborted` — `"active"` is not a status. `result.status` has no `Untested`.
+- **`qase_project_context` accepts `full: true`** to page through every collection instead of fetching only the first 100 of each. Full and partial responses are cached under separate keys, and pagination stops early if a page comes back empty rather than looping.
+
+### Changed
+
+- `qql_search` accepts queries up to 2 000 characters, matching what the REST endpoint allows. The previous 1 000-character cap halved how many IDs fit in an `in (...)` clause — roughly 80 instead of 170 — doubling the round-trips needed for any set-based analysis.
+
 ## [2.0.3]
 
 ### Changed

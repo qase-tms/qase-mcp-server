@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.1]
+
+### Fixed
+
+- **The aggregation examples added in 2.1.0 were themselves invalid QQL.** They placed `SELECT (...)` after the conditions (`entity = "result" and ... SELECT (COUNT(id))`), which the API rejects with a bare `Query is invalid` that does not say what is wrong — so a model copying the form from `qql_help` had no way to recover. `SELECT (...)` must come first: `SELECT (COUNT(id)) entity = "result" and project = "DEMO" GROUP BY status`. All four examples, `overview.structure`, and `aggregation.syntax` are corrected, and the position requirement is now stated as explicitly as the mandatory parentheses already were. `overview.structure` also shows the filtering and aggregating forms separately instead of as one combined line, since the combined form is what suggested the wrong order.
+- A regression test now asserts that every query string in every `qql_help` topic which uses `SELECT (` starts with it — verified to fail against the 2.1.0 text.
+
 ## [2.1.0]
 
 ### Breaking Changes

@@ -28,6 +28,44 @@ function textOf(value: unknown): string {
   return JSON.stringify(value).replace(/\\"/g, '"');
 }
 
+/** Every topic the tool serves, so a check can sweep all of them. */
+const HELP_TOPICS = [
+  'overview',
+  'syntax',
+  'entities',
+  'operators',
+  'functions',
+  'examples',
+  'aggregation',
+  'enumValues',
+] as const;
+
+/**
+ * Collect the strings in a help section that are whole QQL queries, so
+ * assertions about query form don't trip over prose that merely mentions a
+ * clause. A query starts with `entity =` or `SELECT (`.
+ */
+function queryStringsIn(section: unknown): string[] {
+  const found: string[] = [];
+
+  const walk = (value: unknown): void => {
+    if (typeof value === 'string') {
+      if (value.startsWith('entity = ') || value.startsWith('SELECT (')) found.push(value);
+      return;
+    }
+    if (Array.isArray(value)) {
+      value.forEach(walk);
+      return;
+    }
+    if (value && typeof value === 'object') {
+      Object.values(value).forEach(walk);
+    }
+  };
+
+  walk(section);
+  return found;
+}
+
 describe('qql_help — aggregation', () => {
   it('documents aggregation instead of leaving the model to page and count', async () => {
     const { content } = await help('aggregation');
@@ -46,6 +84,37 @@ describe('qql_help — aggregation', () => {
     // Without them the query fails outright — not guessable.
     expect(text).toContain('SELECT (');
     expect(text.toLowerCase()).toContain('mandatory');
+  });
+
+  it('puts SELECT first in every example', async () => {
+    const { content } = await help('aggregation');
+
+    // The API rejects SELECT placed after the conditions with a bare
+    // "Query is invalid", which does not say what is wrong — so an example in
+    // the wrong order is a trap the model cannot get out of.
+    for (const example of (content as any).examples) {
+      expect(example.startsWith('SELECT (')).toBe(true);
+    }
+  });
+
+  it('states that SELECT must come first', async () => {
+    const text = textOf((await help('aggregation')).content);
+
+    expect(text).toContain('SELECT must come FIRST');
+  });
+
+  it('shows no query anywhere in the help with SELECT after the conditions', async () => {
+    // Every topic, not just aggregation: a model may read only one of them, and
+    // examples live in several sections.
+    for (const topic of HELP_TOPICS) {
+      const queries = queryStringsIn((await help(topic)).content);
+
+      for (const query of queries) {
+        if (query.includes('SELECT (')) {
+          expect(query.startsWith('SELECT (')).toBe(true);
+        }
+      }
+    }
   });
 
   it('explains that aggregate enums come back as numbers', async () => {

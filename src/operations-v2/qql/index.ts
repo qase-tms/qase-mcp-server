@@ -148,8 +148,10 @@ async function getQqlHelp(args: z.infer<typeof GetQqlHelpSchema>) {
     overview: {
       description: 'QQL (Qase Query Language) allows powerful searches across Qase entities',
       structure:
-        'entity = "TYPE" and CONDITION [and CONDITION...] [SELECT (AGGREGATE...)] ' +
-        '[GROUP BY field] [HAVING condition] [ORDER BY field ASC/DESC]',
+        'Filtering: entity = "TYPE" and CONDITION [and CONDITION...] ' +
+        '[ORDER BY field ASC/DESC]. ' +
+        'Aggregating: SELECT (AGGREGATE[, ...]) entity = "TYPE" and CONDITION... ' +
+        '[GROUP BY field] [HAVING condition] — SELECT comes FIRST, before the conditions.',
       entities: ['case', 'defect', 'run', 'result', 'plan', 'requirement'],
       note: 'QQL is only available in Business and Enterprise Qase subscriptions',
       fieldNamesVary:
@@ -157,8 +159,9 @@ async function getQqlHelp(args: z.infer<typeof GetQqlHelpSchema>) {
         'a query. Most common failure: `created` exists on case/defect/plan/requirement but ' +
         'NOT on run (started/ended) or result (ended only).',
       countWithoutPaging:
-        'To count or aggregate, use SELECT (COUNT(id)) rather than paging through rows — ' +
-        'see the `aggregation` topic.',
+        'To count or aggregate, lead with SELECT (COUNT(id)) rather than paging through rows — ' +
+        'e.g. SELECT (COUNT(id)) entity = "result" and project = "DEMO". See the `aggregation` ' +
+        'topic.',
     },
     syntax: {
       basicStructure: 'entity = "TYPE" and CONDITION [and CONDITION...]',
@@ -213,14 +216,15 @@ async function getQqlHelp(args: z.infer<typeof GetQqlHelpSchema>) {
         'QQL can aggregate server-side instead of making you page through rows and count them.',
       functions: ['COUNT', 'MIN', 'MAX', 'AVG', 'SUM', 'FIRST', 'LAST'],
       syntax:
-        'SELECT (aggregate[, aggregate...]) [GROUP BY field] [HAVING condition] — the ' +
-        'parentheses after SELECT are MANDATORY; without them the query fails with ' +
-        '"Query is invalid".',
+        'SELECT (aggregate[, aggregate...]) entity = "TYPE" and CONDITION... ' +
+        '[GROUP BY field] [HAVING condition] — two hard requirements: the parentheses ' +
+        'after SELECT are MANDATORY, and SELECT must come FIRST, before the conditions. ' +
+        'Violating either fails with "Query is invalid", which does not say which one.',
       examples: [
-        'entity = "result" and project = "DEMO" and status = "failed" SELECT (COUNT(id))',
-        'entity = "result" and project = "DEMO" SELECT (COUNT(id)) GROUP BY status',
-        'entity = "case" and project = "DEMO" SELECT (COUNT(id)) GROUP BY suite HAVING COUNT(id) > 10',
-        'entity = "result" and project = "DEMO" SELECT (AVG(timeSpent), MAX(timeSpent))',
+        'SELECT (COUNT(id)) entity = "result" and project = "DEMO" and status = "failed"',
+        'SELECT (COUNT(id)) entity = "result" and project = "DEMO" GROUP BY status',
+        'SELECT (COUNT(id)) entity = "case" and project = "DEMO" GROUP BY suite HAVING COUNT(id) > 10',
+        'SELECT (AVG(timeSpent), MAX(timeSpent)) entity = "result" and project = "DEMO"',
       ],
       enumsComeBackAsNumbers:
         'In aggregate results, enum fields are returned as their numeric IDs, not labels: ' +

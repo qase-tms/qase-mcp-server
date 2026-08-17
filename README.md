@@ -27,10 +27,11 @@ The Qase MCP Server lets AI assistants (Claude, Cursor, Codex, and any other MCP
 
 **Features:**
 
-- **31 task-oriented tools** (32 total, including `qase_discover_tools`) — consolidated from 83 v1 tools for lower token usage and better LLM accuracy
+- **36 task-oriented tools** (37 total, including `qase_discover_tools`) — consolidated from 83 v1 tools for lower token usage and better LLM accuracy
 - **Composite tools** — multi-step workflows in a single call: CI reporting, defect triage, regression run setup
 - **QQL support** — Qase Query Language for advanced searches across cases, runs, results, defects, and plans
 - **Project context bootstrap** — one call returns full project structure (suites, milestones, environments, users, custom fields)
+- **Test case review** — propose new cases or changes for review, assign reviewers, and track status (approving and merging remain UI-only)
 - **Tool discovery** — secondary tools stay hidden until needed, keeping the default tool list small
 - **Hosted or self-run** — connect to `https://mcp.qase.io/mcp` with just your Qase login, or run the server locally with your own API token
 - **Tenant-safe caching & HTTP resilience** — two-tier cache (in-memory + optional Redis), connection pooling, retry with backoff
@@ -76,17 +77,17 @@ Then point your MCP client's stdio config at the `@qase/mcp-server` binary. Full
 
 ## Upgrading from v1
 
-v2 consolidates 83 v1 tools into **29 task-oriented tools** (30 total, including a discovery tool). Tool names and response shapes have changed. See **[docs/migration.md](docs/migration.md)** for the complete tool mapping table, response format changes, and before/after examples.
+v2 consolidated 83 v1 tools into **29 task-oriented tools** (30 total, including a discovery tool), and has since grown to 36 (37 total). Tool names and response shapes have changed. See **[docs/migration.md](docs/migration.md)** for the complete tool mapping table, response format changes, and before/after examples.
 
 ## Tools
 
-32 tools across 6 groups (31 task-oriented tools plus `qase_discover_tools` for on-demand activation of secondary tools):
+37 tools across 6 groups (36 task-oriented tools plus `qase_discover_tools` for on-demand activation of secondary tools):
 
 | Group | Count | Description |
 | --- | --- | --- |
 | Read | 2 | Fetch any entity by type/ID, or bootstrap full project context in one call |
 | QQL | 2 | Search across cases, runs, results, defects, and plans with Qase Query Language |
-| Write | 23 | Create, update, and delete cases (single or up to 100 at once), runs, results, defects, suites, milestones, plans, shared steps, environments, and attachments; link cases and runs to Jira issues |
+| Write | 28 | Create, update, and delete cases (single or up to 100 at once), runs, results, defects, suites, milestones, plans, shared steps, environments, and attachments; link cases and runs to Jira issues; propose and manage test case reviews |
 | Composite | 3 | Multi-step workflows in one call: CI reporting, defect triage, regression run setup |
 | Escape hatch | 1 | Direct REST API access for any endpoint not covered by the tools above |
 | Meta | 1 | `qase_discover_tools` — find and activate secondary tools on demand |

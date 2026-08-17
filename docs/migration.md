@@ -183,7 +183,7 @@ All 83 v1 tools mapped to their v2 equivalents.
 |---|---|---|
 | `list_attachments` | `qase_api` | Use escape hatch: `GET /attachment` |
 | `get_attachment` | `qase_get` with `entity="attachment"` | Pass hash as `id` |
-| `upload_attachment` | `qase_attachment_upload` | — |
+| `upload_attachment` | `qase_attachment_upload` | Pass `file_base64` (or `file_path` for a server running locally). The single `file` argument still works but is deprecated |
 | `delete_attachment` | `qase_attachment_delete` | — |
 
 ### Authors

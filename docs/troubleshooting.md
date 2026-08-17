@@ -128,6 +128,28 @@ To find your certificate:
 5. Check the MCP client logs for connection errors
 6. For self-run from source, verify the server is built: `npm run build`
 
+## "Upload isn't possible on this connector"
+
+**Symptom**: the agent says attachments cannot be uploaded — often phrased as the endpoint requiring `multipart/form-data` while `qase_api` only sends JSON.
+
+**Cause**: the agent did not see `qase_attachment_upload`. Before 2.2.0 it was a discoverable tool, hidden from the tool list until `qase_discover_tools` was called, so the agent fell back to the `qase_api` escape hatch — which genuinely cannot send `multipart/form-data`.
+
+**Solution**:
+1. Update to 2.2.0 or later, where the upload tool is always listed: `npm update -g @qase/mcp-server` (the hosted connector always runs the latest version)
+2. On an older version, ask the agent to run `qase_discover_tools` with `"attachment"` first
+3. Pass the file as `file_base64`. `file_path` only works when the server runs on the same machine as the file — the hosted connector cannot read your filesystem
+4. To attach the result to a case, pass the returned hash in the `attachments` array of `qase_case_upsert` (or `qase_result_record`, `qase_ci_report`, `qase_defect_upsert`, `qase_triage_defect`)
+
+## Review tools fail or aren't listed
+
+**Symptom**: `qase_review_*` tools are missing, or every call fails.
+
+**Solution**:
+1. Review tools are discoverable — ask the agent to run `qase_discover_tools` with `"review"`
+2. Enable **Test case review** in the project settings; without it every review endpoint rejects the request
+3. Approving, requesting changes, merging, and declining are **UI-only** — the public API has no endpoints for them, so no tool can perform them
+4. `reviewers` takes author UUIDs (or emails, which are resolved). The review's author cannot be its own reviewer, and the author is whoever owns the API token
+
 ## Tool Not Found
 
 **Error**: `Unknown tool: tool_name`

@@ -54,7 +54,10 @@ const ReviewersSchema = z
   .optional()
   .describe(
     'Reviewers, as author UUIDs (see qase_get { entity: "author" }) or email addresses, ' +
-      'which are resolved to UUIDs. Note these are AUTHOR uuids, not user IDs.',
+      'which are resolved to UUIDs. Note these are AUTHOR uuids, not user IDs. The review ' +
+      'author cannot review their own review: since the review is created by whoever owns the ' +
+      'API token, listing that person here fails with "cannot be a reviewer of their own ' +
+      'review". Leave the list empty to assign reviewers later in the UI.',
   );
 
 /**
@@ -144,14 +147,30 @@ async function resolveReviewers(reviewers: string[] | undefined): Promise<string
  * check is on that text, not on a response object.
  */
 function reviewError(error: string, operation: string): never {
-  const looksLikeFeatureOff =
-    error.startsWith('Invalid request:') ||
-    error.startsWith('Access forbidden:') ||
-    /review/i.test(error);
+  const message = createToolError(error, operation).message;
 
-  if (looksLikeFeatureOff) {
+  // The author of a review cannot review it, and the review is authored by
+  // whoever owns the API token — so this is hit by simply passing your own
+  // address. Say what to do instead of leaving the raw validation error.
+  if (/cannot be a reviewer of their own review/i.test(error)) {
     throw new ToolExecutionError(
-      createToolError(error, operation).message,
+      message,
+      'A review cannot be reviewed by its author, and the review is created by the owner of ' +
+        'the API token — so that person cannot appear in `reviewers`. Pass somebody else, or ' +
+        'omit `reviewers` and assign them in the UI.',
+    );
+  }
+
+  // Match the feature-disabled case narrowly: a plain 400/403 with nothing more
+  // specific to say. Testing for "review" anywhere in the text would attach this
+  // hint to unrelated validation errors that merely mention reviews.
+  const looksLikeFeatureOff =
+    (error.startsWith('Invalid request:') || error.startsWith('Access forbidden:')) &&
+    !/reviewer|title|proposed_case|not found/i.test(error);
+
+  if (looksLikeFeatureOff || /review.{0,20}(disabled|not enabled|turned off)/i.test(error)) {
+    throw new ToolExecutionError(
+      message,
       `${REVIEW_MUST_BE_ENABLED} Check Project settings → Test case review if this persists.`,
     );
   }

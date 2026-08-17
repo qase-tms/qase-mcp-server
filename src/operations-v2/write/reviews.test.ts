@@ -384,19 +384,66 @@ describe('qase_review_bulk_create', () => {
   });
 });
 
-describe('review tools — feature disabled for the project', () => {
-  it('points at the project setting when the API rejects the request', async () => {
-    mockCreateReview.mockReturnValue(
-      Promise.reject(
-        Object.assign(new Error('Bad request'), {
-          isAxiosError: true,
-          response: { status: 400, data: { errorMessage: 'Test case review is disabled' } },
-        }),
-      ),
-    );
+/** Make the API reject with a formatted error, the way axios failures arrive. */
+function rejectWith(mock: jest.Mock, status: number, errorMessage: string) {
+  mock.mockReturnValue(
+    Promise.reject(
+      Object.assign(new Error(errorMessage), {
+        isAxiosError: true,
+        response: { status, data: { errorMessage } },
+      }),
+    ),
+  );
+}
 
-    await expect(invoke('qase_review_create', { code: 'DEMO', title: 'x' })).rejects.toThrow(
-      /Test case review/,
+/** The suggestion attached to a ToolExecutionError, as the caller would see it. */
+async function suggestionOf(promise: Promise<unknown>): Promise<string> {
+  try {
+    await promise;
+    throw new Error('expected a rejection');
+  } catch (e: any) {
+    return `${e.message}\n${e.suggestion ?? ''}`;
+  }
+}
+
+describe('review tools — error guidance', () => {
+  it('points at the project setting when review looks disabled', async () => {
+    rejectWith(mockCreateReview, 400, 'Test case review is disabled');
+
+    const text = await suggestionOf(invoke('qase_review_create', { code: 'DEMO', title: 'x' }));
+    expect(text).toMatch(/Test case review/);
+    expect(text).toMatch(/Project settings/);
+  });
+
+  it('explains that the review author cannot be its reviewer', async () => {
+    // Hit by simply passing your own address: the token owner authors the review.
+    rejectWith(mockCreateReview, 422, 'Reviewer abc-123 cannot be a reviewer of their own review.');
+
+    const text = await suggestionOf(
+      invoke('qase_review_create', { code: 'DEMO', title: 'x', reviewers: ['abc-123'] }),
     );
+    expect(text).toMatch(/cannot be reviewed by its author/);
+    expect(text).toMatch(/assign them in the UI/);
+  });
+
+  it('does not blame the project setting for an unrelated reviewer error', async () => {
+    rejectWith(mockCreateReview, 400, 'Invalid reviewer uuid supplied');
+
+    const text = await suggestionOf(invoke('qase_review_create', { code: 'DEMO', title: 'x' }));
+    // A bare "review" match used to attach the feature-disabled hint here.
+    expect(text).not.toMatch(/Project settings/);
+  });
+
+  it('does not blame the project setting for a missing review', async () => {
+    rejectWith(mockUpdateReview, 404, 'Review not found');
+
+    const text = await suggestionOf(invoke('qase_review_update', { code: 'DEMO', id: 9, title: 'x' }));
+    expect(text).not.toMatch(/Project settings/);
+  });
+
+  it('mentions the self-review rule in the reviewers field description', () => {
+    const schema = toolRegistry.getTool('qase_review_create')!.inputSchema as any;
+
+    expect(schema.properties.reviewers.description).toMatch(/cannot review their own review/);
   });
 });

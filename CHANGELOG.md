@@ -28,7 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - All four non-delete review tools declare an `outputSchema`, so the response shape is part of the contract.
   - `qase_get` accepts `entity: "review"`, and `qase_case_upsert` now mentions that changes may need to go through a review when the project has the feature enabled.
   - **Scope**: approving, requesting changes, merging, and declining have **no public API endpoints** — they exist only in the Qase UI (which does emit webhooks). Every review tool states this, so an agent does not report a merge it cannot perform.
-  - Reviewers are **author UUIDs**, not user IDs — a distinction that is easy to get wrong. Email addresses are accepted and resolved to UUIDs.
+  - Reviewers are **author UUIDs**, not user IDs — a distinction that is easy to get wrong. Email addresses are accepted and resolved to UUIDs. The `reviewers` field also documents that a review cannot be reviewed by its author: the review is created by whoever owns the API token, so passing that person's own address fails, and the resulting error now explains it.
   - Any review call fails when "Test case review" is disabled for the project; that failure now carries a hint pointing at the project setting instead of a bare 4xx.
 - **`qase_attachment_upload` takes explicit `file_base64` and `file_path` arguments**, so which one is meant is no longer inferred from the value. `file_base64` is the only option when the server is remote — including the hosted connector, which cannot see the caller's filesystem, the situation behind the original report. The old `file` argument keeps working as a deprecated alias.
 

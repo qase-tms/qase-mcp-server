@@ -1,0 +1,49 @@
+CHANGELOG.md
+  s_febb7d893f86f5::t_b4149ef79a3391 8-19
+src/operations-v2/write/shared-steps.ts
+  s_febb7d893f86f5::t_5ca635b71f19ed 11-14
+package.json
+  s_febb7d893f86f5::t_9f2b114a1323c0 3
+server.json
+  s_febb7d893f86f5::t_9f2b114a1323c0 11,16
+src/operations-v2/composites/ci-report.ts
+  s_febb7d893f86f5::t_5ca635b71f19ed 16-19
+src/operations-v2/composites/triage-defect.ts
+  s_febb7d893f86f5::t_5ca635b71f19ed 20-23
+src/operations-v2/write/attachments.ts
+  s_febb7d893f86f5::t_274808a58dd2c7 129-135,139-141
+  s_febb7d893f86f5::t_d2829b19e7fa3f 10-30,38-92,94-98,103-106
+  s_febb7d893f86f5::t_1b17bb0d6eb0f1 5
+src/operations-v2/write/results.ts
+  s_febb7d893f86f5::t_5ca635b71f19ed 11-14,25-28
+src/operations-v2/write/defects.ts
+  s_febb7d893f86f5::t_5ca635b71f19ed 18-21
+src/smoke.test.ts
+  s_febb7d893f86f5::t_3dd232221f793b 128,133-147
+  s_febb7d893f86f5::t_331ce79b16049a 380-382
+  s_febb7d893f86f5::t_4273afa0267419 148-149
+src/operations-v2/escape/api.ts
+  s_febb7d893f86f5::t_174702ab9352e7 29-30
+src/operations-v2/write/case-fields.ts
+  s_febb7d893f86f5::t_5ca635b71f19ed 19-22,73-76
+src/operations-v2/write/attachments.test.ts
+  s_febb7d893f86f5::t_6e61879bc5c716 1-161
+package-lock.json
+  s_febb7d893f86f5::t_799538cdda16c3 3,9
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "9612266b70eb67b488ca2372e0de64c306ee0ff9",
+  "prompts": {},
+  "sessions": {
+    "s_febb7d893f86f5": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "1224a5a6-6d47-4860-83a4-72b0f7bcba6d",
+        "model": "claude-opus-5"
+      },
+      "human_author": "Dmitrii Gridnev <dgridnev@qase.io>"
+    }
+  }
+}

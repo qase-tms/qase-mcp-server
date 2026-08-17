@@ -1,0 +1,43 @@
+package.json
+  s_febb7d893f86f5::t_7e7fcdd0a43434 77
+src/operations-v2/index.ts
+  s_febb7d893f86f5::t_a0b44d70cfc0ec 21
+src/operations-v2/write/cases.ts
+  s_febb7d893f86f5::t_d05b5cdc3a6c5b 61-63
+CHANGELOG.md
+  s_febb7d893f86f5::t_1640af454d52dc 10-13
+  s_febb7d893f86f5::t_0743d12e513d32 22-31
+src/client/index.ts
+  s_febb7d893f86f5::t_4544fa7f373574 31
+  s_febb7d893f86f5::t_2ee193ab7971a7 81
+  s_febb7d893f86f5::t_ee613e69e9ca1a 151
+src/operations-v2/read/get.ts
+  s_febb7d893f86f5::t_b952550226eb74 90
+  s_febb7d893f86f5::t_eddb768c01009e 39
+src/operations-v2/write/reviews.ts
+  s_febb7d893f86f5::t_c34144ceaefb30 17-23,36,80-82,321
+  s_febb7d893f86f5::t_d6ed0c1481ba49 1-16,24-35,37-79,83-131,139,145,147,150-320,322-437
+  s_febb7d893f86f5::t_85d977114ff997 132-138,140-144,146,148-149
+src/smoke.test.ts
+  s_febb7d893f86f5::t_1847fb28dc98fa 318,320
+src/operations-v2/write/reviews.test.ts
+  s_febb7d893f86f5::t_6dde95a16d6ba8 1-358
+package-lock.json
+  s_febb7d893f86f5::t_cfdcfc59eab130 19,6671-6673
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "8b813432dc35c122745b2fe0d9da974c15d2cf03",
+  "prompts": {},
+  "sessions": {
+    "s_febb7d893f86f5": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "1224a5a6-6d47-4860-83a4-72b0f7bcba6d",
+        "model": "claude-opus-5"
+      },
+      "human_author": "Dmitrii Gridnev <dgridnev@qase.io>"
+    }
+  }
+}

@@ -1,0 +1,34 @@
+docs/migration.md
+  s_febb7d893f86f5::t_bb07bfe22c46e2 186
+docs/tools.md
+  s_febb7d893f86f5::t_1ff31781311c09 27-28
+  s_febb7d893f86f5::t_7cca7fb83d85f0 97
+  s_febb7d893f86f5::t_5d2aa4792349ad 66-81
+  s_febb7d893f86f5::t_3180080ab0067a 9-10
+  s_febb7d893f86f5::t_c8f6b82df394e0 3,33,65,109
+  s_febb7d893f86f5::t_65570dc90cba76 20-21
+  s_febb7d893f86f5::t_3e0257a0663f9c 57
+  s_febb7d893f86f5::t_543ab475de3959 91
+README.md
+  s_febb7d893f86f5::t_285e73cdb28ece 30,84,90
+  s_febb7d893f86f5::t_c1420e53cd1a46 34
+  s_febb7d893f86f5::t_6ac46aaaa40ddc 80
+docs/troubleshooting.md
+  s_febb7d893f86f5::t_f739b4f697edae 131-152
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "151e8cc06181e5d8487782ef8cd70dd9849b038c",
+  "prompts": {},
+  "sessions": {
+    "s_febb7d893f86f5": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "1224a5a6-6d47-4860-83a4-72b0f7bcba6d",
+        "model": "claude-opus-5"
+      },
+      "human_author": "Dmitrii Gridnev <dgridnev@qase.io>"
+    }
+  }
+}

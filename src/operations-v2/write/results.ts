@@ -8,7 +8,10 @@ const ResultStepSchema = z.object({
   position: z.number().int().min(0),
   status: z.enum(['passed', 'failed', 'blocked', 'skipped']),
   comment: z.string().optional(),
-  attachments: z.array(z.string()).optional(),
+  attachments: z
+    .array(z.string())
+    .optional()
+    .describe('Attachment hashes from qase_attachment_upload'),
 });
 
 const SingleResultSchema = z.object({
@@ -19,7 +22,10 @@ const SingleResultSchema = z.object({
   time_ms: z.number().int().min(0).optional(),
   defect: z.boolean().optional(),
   steps: z.array(ResultStepSchema).optional(),
-  attachments: z.array(z.string()).optional(),
+  attachments: z
+    .array(z.string())
+    .optional()
+    .describe('Attachment hashes from qase_attachment_upload'),
   custom_field: z.record(z.any()).optional(),
 });
 

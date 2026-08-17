@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.0]
+
+### Fixed
+
+- **Attachments could not be added to test cases.** ([#74](https://github.com/qase-tms/qase-mcp-server/issues/74)) `qase_attachment_upload` was registered as `discoverable`, so it was absent from `tools/list` until an agent happened to call `qase_discover_tools`. Meanwhile the `attachments` field on visible tools (`qase_case_upsert`, `qase_result_record`, `qase_ci_report`, `qase_triage_defect`, `qase_defect_upsert`) asks for hashes that only that hidden tool can produce — so agents reached for `qase_api`, hit the endpoint's `multipart/form-data` requirement, and reported that uploads were impossible on the connector. The tool is now a core tool, listed by default, and every `attachments` field says where its hashes come from. `qase_api`'s own description now states that it sends JSON only and points at the upload tool.
+- **Plain text files were uploaded as binary noise.** The single `file` argument guessed base64-vs-path with `/^[A-Za-z0-9+/=\s]+$/`, which matches any letters-digits-spaces string: `"Test data 123"` was treated as base64 and decoded into garbage, silently. Base64 is now confirmed by decode/re-encode round-trip, and non-base64 content passed through `file` is uploaded verbatim.
+- **A wrong `file` path silently uploaded noise** instead of reporting the missing file: a path that did not exist fell through to base64 handling. `file_path` now fails with the path it tried and a note that a remote server cannot read your filesystem.
+
+### Added
+
+- **`qase_attachment_upload` takes explicit `file_base64` and `file_path` arguments**, so which one is meant is no longer inferred from the value. `file_base64` is the only option when the server is remote — including the hosted connector, which cannot see the caller's filesystem, the situation behind the original report. The old `file` argument keeps working as a deprecated alias.
+
 ## [2.1.1]
 
 ### Fixed

@@ -36,6 +36,7 @@ const Schema = z.object({
       'attachment',
       'author',
       'user',
+      'review',
       'custom_field',
     ])
     .describe('Entity type to fetch'),
@@ -86,6 +87,7 @@ const FETCHERS: Record<
   author: (c, _code, id) => c.authors.getAuthor(id),
   user: (c, _code, id) => c.users.getUser(id),
   custom_field: (c, _code, id) => c.customFields.getCustomField(id),
+  review: (c, code, id) => c.reviews.getReview(code, id),
 };
 
 async function handler(args: z.infer<typeof Schema>) {

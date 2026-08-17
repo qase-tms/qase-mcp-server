@@ -125,10 +125,26 @@ describe('Schema-API Contract Tests', () => {
       expect(required).toContain('code');
     });
 
-    it('filename and file should be required', () => {
+    it('filename should be required', () => {
       const required = getSchemaRequired('qase_attachment_upload');
-      expect(required).toContain('file');
       expect(required).toContain('filename');
+    });
+
+    it('offers explicit base64 and path inputs, keeping `file` as a legacy alias', () => {
+      const schema = toolRegistry.getTool('qase_attachment_upload')!.inputSchema as any;
+      const props = Object.keys(schema.properties);
+
+      // Which one the caller means is no longer guessed from the value.
+      expect(props).toContain('file_base64');
+      expect(props).toContain('file_path');
+      expect(props).toContain('file');
+
+      // None is individually required — the handler checks that one was given,
+      // which a JSON Schema `required` list cannot express.
+      const required = getSchemaRequired('qase_attachment_upload');
+      for (const name of ['file_base64', 'file_path', 'file']) {
+        expect(required).not.toContain(name);
+      }
     });
 
     it('handler should not crash with file.forEach TypeError', async () => {
@@ -299,9 +315,9 @@ describe('Tool Smoke Tests', () => {
     allToolNames = allTools.map((t) => t.name);
   });
 
-  it('should have ~30 tools registered (v2 tool set + discover)', () => {
+  it('should have ~35 tools registered (v2 tool set + reviews + discover)', () => {
     expect(allTools.length).toBeGreaterThanOrEqual(25);
-    expect(allTools.length).toBeLessThanOrEqual(35);
+    expect(allTools.length).toBeLessThanOrEqual(40);
     console.error(`[Smoke] Found ${allTools.length} registered tools (${toolRegistry.getTools().length} core)`);
   });
 
@@ -361,6 +377,9 @@ describe('Tool Smoke Tests', () => {
       'qase_regression_run',
       'qase_api',
       'qase_discover_tools',
+      // Core because the `attachments` field on the tools above is unusable
+      // without it, and no other tool can send multipart/form-data.
+      'qase_attachment_upload',
     ];
     for (const name of expectedCore) {
       expect(coreTools).toContain(name);
@@ -386,7 +405,6 @@ describe('Tool Smoke Tests', () => {
       'qase_run_delete',
       'qase_result_delete',
       'qase_defect_delete',
-      'qase_attachment_upload',
       'qase_attachment_delete',
       'qase_external_issue_link',
     ];

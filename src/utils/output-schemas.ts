@@ -66,6 +66,63 @@ export const ProjectContextOutput: OutputSchema = {
   required: ['project', 'suites', 'milestones', 'environments', 'coverage'],
 };
 
+export const ReviewCreateOutput: OutputSchema = {
+  type: 'object',
+  properties: {
+    review_id: { type: 'integer', description: 'Created review ID' },
+    type: {
+      type: 'string',
+      description: '"create" for a new-case draft, "edit" when case_id was given',
+    },
+    case_id: { type: ['integer', 'null'], description: 'Reviewed case, null for a create review' },
+    status: { type: 'string', description: 'Always "open" for a freshly created review' },
+  },
+  required: ['review_id', 'type'],
+};
+
+export const ReviewUpdateOutput: OutputSchema = {
+  type: 'object',
+  properties: {
+    review_id: { type: 'integer' },
+    updated: {
+      type: 'array',
+      items: { type: 'string' },
+      description: 'Which parts were sent: "proposed_case", "reviewers", or both',
+    },
+    approvals_reset: {
+      type: 'boolean',
+      description:
+        'True when the proposal changed, which clears every approval already given. False when only reviewers changed.',
+    },
+  },
+  required: ['review_id', 'approvals_reset'],
+};
+
+export const ReviewListOutput: OutputSchema = {
+  type: 'object',
+  properties: {
+    total: { type: 'integer', description: 'Reviews matching the filters' },
+    returned: { type: 'integer', description: 'Reviews in this response — page for the rest' },
+    entities: { type: 'array', items: { type: 'object' }, description: 'The reviews' },
+  },
+  required: ['total', 'returned', 'entities'],
+};
+
+export const ReviewBulkCreateOutput: OutputSchema = {
+  type: 'object',
+  properties: {
+    created: { type: 'integer', description: 'How many reviews were opened' },
+    review_ids: {
+      type: 'array',
+      items: { type: 'integer' },
+      description:
+        "IDs of the created reviews, in request order. Flattened from the API's items[].review_id so it matches qase_review_create.",
+    },
+    items: { type: 'array', items: { type: 'object' }, description: 'Raw per-item API result' },
+  },
+  required: ['created', 'review_ids'],
+};
+
 export const DeleteOutput: OutputSchema = {
   type: 'object',
   properties: {

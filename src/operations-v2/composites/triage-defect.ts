@@ -17,7 +17,10 @@ const Schema = z.object({
   actual_result: z.string().describe('Observed behavior. Required by the API'),
   description: z.string().optional(),
   tags: z.array(z.string()).optional(),
-  attachments: z.array(z.string()).optional(),
+  attachments: z
+    .array(z.string())
+    .optional()
+    .describe('Attachment hashes from qase_attachment_upload'),
   custom_field: z.record(z.any()).optional(),
 });
 

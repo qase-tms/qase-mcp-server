@@ -16,7 +16,10 @@ const stepFields = {
   expected_result: z.string().optional().describe('Expected result'),
   data: z.string().optional().describe('Test data'),
   value: z.string().optional().describe('Gherkin scenario text (when steps_type is "gherkin")'),
-  attachments: z.array(z.string()).optional().describe('Attachment hashes'),
+  attachments: z
+    .array(z.string())
+    .optional()
+    .describe('Attachment hashes from qase_attachment_upload'),
   shared: z
     .string()
     .optional()
@@ -67,7 +70,10 @@ export const CaseFieldsSchema = z.object({
   steps: z.array(TestStepSchema).optional(),
   steps_type: z.enum(['classic', 'gherkin']).optional(),
   tags: z.array(z.string()).optional(),
-  attachments: z.array(z.string()).optional(),
+  attachments: z
+    .array(z.string())
+    .optional()
+    .describe('Attachment hashes from qase_attachment_upload'),
   custom_field: z.record(z.any()).optional(),
 });
 

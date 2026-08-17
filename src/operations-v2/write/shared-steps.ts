@@ -8,7 +8,10 @@ const StepContentSchema = z.object({
   action: z.string().describe('Step action description'),
   expected_result: z.string().optional().describe('Expected result'),
   data: z.string().optional().describe('Test data'),
-  attachments: z.array(z.string()).optional().describe('Array of attachment hashes'),
+  attachments: z
+    .array(z.string())
+    .optional()
+    .describe('Attachment hashes from qase_attachment_upload'),
 });
 
 const UpsertSchema = z.object({

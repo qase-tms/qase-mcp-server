@@ -13,7 +13,10 @@ const CaseResultSchema = z.object({
   time_ms: z.number().int().min(0).optional(),
   stacktrace: z.string().optional(),
   defect: z.boolean().optional(),
-  attachments: z.array(z.string()).optional(),
+  attachments: z
+    .array(z.string())
+    .optional()
+    .describe('Attachment hashes from qase_attachment_upload'),
 });
 
 const Schema = z.object({

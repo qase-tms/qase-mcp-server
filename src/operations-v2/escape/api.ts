@@ -26,7 +26,8 @@ toolRegistry.register({
     'Direct Qase REST API call for endpoints not covered by other tools. ' +
     'Pass the HTTP method, path (starting with /v1/), and optional body/query. ' +
     'See https://developers.qase.io for API reference. Use this as an escape hatch ' +
-    'when the dedicated tools do not cover your use case.',
+    'when the dedicated tools do not cover your use case. Sends JSON only: it cannot ' +
+    'upload files, which need multipart/form-data — use qase_attachment_upload for that.',
   schema: Schema,
   handler,
   annotations: {

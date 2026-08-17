@@ -28,6 +28,7 @@ import {
   SystemFieldsApi,
   UsersApi,
   SharedParametersApi,
+  ReviewsApi,
 } from 'qase-api-client';
 import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
 import { createKeepAliveAgent, attachRetry, attachInflightDedupe } from '../http/index.js';
@@ -77,6 +78,7 @@ class QaseApiClient {
   readonly systemFields: SystemFieldsApi;
   readonly users: UsersApi;
   readonly sharedParameters: SharedParametersApi;
+  readonly reviews: ReviewsApi;
 
   private readonly token: string;
   private readonly host: string;
@@ -146,6 +148,7 @@ class QaseApiClient {
     this.systemFields = new SystemFieldsApi(cfg, basePath, this.axiosInstance);
     this.users = new UsersApi(cfg, basePath, this.axiosInstance);
     this.sharedParameters = new SharedParametersApi(cfg, basePath, this.axiosInstance);
+    this.reviews = new ReviewsApi(cfg, basePath, this.axiosInstance);
   }
 
   /**

@@ -58,7 +58,9 @@ toolRegistry.register({
   description:
     'Create or update a test case. If `id` is provided, updates the existing case; ' +
     'if omitted, creates a new one. Enum fields (priority, severity, type, etc.) accept ' +
-    'both labels ("high", "blocker") and numeric IDs — the server normalizes automatically.',
+    'both labels ("high", "blocker") and numeric IDs — the server normalizes automatically. ' +
+    'If the project has "Test case review" enabled, changes may need to go through a review ' +
+    'instead of being written directly — run qase_discover_tools with "review" for those tools.',
   schema: UpsertSchema,
   handler: upsert,
   annotations: CreateAnnotation,

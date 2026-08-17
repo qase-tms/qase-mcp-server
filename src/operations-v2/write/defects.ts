@@ -15,7 +15,10 @@ const DefectFieldsSchema = z.object({
     .optional()
     .describe('Set to "resolved" to resolve the defect'),
   tags: z.array(z.string()).optional(),
-  attachments: z.array(z.string()).optional(),
+  attachments: z
+    .array(z.string())
+    .optional()
+    .describe('Attachment hashes from qase_attachment_upload'),
   custom_field: z.record(z.any()).optional(),
 });
 

@@ -1,6 +1,6 @@
 {
   "name": "@qase/mcp-server",
-  "version": "2.1.1",
+  "version": "2.2.0",
   "mcpName": "io.qase/mcp-server",
   "description": "Official MCP server for Qase Test Management Platform",
   "type": "module",
@@ -74,7 +74,7 @@
     "jose": "^6.1.3",
     "lru-cache": "^11.3.5",
     "neverthrow": "^8.2.0",
-    "qase-api-client": "^1.1.13",
+    "qase-api-client": "^1.1.14",
     "zod": "^3.24.2",
     "zod-to-json-schema": "^3.24.3"
   },

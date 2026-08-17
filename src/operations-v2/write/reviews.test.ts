@@ -55,8 +55,11 @@ beforeEach(() => {
   mockCreateReview.mockReturnValue(Promise.resolve({ data: { status: true, result: { id: 7 } } }));
   mockUpdateReview.mockReturnValue(Promise.resolve({ data: { status: true, result: { id: 7 } } }));
   mockDeleteReview.mockReturnValue(Promise.resolve({ data: { status: true, result: { id: 7 } } }));
+  // The API nests results as items[].review_id — not `id`, and not top level.
   mockBulkCreate.mockReturnValue(
-    Promise.resolve({ data: { status: true, result: { items: [{ id: 7 }] } } }),
+    Promise.resolve({
+      data: { status: true, result: { items: [{ review_id: 11 }, { review_id: 12 }] } },
+    }),
   );
   mockGetReviews.mockReturnValue(
     Promise.resolve({ data: { status: true, result: { total: 0, entities: [] } } }),
@@ -325,6 +328,47 @@ describe('qase_review_bulk_create', () => {
     expect(body.reviews).toHaveLength(2);
     expect(body.reviews[0].proposed_case.title).toBe('first');
     expect(body.reviews[1].case_id).toBe(42);
+  });
+
+  it('flattens items[].review_id into review_ids, matching qase_review_create', async () => {
+    const result: any = await invoke('qase_review_bulk_create', {
+      code: 'DEMO',
+      reviews: [{ title: 'first' }, { title: 'second' }],
+    });
+
+    // Without this, a caller has to know that single-create returns review_id at
+    // the top level while bulk nests it one level down under a different key.
+    expect(result.structuredContent).toMatchObject({
+      created: 2,
+      review_ids: [11, 12],
+    });
+  });
+
+  it('lists the created IDs in the summary', async () => {
+    const result: any = await invoke('qase_review_bulk_create', {
+      code: 'DEMO',
+      reviews: [{ title: 'first' }, { title: 'second' }],
+    });
+    const text = result.content.map((b: any) => b.text).join('\n');
+
+    expect(text).toContain('#11');
+    expect(text).toContain('#12');
+    expect(text).toMatch(/2.* of 2/);
+  });
+
+  it('flags items the API returned no ID for', async () => {
+    mockBulkCreate.mockReturnValue(
+      Promise.resolve({ data: { status: true, result: { items: [{ review_id: 11 }, {}] } } }),
+    );
+
+    const result: any = await invoke('qase_review_bulk_create', {
+      code: 'DEMO',
+      reviews: [{ title: 'first' }, { title: 'second' }],
+    });
+    const text = result.content.map((b: any) => b.text).join('\n');
+
+    expect(result.structuredContent.review_ids).toEqual([11]);
+    expect(text).toMatch(/1 item\(s\) returned no ID/);
   });
 
   it('rejects the batch locally when an item lacks a title, sending nothing', async () => {

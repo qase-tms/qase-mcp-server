@@ -26,6 +26,12 @@ import { ProjectCodeSchema, IdSchema } from '../../utils/validation.js';
 import { normalizeCaseEnums } from '../../utils/case-enums.js';
 import { CaseFieldsSchema, resolveSharedStepRefs } from './case-fields.js';
 import { richResult, summaryBlock, dataBlock, markdownTable } from '../../utils/rich-response.js';
+import {
+  ReviewCreateOutput,
+  ReviewUpdateOutput,
+  ReviewListOutput,
+  ReviewBulkCreateOutput,
+} from '../../utils/output-schemas.js';
 
 /** Wording shared by every review tool, so the API's limits are never implied away. */
 const NO_WORKFLOW_ACTIONS =
@@ -367,7 +373,33 @@ async function bulkCreate(args: z.infer<typeof BulkCreateSchema>) {
   );
 
   return result.match(
-    (r) => r.data.result,
+    (r) => {
+      // The API nests the results as items[].review_id, while the single-create
+      // tool returns review_id at the top level. Surface a flat list of IDs so a
+      // caller does not have to know the difference to find what it just created.
+      const raw = r.data.result as any;
+      const items: any[] = raw?.items ?? [];
+      const review_ids = items
+        .map((item) => item?.review_id ?? item?.id)
+        .filter((id): id is number => typeof id === 'number');
+
+      const lines = [`Opened **${review_ids.length}** of ${reviews.length} reviews`];
+      if (review_ids.length > 0) {
+        lines.push(
+          '',
+          ...review_ids.map((id, i) => `- **#${id}** ${reviews[i]?.title ?? ''}`.trimEnd()),
+        );
+      }
+      if (review_ids.length < reviews.length) {
+        lines.push(
+          '',
+          `_${reviews.length - review_ids.length} item(s) returned no ID — see \`items\` for what the API reported._`,
+        );
+      }
+
+      const structured = { created: review_ids.length, review_ids, items };
+      return richResult([summaryBlock(lines.join('\n')), dataBlock(structured)], structured);
+    },
     (e) => reviewError(e, 'bulk review creation'),
   );
 }
@@ -386,6 +418,7 @@ toolRegistry.register({
   schema: CreateSchema,
   handler: create,
   annotations: CreateAnnotation,
+  outputSchema: ReviewCreateOutput,
   visibility: 'discoverable',
 });
 
@@ -398,6 +431,7 @@ toolRegistry.register({
   schema: UpdateSchema,
   handler: update,
   annotations: UpdateAnnotation,
+  outputSchema: ReviewUpdateOutput,
   visibility: 'discoverable',
 });
 
@@ -410,6 +444,7 @@ toolRegistry.register({
   schema: ListSchema,
   handler: list,
   annotations: ReadAnnotation,
+  outputSchema: ReviewListOutput,
   visibility: 'discoverable',
 });
 
@@ -433,5 +468,6 @@ toolRegistry.register({
   schema: BulkCreateSchema,
   handler: bulkCreate,
   annotations: CreateAnnotation,
+  outputSchema: ReviewBulkCreateOutput,
   visibility: 'discoverable',
 });

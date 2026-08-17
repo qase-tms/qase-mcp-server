@@ -1,0 +1,24 @@
+src/operations-v2/write/reviews.test.ts
+  s_febb7d893f86f5::t_91ff95d61767d5 387-420,422-423,425-447
+src/operations-v2/write/reviews.ts
+  s_febb7d893f86f5::t_3a48a1ab983610 150-166,168-169,171,173
+  s_febb7d893f86f5::t_98235a96d39c9f 57-60
+CHANGELOG.md
+  s_febb7d893f86f5::t_9789d18a867ad3 31
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "a75fe91960ee00cc5678c7f18248f69798a28614",
+  "prompts": {},
+  "sessions": {
+    "s_febb7d893f86f5": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "1224a5a6-6d47-4860-83a4-72b0f7bcba6d",
+        "model": "claude-opus-5"
+      },
+      "human_author": "Dmitrii Gridnev <dgridnev@qase.io>"
+    }
+  }
+}

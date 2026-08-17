@@ -315,9 +315,9 @@ describe('Tool Smoke Tests', () => {
     allToolNames = allTools.map((t) => t.name);
   });
 
-  it('should have ~30 tools registered (v2 tool set + discover)', () => {
+  it('should have ~35 tools registered (v2 tool set + reviews + discover)', () => {
     expect(allTools.length).toBeGreaterThanOrEqual(25);
-    expect(allTools.length).toBeLessThanOrEqual(35);
+    expect(allTools.length).toBeLessThanOrEqual(40);
     console.error(`[Smoke] Found ${allTools.length} registered tools (${toolRegistry.getTools().length} core)`);
   });
 

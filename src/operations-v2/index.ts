@@ -18,6 +18,7 @@ import './write/shared-steps.js';
 import './write/environments.js';
 import './write/attachments.js';
 import './write/external-issues.js';
+import './write/reviews.js';
 
 // Composites
 import './composites/ci-report.js';

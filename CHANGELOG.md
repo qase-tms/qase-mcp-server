@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [2.2.0]
 
+### Changed
+
+- Updated `qase-api-client` to 1.1.14, which adds the reviews API.
+
 ### Fixed
 
 - **Attachments could not be added to test cases.** ([#74](https://github.com/qase-tms/qase-mcp-server/issues/74)) `qase_attachment_upload` was registered as `discoverable`, so it was absent from `tools/list` until an agent happened to call `qase_discover_tools`. Meanwhile the `attachments` field on visible tools (`qase_case_upsert`, `qase_result_record`, `qase_ci_report`, `qase_triage_defect`, `qase_defect_upsert`) asks for hashes that only that hidden tool can produce — so agents reached for `qase_api`, hit the endpoint's `multipart/form-data` requirement, and reported that uploads were impossible on the connector. The tool is now a core tool, listed by default, and every `attachments` field says where its hashes come from. `qase_api`'s own description now states that it sends JSON only and points at the upload tool.
@@ -15,6 +19,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Test case review support** — the pull-request workflow for test cases, via five new discoverable tools:
+  - **`qase_review_create`** — opens a review. With `case_id` it proposes changes to an existing case (an `edit` review, send only what changes); without it, a new-case draft (a `create` review, `title` required). Case fields are named and normalised exactly as in `qase_case_upsert`, so enum labels (`priority: "high"`) and shared step references work identically.
+  - **`qase_review_update`** — changes the proposal, reassigns reviewers, or both. Changing the proposal **resets every approval already given**, while updating only `reviewers` keeps them; the tool says so up front and reports `approvals_reset` in its result, since this is easy to trigger by accident.
+  - **`qase_review_list`** — filters by status, type, reviewed case, author, reviewer, and title, and reports the total alongside what was returned. This is also how per-reviewer approval status is read, as QQL has no review entity.
+  - **`qase_review_delete`** — deletes a proposal (merged reviews cannot be deleted; this is not the same as declining).
+  - **`qase_review_bulk_create`** — opens several at once. The API validates the batch as a whole, so items missing a required `title` are rejected locally before anything is sent.
+  - `qase_get` accepts `entity: "review"`, and `qase_case_upsert` now mentions that changes may need to go through a review when the project has the feature enabled.
+  - **Scope**: approving, requesting changes, merging, and declining have **no public API endpoints** — they exist only in the Qase UI (which does emit webhooks). Every review tool states this, so an agent does not report a merge it cannot perform.
+  - Reviewers are **author UUIDs**, not user IDs — a distinction that is easy to get wrong. Email addresses are accepted and resolved to UUIDs.
+  - Any review call fails when "Test case review" is disabled for the project; that failure now carries a hint pointing at the project setting instead of a bare 4xx.
 - **`qase_attachment_upload` takes explicit `file_base64` and `file_path` arguments**, so which one is meant is no longer inferred from the value. `file_base64` is the only option when the server is remote — including the hosted connector, which cannot see the caller's filesystem, the situation behind the original report. The old `file` argument keeps working as a deprecated alias.
 
 ## [2.1.1]

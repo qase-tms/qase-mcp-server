@@ -32,7 +32,7 @@ The hosted server at `https://mcp.qase.io/mcp` serves Qase's main cloud (`qase.i
 
 ```bash
 QASE_API_TOKEN=your_api_token_here
-QASE_API_DOMAIN=api.yourcompany.qase.io
+QASE_API_DOMAIN=api-yourcompany.qase.io
 ```
 
 If that instance is served without TLS, also set `QASE_API_PROTOCOL=http` — see [Self-Hosted API Served over Plain HTTP](#self-hosted-api-served-over-plain-http).
@@ -125,9 +125,9 @@ To find your certificate:
 **Error**: `Invalid domain` or connection errors with custom domain
 
 **Solution**:
-1. Ensure `QASE_API_DOMAIN` is set to just the domain (e.g., `api.company.qase.io`)
+1. Ensure `QASE_API_DOMAIN` is set to just the domain (e.g., `api-company.qase.io`)
 2. Don't include `https://` or `/v1` in the domain — the scheme goes in `QASE_API_PROTOCOL` instead (see below), and the API version is appended by the server
-3. A non-default port does belong in the domain: `api.company.qase.io:8080`
+3. A non-default port does belong in the domain: `api-company.qase.io:8080`
 4. Verify with your Qase administrator
 
 ## Self-Hosted API Served over Plain HTTP

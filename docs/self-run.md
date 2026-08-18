@@ -55,10 +55,10 @@ Get your API token from: https://app.qase.io/user/api/token
 If you're using Qase Enterprise with a custom domain:
 
 ```bash
-QASE_API_DOMAIN=api.yourcompany.qase.io
+QASE_API_DOMAIN=api-yourcompany.qase.io
 ```
 
-`QASE_API_DOMAIN` takes the domain only — no scheme, no path. `https://api.yourcompany.qase.io` or `api.yourcompany.qase.io/v1` are rejected with an error.
+`QASE_API_DOMAIN` takes the domain only — no scheme, no path. `https://api-yourcompany.qase.io` or `api-yourcompany.qase.io/v1` are rejected with an error.
 
 If your workspace is on a **dedicated instance**, self-run is the only option: the [hosted connector](connect.md) serves Qase's main cloud (`qase.io`) only, regardless of plan.
 

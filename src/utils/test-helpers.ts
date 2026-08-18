@@ -46,6 +46,7 @@ export function setTestEnv() {
 export function clearTestEnv() {
   delete process.env.QASE_API_TOKEN;
   delete process.env.QASE_API_DOMAIN;
+  delete process.env.QASE_API_PROTOCOL;
 }
 
 /**

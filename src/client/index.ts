@@ -178,6 +178,10 @@ class QaseApiClient {
 
 /**
  * Get validated API host from QASE_API_DOMAIN env var.
+ *
+ * The scheme comes from QASE_API_PROTOCOL and defaults to https. It is
+ * deliberately undocumented: it exists so a local or self-hosted API served over
+ * plain HTTP (http://api.qase.lo) can be reached, and nothing else needs it.
  */
 function getHost(): string {
   const domain = process.env.QASE_API_DOMAIN || 'api.qase.io';
@@ -189,7 +193,18 @@ function getHost(): string {
     );
   }
 
-  return `https://${domain}`;
+  return `${getProtocol()}://${domain}`;
+}
+
+/**
+ * Scheme for API requests. Accepts `http` or `https`, with or without the `://`
+ * suffix; anything else falls back to https rather than failing, so a typo can
+ * never downgrade the connection to something unexpected.
+ */
+function getProtocol(): string {
+  const protocol = process.env.QASE_API_PROTOCOL?.trim().toLowerCase().replace(/:\/*$/, '');
+
+  return protocol === 'http' ? 'http' : 'https';
 }
 
 /**

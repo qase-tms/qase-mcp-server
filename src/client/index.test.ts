@@ -22,6 +22,11 @@ async function resetClient() {
   jest.resetModules();
 }
 
+/** The host the client resolved, read off one of the generated SDK resources. */
+function basePathOf(client: { cases: unknown }): string {
+  return (client.cases as { basePath: string }).basePath;
+}
+
 describe('API Client', () => {
   beforeEach(() => {
     setTestEnv();
@@ -67,6 +72,38 @@ describe('API Client', () => {
 
     const { getApiClient } = await import('./index.js');
     expect(() => getApiClient()).toThrow('QASE_API_DOMAIN should only contain the domain name');
+  });
+
+  it('should default to https when QASE_API_PROTOCOL is not set', async () => {
+    delete process.env.QASE_API_PROTOCOL;
+    process.env.QASE_API_DOMAIN = 'api.custom.qase.io';
+
+    const { getApiClient } = await import('./index.js');
+    expect(basePathOf(getApiClient())).toBe('https://api.custom.qase.io/v1');
+  });
+
+  it('should use http when QASE_API_PROTOCOL says so', async () => {
+    process.env.QASE_API_PROTOCOL = 'http';
+    process.env.QASE_API_DOMAIN = 'api.qase.lo';
+
+    const { getApiClient } = await import('./index.js');
+    expect(basePathOf(getApiClient())).toBe('http://api.qase.lo/v1');
+  });
+
+  it('should accept QASE_API_PROTOCOL written as a scheme with separator', async () => {
+    process.env.QASE_API_PROTOCOL = 'HTTP://';
+    process.env.QASE_API_DOMAIN = 'api.qase.lo';
+
+    const { getApiClient } = await import('./index.js');
+    expect(basePathOf(getApiClient())).toBe('http://api.qase.lo/v1');
+  });
+
+  it('should fall back to https on an unrecognised QASE_API_PROTOCOL', async () => {
+    process.env.QASE_API_PROTOCOL = 'ftp';
+    process.env.QASE_API_DOMAIN = 'api.qase.lo';
+
+    const { getApiClient } = await import('./index.js');
+    expect(basePathOf(getApiClient())).toBe('https://api.qase.lo/v1');
   });
 
   it('should use per-request token when requestTokenStorage has a token', async () => {

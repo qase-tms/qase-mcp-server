@@ -60,6 +60,8 @@ QASE_API_DOMAIN=api.yourcompany.qase.io
 
 `QASE_API_DOMAIN` takes the domain only — no scheme, no path. `https://api.yourcompany.qase.io` or `api.yourcompany.qase.io/v1` are rejected with an error.
 
+If your workspace is on a **dedicated instance**, self-run is the only option: the [hosted connector](connect.md) serves Qase's main cloud (`qase.io`) only, regardless of plan.
+
 ### Self-Hosted Deployments over Plain HTTP
 
 Requests go over HTTPS by default. If your self-hosted or on-premise Qase API is served over plain HTTP — typically a local or internal-network install without a certificate — set the scheme separately:

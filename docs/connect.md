@@ -2,7 +2,12 @@
 
 The quickest way to use Qase — no install and no API token. Connect to the Qase-hosted MCP server at `https://mcp.qase.io/mcp` and sign in with your Qase account. Any MCP client that supports remote servers (OAuth 2.1) works; the client handles the OAuth flow for you — Claude, Cursor, Codex, and VS Code are shown below.
 
-> **Note:** The hosted Qase MCP is available on the **Enterprise** plan in Qase. On other plans you'll be denied access when connecting — [run the server yourself](self-run.md) with your own API token instead.
+> **Availability:** The hosted Qase MCP requires the **Enterprise** plan *and* a workspace on Qase's main cloud (`qase.io`). Two situations call for [running the server yourself](self-run.md) instead:
+>
+> - **Any other plan** — you can sign in, but tool calls are rejected with a plan error.
+> - **A dedicated instance** — the hosted server only talks to the main cloud, so it cannot reach a dedicated deployment whatever your plan. Self-run points at your own domain via `QASE_API_DOMAIN`.
+>
+> Running the server yourself works on every plan and on both cloud and dedicated instances.
 
 Prefer to run the server yourself with your own `QASE_API_TOKEN`? See [Self-Run Guide (Local / stdio)](self-run.md).
 

@@ -20,9 +20,22 @@ These apply when connecting to the Qase-hosted server (`https://mcp.qase.io/mcp`
 
 ### Access denied / Enterprise plan required
 
-The hosted Qase MCP is available on the **Enterprise** plan in Qase. If your workspace is on another plan, requests are rejected with an access/plan error — the connector may sign in but tool calls fail with a plan-related message.
+The hosted Qase MCP requires the **Enterprise** plan. If your workspace is on another plan, requests are rejected with an access/plan error — the connector may sign in but tool calls fail with a plan-related message.
 
 **Solution**: upgrade to the Enterprise plan, or [run the server yourself](self-run.md) with your own `QASE_API_TOKEN` (works on any plan).
+
+### Dedicated instance can't use the hosted connector
+
+The hosted server at `https://mcp.qase.io/mcp` serves Qase's main cloud (`qase.io`) only. If your workspace lives on a dedicated instance, the connector cannot reach your data — an Enterprise plan does not change this, and the symptom is usually a sign-in that succeeds against the wrong place, or projects that simply aren't there.
+
+**Solution**: [run the server yourself](self-run.md) and point it at your instance:
+
+```bash
+QASE_API_TOKEN=your_api_token_here
+QASE_API_DOMAIN=api.yourcompany.qase.io
+```
+
+If that instance is served without TLS, also set `QASE_API_PROTOCOL=http` — see [Self-Hosted API Served over Plain HTTP](#self-hosted-api-served-over-plain-http).
 
 ### Connector doesn't appear, or won't connect
 

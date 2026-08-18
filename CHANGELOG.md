@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [2.2.1]
 
+### Fixed
+
+- **Requests were attributed to the SDK instead of the MCP server.** The `User-Agent` was set as an axios instance default, but `qase-api-client` puts its own `qase-api-client-js/<version>` into `Configuration.baseOptions`, and the generated code merges those headers over the instance defaults. Every call made through the SDK — which is all of them except the `qase_api` escape hatch — therefore reached Qase as `qase-api-client-js/1.1.14`, so neither the MCP source nor the split between self-run (`qase-mcp`) and hosted (`qase-mcp-hosted`) was visible in metrics. The header is now set in a request interceptor, which runs after that merge, and is covered by tests that assert what a real HTTP server receives.
+
 ### Added
 
 - **`QASE_API_PROTOCOL`** — the scheme used to reach `QASE_API_DOMAIN`, defaulting to `https`. Requests were previously hardcoded to HTTPS, so a self-hosted or on-premise Qase API served over plain HTTP could not be reached at all: `QASE_API_DOMAIN` takes a bare domain and rejects anything carrying a scheme. Only `http` and `https` are recognised (case-insensitive, with or without a trailing `://`); any other value falls back to `https`, so a typo cannot silently downgrade the connection. Existing setups are unaffected. See [docs/self-run.md](docs/self-run.md#self-hosted-deployments-over-plain-http).

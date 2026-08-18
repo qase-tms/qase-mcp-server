@@ -91,9 +91,19 @@ class QaseApiClient {
     const jwtToken = isJwt(config.token);
 
     const agent = createKeepAliveAgent({ maxSockets: 20 });
-    this.axiosInstance =
-      axiosInstance ??
-      axios.create({ httpsAgent: agent, headers: { 'User-Agent': getUserAgent() } });
+    this.axiosInstance = axiosInstance ?? axios.create({ httpsAgent: agent });
+
+    // The generated SDK puts its own `User-Agent: qase-api-client-js/x.y.z` into
+    // Configuration.baseOptions, and the generator merges those headers over the
+    // axios instance defaults — so setting the source as a default silently loses
+    // to it on every SDK call, leaving only the qase_api escape hatch correctly
+    // attributed. A request interceptor runs after that merge, so it is the one
+    // place the header can be asserted for both paths.
+    this.axiosInstance.interceptors.request.use((req) => {
+      req.headers = req.headers ?? {};
+      req.headers['User-Agent'] = getUserAgent();
+      return req;
+    });
 
     // For JWTs, forward verbatim as Authorization: Bearer on every request.
     // Opaque tokens keep using the Qase `Token` header via Configuration.apiKey.

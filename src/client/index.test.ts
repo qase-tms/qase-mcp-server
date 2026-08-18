@@ -98,6 +98,14 @@ describe('API Client', () => {
     expect(basePathOf(getApiClient())).toBe('http://api.qase.lo/v1');
   });
 
+  it('should keep a port given in QASE_API_DOMAIN', async () => {
+    process.env.QASE_API_PROTOCOL = 'http';
+    process.env.QASE_API_DOMAIN = 'api.qase.lo:8080';
+
+    const { getApiClient } = await import('./index.js');
+    expect(basePathOf(getApiClient())).toBe('http://api.qase.lo:8080/v1');
+  });
+
   it('should fall back to https on an unrecognised QASE_API_PROTOCOL', async () => {
     process.env.QASE_API_PROTOCOL = 'ftp';
     process.env.QASE_API_DOMAIN = 'api.qase.lo';

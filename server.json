@@ -29,6 +29,12 @@
           "description": "Custom API domain for enterprise (default: api.qase.io)",
           "isRequired": false,
           "default": "api.qase.io"
+        },
+        {
+          "name": "QASE_API_PROTOCOL",
+          "description": "Scheme used to reach the API domain: http or https. Use http only for self-hosted deployments served without TLS (default: https)",
+          "isRequired": false,
+          "default": "https"
         }
       ]
     }

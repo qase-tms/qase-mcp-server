@@ -43,6 +43,9 @@ QASE_API_TOKEN=your_api_token_here
 
 # Optional: Custom API domain for enterprise customers
 QASE_API_DOMAIN=api.qase.io
+
+# Optional: Scheme used to reach that domain — http or https (default: https)
+QASE_API_PROTOCOL=https
 ```
 
 Get your API token from: https://app.qase.io/user/api/token
@@ -54,6 +57,21 @@ If you're using Qase Enterprise with a custom domain:
 ```bash
 QASE_API_DOMAIN=api.yourcompany.qase.io
 ```
+
+`QASE_API_DOMAIN` takes the domain only — no scheme, no path. `https://api.yourcompany.qase.io` or `api.yourcompany.qase.io/v1` are rejected with an error.
+
+### Self-Hosted Deployments over Plain HTTP
+
+Requests go over HTTPS by default. If your self-hosted or on-premise Qase API is served over plain HTTP — typically a local or internal-network install without a certificate — set the scheme separately:
+
+```bash
+QASE_API_DOMAIN=api.qase.lo
+QASE_API_PROTOCOL=http
+```
+
+Only `http` and `https` are recognised (case-insensitive, with or without a trailing `://`). Any other value falls back to `https`, so a typo cannot silently downgrade the connection. A non-default port belongs in `QASE_API_DOMAIN` — `api.qase.lo:8080`.
+
+Use `http` only for deployments you control on a trusted network: the API token travels in a request header, unencrypted, on every call.
 
 ## Client Setup (stdio)
 

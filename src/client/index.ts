@@ -179,9 +179,10 @@ class QaseApiClient {
 /**
  * Get validated API host from QASE_API_DOMAIN env var.
  *
- * The scheme comes from QASE_API_PROTOCOL and defaults to https. It is
- * deliberately undocumented: it exists so a local or self-hosted API served over
- * plain HTTP (http://api.qase.lo) can be reached, and nothing else needs it.
+ * The scheme comes from QASE_API_PROTOCOL and defaults to https; it exists so a
+ * self-hosted API served over plain HTTP (http://api.qase.lo) can be reached.
+ * A non-default port belongs in the domain (api.qase.lo:8080) — only `://` and
+ * paths are rejected here.
  */
 function getHost(): string {
   const domain = process.env.QASE_API_DOMAIN || 'api.qase.io';

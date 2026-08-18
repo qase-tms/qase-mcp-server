@@ -113,8 +113,22 @@ To find your certificate:
 
 **Solution**:
 1. Ensure `QASE_API_DOMAIN` is set to just the domain (e.g., `api.company.qase.io`)
-2. Don't include `https://` or `/v1` in the domain
-3. Verify with your Qase administrator
+2. Don't include `https://` or `/v1` in the domain — the scheme goes in `QASE_API_PROTOCOL` instead (see below), and the API version is appended by the server
+3. A non-default port does belong in the domain: `api.company.qase.io:8080`
+4. Verify with your Qase administrator
+
+## Self-Hosted API Served over Plain HTTP
+
+**Error**: connection or TLS errors against a self-hosted Qase API that has no certificate
+
+**Solution**: requests default to HTTPS. For a self-hosted or on-premise deployment served over plain HTTP, set the scheme separately:
+
+```bash
+QASE_API_DOMAIN=api.qase.lo
+QASE_API_PROTOCOL=http
+```
+
+Only `http` and `https` are recognised; any other value falls back to `https`, so check for a typo if the scheme appears to be ignored. Use `http` only on a trusted network — the API token is sent unencrypted in a request header.
 
 ## No Tools Showing in MCP Client
 

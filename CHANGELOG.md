@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.2]
+
+### Added
+
+- **Integration marker** — a product built on top of this server (a plugin, an agent, a wrapper CLI) can identify itself, and the server forwards that identity to the Qase API as `X-MCP-Integration-Name` / `X-MCP-Integration-Version`. This is a third identity axis, independent of the two already on the wire: the `User-Agent` says which deployment of the server is running (`qase-mcp` vs `qase-mcp-hosted`), `X-MCP-Client-*` says which AI host is connected — neither can carry it, since the same integration runs on any host, on either deployment. Set `QASE_MCP_INTEGRATION=<name>/<version>` (version optional); over HTTP transports the marker can instead travel per request, as an `X-Qase-Integration` header or `?integration=` on the MCP endpoint (captured when the session is created, then remembered for it). Precedence: request header → session value → env var. The name must be on the allowlist in `src/utils/integration-marker.ts`, which bounds the cardinality of the analytics dimension — anything unlisted, malformed or oversized is dropped silently and the API call still succeeds. Nothing is sent when no marker is supplied, so existing setups are byte-for-byte unaffected on the wire. For integration authors only; see [docs/self-run.md](docs/self-run.md#integration-marker-for-integration-authors).
+
+### Security
+
+- Raised the dev-dependency `overrides` to clear all open Dependabot alerts: `js-yaml` to 3.15.1 / 4.3.1 (quadratic-CPU DoS in merge-key and `!!omap` handling), `@babel/core` to ^7.29.6 (arbitrary file read via a `sourceMappingURL` comment), and `yaml` to ^2.8.3 (stack overflow on deeply nested collections). All four are development-only and reached the tree through eslint, jest and lint-staged — `npm audit --omit=dev` already reported zero, so nothing shipped to consumers of the package was affected. Note that the previous `js-yaml@3` override pinned 3.14.2, which was itself vulnerable.
+
 ## [2.2.1]
 
 ### Fixed

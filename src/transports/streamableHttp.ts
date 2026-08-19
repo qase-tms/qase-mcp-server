@@ -4,6 +4,8 @@ import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/
 import { mcpAuthRouter } from '@modelcontextprotocol/sdk/server/auth/router.js';
 import { randomUUID } from 'crypto';
 import { requestTokenStorage } from '../utils/auth-context.js';
+import { integrationStorage } from '../utils/integration-context.js';
+import { normalizeIntegrationMarker } from '../utils/integration-marker.js';
 import { getMetrics } from '../cache/index.js';
 import { getOAuthConfig, type OAuthConfig } from '../auth/oauth-config.js';
 import { createJwksVerifier, type JwksVerifier } from '../auth/jwks-verifier.js';
@@ -23,6 +25,19 @@ function isInitializeRequest(body: unknown): boolean {
   return (
     typeof body === 'object' && body !== null && 'method' in body && body.method === 'initialize'
   );
+}
+
+/**
+ * Read the integration marker off a request, normalised (see integration-marker.ts).
+ *
+ * Two channels, both required. The header is the primary one; the query parameter
+ * exists because it is not yet proven that custom request headers survive the
+ * OAuth flow on the hosted endpoint in every MCP client, and a URL is the one
+ * thing every client definitely passes through. The query parameter is only read
+ * at session creation — after that the value is remembered per session.
+ */
+function readIntegrationMarker(value: unknown): string | undefined {
+  return typeof value === 'string' ? normalizeIntegrationMarker(value) : undefined;
 }
 
 export function setupStreamableHttpTransport(
@@ -58,9 +73,11 @@ export function setupStreamableHttpTransport(
     res.header('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
     // Mcp-Method / Mcp-Name are required request headers as of MCP spec 2026-07-28
     // (gateway routing without body parsing) — allow them ahead of client adoption.
+    // X-Qase-Integration is ours: without it a browser-based client's preflight
+    // strips the marker and only the ?integration= fallback would work.
     res.header(
       'Access-Control-Allow-Headers',
-      'Content-Type, Authorization, mcp-session-id, Mcp-Method, Mcp-Name',
+      'Content-Type, Authorization, mcp-session-id, Mcp-Method, Mcp-Name, X-Qase-Integration',
     );
     // Expose auth challenge + session id so browser-based MCP clients (Inspector,
     // Claude.ai web) can read them from cross-origin responses. Without this the
@@ -162,6 +179,9 @@ export function setupStreamableHttpTransport(
   const SESSION_TTL_MS = ttlMinutes * 60 * 1000;
   const sessions = new Map<string, StreamableHTTPServerTransport>();
   const sessionLastSeen = new Map<string, number>();
+  // Integration marker captured at session creation (header or ?integration=),
+  // so later requests on the session need not repeat it. Evicted with the session.
+  const sessionIntegrations = new Map<string, string>();
 
   // Periodically evict stale sessions that never sent a DELETE
   const cleanupInterval = setInterval(
@@ -175,6 +195,7 @@ export function setupStreamableHttpTransport(
             sessions.delete(id);
           }
           sessionLastSeen.delete(id);
+          sessionIntegrations.delete(id);
           console.error(`[StreamableHTTP] Evicted stale session: ${id}`);
         }
       }
@@ -214,6 +235,7 @@ export function setupStreamableHttpTransport(
       await transport.close();
       sessions.delete(sessionId);
       sessionLastSeen.delete(sessionId);
+      sessionIntegrations.delete(sessionId);
       console.error(`[StreamableHTTP] Session closed: ${sessionId}`);
       res.status(200).json({ status: 'session closed' });
     } catch (error) {
@@ -264,10 +286,16 @@ export function setupStreamableHttpTransport(
     const sessionId = req.headers['mcp-session-id'] as string | undefined;
     let transport: StreamableHTTPServerTransport;
 
+    // Integration marker on this request, if it carried one.
+    const headerIntegration = readIntegrationMarker(req.headers['x-qase-integration']);
+    // The one remembered for the session, filled in below.
+    let sessionIntegration: string | undefined;
+
     if (sessionId && sessions.has(sessionId)) {
       // Reuse existing transport for this session — bump last-seen
       transport = sessions.get(sessionId)!;
       sessionLastSeen.set(sessionId, Date.now());
+      sessionIntegration = sessionIntegrations.get(sessionId);
     } else if (isInitializeRequest(req.body)) {
       // This is an initialize request - create new session
       const newSessionId = randomUUID();
@@ -279,6 +307,13 @@ export function setupStreamableHttpTransport(
       // Store session and record creation time
       sessions.set(newSessionId, transport);
       sessionLastSeen.set(newSessionId, Date.now());
+
+      // Remember the integration for the life of the session. The query parameter
+      // is only available here, on the initialize request that carries the URL.
+      sessionIntegration = headerIntegration ?? readIntegrationMarker(req.query.integration);
+      if (sessionIntegration) {
+        sessionIntegrations.set(newSessionId, sessionIntegration);
+      }
 
       // Create a fresh Server instance per session — the SDK requires one Server per transport
       await createServer().connect(transport);
@@ -307,10 +342,14 @@ export function setupStreamableHttpTransport(
       console.error('[StreamableHTTP] Using per-request Bearer token');
     }
 
+    // Precedence: this request's header → the value remembered for the session →
+    // (inside getIntegration) the QASE_MCP_INTEGRATION env var.
+    const integration = headerIntegration ?? sessionIntegration ?? '';
+
     // Run the handler inside AsyncLocalStorage context so getApiClient() can read the token
     try {
       await requestTokenStorage.run(requestToken, () =>
-        transport.handleRequest(req, res, req.body),
+        integrationStorage.run(integration, () => transport.handleRequest(req, res, req.body)),
       );
     } catch (error) {
       console.error('[StreamableHTTP] Error handling request:', error);

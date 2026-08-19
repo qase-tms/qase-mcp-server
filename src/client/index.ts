@@ -36,6 +36,8 @@ import { isJwt } from '../auth/token-type.js';
 import FormData from 'form-data';
 import { requestTokenStorage, getEffectiveToken } from '../utils/auth-context.js';
 import { getServer } from '../utils/server-context.js';
+import { getIntegration } from '../utils/integration-context.js';
+import { parseIntegrationMarker } from '../utils/integration-marker.js';
 import { VERSION } from '../version.js';
 
 /**
@@ -125,6 +127,25 @@ class QaseApiClient {
         req.headers['X-MCP-Client-Name'] = client.name;
         if (client.version) {
           req.headers['X-MCP-Client-Version'] = client.version;
+        }
+      }
+      return req;
+    });
+
+    // Tag each Qase API request with the integration built on top of this server
+    // (a plugin/agent/wrapper — e.g. the quality-supervisor Claude Code plugin).
+    // A third axis, independent of the User-Agent source and of the AI host in
+    // X-MCP-Client-*: the same integration can run on any host, on either
+    // deployment. Sourced per-request from integrationStorage, falling back to
+    // QASE_MCP_INTEGRATION. Nothing is sent unless the marker is well-formed and
+    // allowlisted — see integration-marker.ts.
+    this.axiosInstance.interceptors.request.use((req) => {
+      const integration = parseIntegrationMarker(getIntegration());
+      if (integration) {
+        req.headers = req.headers ?? {};
+        req.headers['X-MCP-Integration-Name'] = integration.name;
+        if (integration.version) {
+          req.headers['X-MCP-Integration-Version'] = integration.version;
         }
       }
       return req;

@@ -50,6 +50,28 @@ QASE_API_PROTOCOL=https
 
 Get your API token from: https://app.qase.io/user/api/token
 
+### Integration Marker (for integration authors)
+
+Skip this section if you are using the server directly — it changes nothing for you.
+
+If you are *building a product on top of* this server (a plugin, an agent, a wrapper CLI), you can have your integration identified in Qase analytics. Set `QASE_MCP_INTEGRATION` in the environment you launch the server with:
+
+```bash
+# <name>/<version> — the version is optional
+QASE_MCP_INTEGRATION=quality-supervisor/1.4.0
+```
+
+The server forwards it to the Qase API as `X-MCP-Integration-Name` and `X-MCP-Integration-Version`. It is a separate identity from the server deployment (`User-Agent`) and from the connected AI host (`X-MCP-Client-*`), so the same integration is attributable across every host and both deployments.
+
+Rules:
+
+- Format is `<name>/<version>`; the version may be omitted. The name is lowercased.
+- A version must be made of word characters, dots, dashes or pluses, up to 32 characters — anything else is dropped and only the name is sent.
+- **The name must be on the allowlist** in [`src/utils/integration-marker.ts`](../src/utils/integration-marker.ts) (`ALLOWED_INTEGRATIONS`). This bounds the cardinality of the analytics dimension, so an unlisted name is ignored entirely and nothing is sent. To add your integration, open a PR adding it to that array.
+- A malformed or unlisted marker is dropped silently; the API call itself still succeeds.
+
+Over HTTP transports the marker can also travel per request instead of per process — send an `X-Qase-Integration: <name>/<version>` header, or add `?integration=<name>/<version>` to the MCP endpoint URL (read when the session is created, then remembered for that session). The query parameter is the fallback for clients that do not pass custom headers through. Precedence: request header → the value remembered for the session → `QASE_MCP_INTEGRATION`.
+
 ### Custom Domains (Enterprise)
 
 If you're using Qase Enterprise with a custom domain:

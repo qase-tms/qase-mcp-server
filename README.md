@@ -13,6 +13,7 @@ Official [Model Context Protocol](https://modelcontextprotocol.io) (MCP) server 
 - [Quick Start](#quick-start)
   - [Use the hosted Qase MCP (recommended)](#use-the-hosted-qase-mcp-recommended)
   - [Run it yourself](#run-it-yourself)
+- [Building on top of this server](#building-on-top-of-this-server)
 - [Upgrading from v1](#upgrading-from-v1)
 - [Tools](#tools)
 - [Documentation](#documentation)
@@ -74,6 +75,18 @@ export QASE_API_TOKEN=your_api_token_here
 ```
 
 Then point your MCP client's stdio config at the `@qase/mcp-server` binary. Full install options, client configs (Claude Desktop, Cursor, Claude Code, Codex, OpenCode), environment variables, and transports (stdio/SSE/streamable-HTTP): **[docs/self-run.md](docs/self-run.md)**.
+
+## Building on top of this server
+
+For **integration authors** only — if you use the server directly, nothing here applies to you.
+
+If your product drives this server (a plugin, an agent, a wrapper CLI), it can identify itself so its usage is attributable in Qase analytics, independently of which AI host is connected:
+
+```bash
+QASE_MCP_INTEGRATION=quality-supervisor/1.4.0   # <name>/<version>, version optional
+```
+
+The name must be on the allowlist in [`src/utils/integration-marker.ts`](src/utils/integration-marker.ts) — add yours in a PR. Anything unlisted or malformed is ignored, and the API call still succeeds. HTTP transports also accept the marker per request (`X-Qase-Integration` header or `?integration=`). Details: **[docs/self-run.md](docs/self-run.md#integration-marker-for-integration-authors)**.
 
 ## Upgrading from v1
 

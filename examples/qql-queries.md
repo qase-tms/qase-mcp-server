@@ -12,7 +12,7 @@ QQL (Qase Query Language) is a powerful query language for searching across Qase
 - Sort and limit results
 - Search test cases, runs, results, defects, and more
 
-**Note:** QQL search requires a Business or Enterprise Qase subscription.
+**Note:** QQL search requires a Teams or Enterprise Qase subscription.
 
 ## Getting Help with QQL
 
@@ -495,7 +495,7 @@ Find old non-automated tests → Prioritize for automation → Update custom fie
 
 ### Common Issues
 
-**Error: "QQL search requires Business or Enterprise subscription"**
+**Error: "QQL search requires Teams or Enterprise subscription"**
 - Solution: Upgrade your Qase plan or use standard list/filter tools
 
 **Error: "Unknown field: fieldname"**

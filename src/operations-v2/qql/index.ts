@@ -153,7 +153,7 @@ async function getQqlHelp(args: z.infer<typeof GetQqlHelpSchema>) {
         'Aggregating: SELECT (AGGREGATE[, ...]) entity = "TYPE" and CONDITION... ' +
         '[GROUP BY field] [HAVING condition] — SELECT comes FIRST, before the conditions.',
       entities: ['case', 'defect', 'run', 'result', 'plan', 'requirement'],
-      note: 'QQL is only available in Business and Enterprise Qase subscriptions',
+      note: 'QQL is only available in Teams and Enterprise Qase subscriptions',
       fieldNamesVary:
         'Field names are NOT uniform across entities — see the `entities` topic before writing ' +
         'a query. Most common failure: `created` exists on case/defect/plan/requirement but ' +

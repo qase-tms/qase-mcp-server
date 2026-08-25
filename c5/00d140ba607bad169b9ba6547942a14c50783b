@@ -1,0 +1,21 @@
+examples/qql-queries.md
+  s_91abe2f2ad3179::t_c7dd18c801e2dd 15,498
+src/operations-v2/qql/index.ts
+  s_91abe2f2ad3179::t_c7dd18c801e2dd 156
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.24",
+  "base_commit_sha": "c500d140ba607bad169b9ba6547942a14c50783b",
+  "prompts": {},
+  "sessions": {
+    "s_91abe2f2ad3179": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "a23e946f-3179-4d9c-8be7-f4f361a75f0f",
+        "model": "claude-opus-5"
+      },
+      "human_author": "Manju R <cskmnrpt@gmail.com>"
+    }
+  }
+}

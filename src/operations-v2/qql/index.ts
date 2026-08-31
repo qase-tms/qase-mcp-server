@@ -202,8 +202,8 @@ async function getQqlHelp(args: z.infer<typeof GetQqlHelpSchema>) {
         '(only `ended`), no title/description, no custom fields, and no environment. Unlike ' +
         'case.suite, result.suite is a numeric suite ID. There is no run-ID field — `run` ' +
         'matches the run TITLE, so results cannot be tied to a specific run ID in QQL; use ' +
-        'GET /v1/result/{code}?filters[run]=ID via qase_api for that. status has no ' +
-        '"Untested" value.',
+        'GET /v1/result/{code}?filters[run]=ID via qase_api for that. status DOES have an ' +
+        '"untested" value, but it is excluded by default — see enumValues.',
       plan: 'Test plans — entity = "plan". Fields: id, title, description, project, created, updated, deleted, isDeleted.',
       requirement:
         'Requirements — entity = "requirement". Fields: id, title, description, parent, status, ' +
@@ -250,7 +250,10 @@ async function getQqlHelp(args: z.infer<typeof GetQqlHelpSchema>) {
       caseAutomation: '"Manual" (a.k.a. "Not automated"), "To be automated", "Automated"',
       defectStatus: '"Open", "In progress", "Resolved", "Invalid"',
       runStatus: '"In Progress", "Passed", "Failed", "Aborted"',
-      resultStatus: '"passed", "failed", "skipped", "invalid" — there is no "Untested"',
+      resultStatus:
+        '"passed", "failed", "skipped", "invalid", "untested" — "untested" results are ' +
+        'EXCLUDED BY DEFAULT (to preserve old query behavior); they reappear the moment the ' +
+        'query has ANY condition on status, e.g. status != "passed", not just status = "untested"',
     },
     functions: {
       currentUser: 'currentUser() - Returns current user ID',

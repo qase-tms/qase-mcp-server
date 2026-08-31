@@ -1,6 +1,6 @@
 {
   "name": "@qase/mcp-server",
-  "version": "2.2.2",
+  "version": "2.2.3",
   "mcpName": "io.qase/mcp-server",
   "description": "Official MCP server for Qase Test Management Platform",
   "type": "module",

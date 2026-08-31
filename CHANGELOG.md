@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.3]
+
+### Fixed
+
+- **`qql_help` claimed `result.status` has no `"untested"` value — it does.** `entities.result` and `enumValues.resultStatus` said flatly that no `"Untested"` status exists on the result entity, which was true when written but was made false by the untested-results feature that shipped weeks later. `untested` is a real, built-in status (id 0, locked, present in every workspace), matched case-insensitively like every other enum value here. It is excluded by default to preserve old query behavior, but the exclusion drops the moment the query's filter has ANY condition on `status` — not just one about untested specifically — so a query like `status != "passed"` silently pulls untested rows back in. Both sections now say so, and the regression test that locked in the old claim now checks for the corrected one.
+
 ## [2.2.2]
 
 ### Added

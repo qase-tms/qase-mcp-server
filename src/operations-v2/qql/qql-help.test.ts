@@ -182,10 +182,12 @@ describe('qql_help — enum values', () => {
     expect(text).not.toContain('"active"');
   });
 
-  it('states that result status has no Untested', async () => {
+  it('documents that result status has an untested value excluded by default', async () => {
     const text = textOf((await help('enumValues')).content);
 
-    expect(text).toContain('no "Untested"');
+    expect(text).toContain('"untested"');
+    expect(text.toLowerCase()).toContain('excluded by default');
+    expect(text.toLowerCase()).toContain('any condition on status');
   });
 });
 

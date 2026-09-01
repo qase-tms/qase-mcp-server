@@ -124,6 +124,35 @@ describe('qql_help — aggregation', () => {
     expect(text).toContain('5 = Skipped');
   });
 
+  it('maps every built-in result status ID, untested included', async () => {
+    const text = textOf((await help('aggregation')).content);
+
+    // GROUP BY status returns ID 0 for untested as soon as the filter touches
+    // status, and the old map stopped at four of the nine built-ins.
+    expect(text).toContain('0 = Untested');
+    expect(text).toContain('3 = Blocked');
+    expect(text).toContain('4 = Retest');
+    expect(text).toContain('6 = Deleted');
+    expect(text).toContain('7 = In progress');
+  });
+
+  it('refuses to map workspace-defined status IDs from a static table', async () => {
+    const text = textOf((await help('aggregation')).content);
+
+    // IDs above the built-ins belong to workspace-defined statuses, so their
+    // meaning is not knowable from this file.
+    expect(text).toContain('system_field');
+    expect(text).toContain('result_status');
+  });
+
+  it('warns that GROUP BY returns bare counts unless the field is in SELECT', async () => {
+    const text = textOf((await help('aggregation')).content);
+
+    // SELECT (COUNT(id)) ... GROUP BY status comes back as {count_id} rows with
+    // no status key at all, which makes the grouping useless.
+    expect(text).toContain('SELECT (status, COUNT(id))');
+  });
+
   it('explains the _title suffix added by GROUP BY', async () => {
     const text = textOf((await help('aggregation')).content);
 
@@ -145,6 +174,14 @@ describe('qql_help — per-entity fields', () => {
 
     // The single biggest source of failing queries.
     expect(text).toContain('no created/updated');
+  });
+
+  it('warns that an untested result carries no execution data', async () => {
+    const text = textOf((await help('entities')).content);
+
+    // Verified on a live untested row: comment/stacktrace/steps/end_time empty,
+    // timeSpent 0. Matters because COUNT shifts but timeSpent aggregates do not.
+    expect(text).toContain('timeSpent 0');
   });
 
   it('warns that result has no run-ID field', async () => {
@@ -182,10 +219,40 @@ describe('qql_help — enum values', () => {
     expect(text).not.toContain('"active"');
   });
 
-  it('states that result status has no Untested', async () => {
+  it('documents that result status has an untested value excluded by default', async () => {
     const text = textOf((await help('enumValues')).content);
 
-    expect(text).toContain('no "Untested"');
+    expect(text).toContain('"untested"');
+    expect(text.toLowerCase()).toContain('excluded by default');
+  });
+
+  it('separates lifting the exclusion from actually matching untested', async () => {
+    const text = textOf((await help('enumValues')).content);
+
+    // Verified against the live API on a project with 2165 untested results:
+    // status != "passed" returns them, status = "failed" does not — even though
+    // both are conditions on status. Saying "any condition brings them back"
+    // is the same class of falsehood as the "no Untested" claim it replaced.
+    expect(text).toContain('status != "passed"');
+    expect(text).toContain('status = "failed"');
+    expect(text).toContain('status != "untested"');
+  });
+
+  it('lists the built-in result statuses beyond the four it used to name', async () => {
+    const text = textOf((await help('enumValues')).content);
+
+    // system_field's result_status marks exactly these nine read_only: true.
+    for (const status of ['blocked', 'retest', 'deleted', 'in_progress']) {
+      expect(text).toContain(`"${status}"`);
+    }
+  });
+
+  it('points at system_field instead of pretending the list is exhaustive', async () => {
+    const text = textOf((await help('enumValues')).content);
+
+    // A workspace can define its own statuses, so no static list can be complete.
+    expect(text).toContain('system_field');
+    expect(text).toContain('result_status');
   });
 });
 

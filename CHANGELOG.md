@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.3]
+
+### Fixed
+
+- **`qql_help` claimed `result.status` has no `"untested"` value — it does.** `entities.result` and `enumValues.resultStatus` said flatly that no `"Untested"` status exists on the result entity, which was true when written but was made false by the untested-results feature that shipped weeks later. `untested` is a built-in status (ID 0) present in every workspace, matched case-insensitively like every other value here. It is excluded by default to preserve old query behavior.
+- **The exclusion rule is now stated precisely.** Any condition on `status` lifts the default exclusion, but untested results only appear if the condition actually matches them: `status != "passed"` and `status is not empty` return them, while `status = "failed"` and `status in ["passed", "failed"]` do not, even though both are conditions on `status`. Saying "any condition brings them back" would have been the same class of falsehood as the claim it replaced — a model would add pointless `status != "untested"` guards to the ordinary `status = "failed"` queries this file recommends elsewhere.
+- **`enumValues.resultStatus` listed four of the nine built-in statuses.** `blocked`, `retest`, `deleted` and `in_progress` were missing, so a model had no way to reach them — the same gap that hid `untested`. A workspace can also define statuses of its own, which no static list can cover, so both this section and the ID map now point at `GET /v1/system_field` (`result_status`, whose options carry `read_only: true` for the built-ins) for the authoritative set.
+- **The aggregate status ID map stopped at four entries and had no way to signal its own limits.** It now covers all nine built-in IDs (0 = Untested through 8 = Invalid) and states that any higher ID is a workspace-defined status whose meaning must be read from `system_field` rather than guessed from a table.
+- **`GROUP BY status` returned rows nothing could tell apart.** The documented example `SELECT (COUNT(id)) ... GROUP BY status` comes back as bare `{count_id}` rows with no status key, because a grouped field is only returned when it is also in `SELECT`. The example now reads `SELECT (status, COUNT(id))`, and the pitfall is spelled out.
+- **Untested results carry no execution data**, which `entities.result` did not mention: `comment`, `stacktrace`, `steps` and `end_time` come back empty and `timeSpent` is 0. `timeSpent` aggregates skip them, but `COUNT` does not — so the same query can report more rows without moving its averages.
+
 ## [2.2.2]
 
 ### Added

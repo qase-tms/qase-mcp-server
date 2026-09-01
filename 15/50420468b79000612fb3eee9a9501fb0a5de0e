@@ -1,0 +1,21 @@
+CHANGELOG.md
+  s_7029b8c8c3fc99::t_50c1f3c5b906d8 19-20
+src/operations-v2/write/attachments.test.ts
+  s_7029b8c8c3fc99::t_a0b4488769520e 10,41-59
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.0",
+  "base_commit_sha": "1550420468b79000612fb3eee9a9501fb0a5de0e",
+  "prompts": {},
+  "sessions": {
+    "s_7029b8c8c3fc99": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ce1bf5c4-d85c-4032-ae4a-89d06fca38af",
+        "model": "claude-opus-5"
+      },
+      "human_author": "Dmitrii Gridnev <dgridnev@qase.io>"
+    }
+  }
+}

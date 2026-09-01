@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.3.0]
+
+### Added
+
+- **Per-producer attribution.** An integration built on top of this server can now say not only *who* it is but *which of its parts* made the call — a skill, a slash command, an agent — and where that call sits in the run. Two hidden arguments carry it: `_qase_integration` (`<name>/<version>`, the same marker the session header takes) and `_qase_producer` (`<producer>/<seq>/<entrypoint>`, entrypoint being one of `skill`, `command`, `agent`). They become three headers on the outbound Qase API request, beside the existing pair: `X-MCP-Integration-Producer`, `X-MCP-Integration-Seq`, `X-MCP-Integration-Entrypoint`.
+
+  The arguments travel in the call rather than in a header because a header cannot vary per call — the HTTP transport captures the integration marker once, when the session opens, and one session runs many producers in sequence. They are deliberately absent from every tool's input schema: they are not parameters, and no model should be asked to supply them. Both are stripped before the tool handler runs.
+
+  Call arguments now outrank the session header as a source of the integration marker, which in turn outranks `QASE_MCP_INTEGRATION` — a per-call claim is the more specific one. The session and env paths are untouched, only outranked.
+
+  A producer is never sent without an integration: alone it would say "some skill did this" without saying whose, and since the integration name is allowlisted (`ALLOWED_INTEGRATIONS`) while the producer is only shape-checked (`^[a-z0-9][a-z0-9-]{1,47}$`), the integration is what keeps an arbitrary client out of the analytics dimension. Producers are validated by shape rather than by list on purpose, so a new plugin skill does not need a server release to be counted; cardinality is bounded by that pattern, by the `seq` cap of 500, and by the integration allowlist. Anything malformed, oversized or unknown is dropped silently and the API call still succeeds.
+
+  Nothing is sent when neither argument is supplied, so clients that send neither are unaffected, and a client that sends them to an older server simply has them ignored.
+
 ## [2.2.3]
 
 ### Fixed

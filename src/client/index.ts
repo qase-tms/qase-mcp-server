@@ -37,6 +37,8 @@ import FormData from 'form-data';
 import { requestTokenStorage, getEffectiveToken } from '../utils/auth-context.js';
 import { getServer } from '../utils/server-context.js';
 import { getIntegration } from '../utils/integration-context.js';
+import { getProducer } from '../utils/producer-context.js';
+import { buildIntegrationHeaders } from './producer-headers.js';
 import { parseIntegrationMarker } from '../utils/integration-marker.js';
 import { VERSION } from '../version.js';
 
@@ -138,15 +140,18 @@ class QaseApiClient {
     // X-MCP-Client-*: the same integration can run on any host, on either
     // deployment. Sourced per-request from integrationStorage, falling back to
     // QASE_MCP_INTEGRATION. Nothing is sent unless the marker is well-formed and
-    // allowlisted — see integration-marker.ts.
+    // allowlisted — see integration-marker.ts. The producer is a fourth axis
+    // under the integration, naming which part of it ran — a skill, a slash
+    // command, an agent — and it is never sent alone, since a producer without
+    // an integration attributes the call to nobody.
     this.axiosInstance.interceptors.request.use((req) => {
-      const integration = parseIntegrationMarker(getIntegration());
-      if (integration) {
+      const headers = buildIntegrationHeaders(
+        parseIntegrationMarker(getIntegration()),
+        getProducer(),
+      );
+      if (Object.keys(headers).length > 0) {
         req.headers = req.headers ?? {};
-        req.headers['X-MCP-Integration-Name'] = integration.name;
-        if (integration.version) {
-          req.headers['X-MCP-Integration-Version'] = integration.version;
-        }
+        Object.assign(req.headers, headers);
       }
       return req;
     });

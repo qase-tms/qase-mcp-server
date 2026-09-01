@@ -203,7 +203,10 @@ async function getQqlHelp(args: z.infer<typeof GetQqlHelpSchema>) {
         'case.suite, result.suite is a numeric suite ID. There is no run-ID field — `run` ' +
         'matches the run TITLE, so results cannot be tied to a specific run ID in QQL; use ' +
         'GET /v1/result/{code}?filters[run]=ID via qase_api for that. status DOES have an ' +
-        '"untested" value, but it is excluded by default — see enumValues.',
+        '"untested" value, but it is excluded by default — see enumValues. An untested result ' +
+        'is a case nobody has run yet, so its execution fields come back empty (comment, ' +
+        'stacktrace, steps, end_time null/[], timeSpent 0) — aggregates over timeSpent skip ' +
+        'them, but COUNT does not.',
       plan: 'Test plans — entity = "plan". Fields: id, title, description, project, created, updated, deleted, isDeleted.',
       requirement:
         'Requirements — entity = "requirement". Fields: id, title, description, parent, status, ' +
@@ -222,14 +225,22 @@ async function getQqlHelp(args: z.infer<typeof GetQqlHelpSchema>) {
         'Violating either fails with "Query is invalid", which does not say which one.',
       examples: [
         'SELECT (COUNT(id)) entity = "result" and project = "DEMO" and status = "failed"',
-        'SELECT (COUNT(id)) entity = "result" and project = "DEMO" GROUP BY status',
+        'SELECT (status, COUNT(id)) entity = "result" and project = "DEMO" GROUP BY status',
         'SELECT (COUNT(id)) entity = "case" and project = "DEMO" GROUP BY suite HAVING COUNT(id) > 10',
         'SELECT (AVG(timeSpent), MAX(timeSpent)) entity = "result" and project = "DEMO"',
       ],
+      groupedFieldMustBeInSelect:
+        'GROUP BY alone does not return the field it groups by — SELECT (COUNT(id)) ... ' +
+        'GROUP BY status comes back as bare {count_id} rows with nothing to tell them apart. ' +
+        'Put the field in SELECT too: SELECT (status, COUNT(id)) ... GROUP BY status.',
       enumsComeBackAsNumbers:
         'In aggregate results, enum fields are returned as their numeric IDs, not labels: ' +
-        'result.status 1 = Passed, 2 = Failed, 5 = Skipped, 8 = Invalid; ' +
-        'automation 0 = Manual, 1 = To be automated, 2 = Automated. Map them before reporting.',
+        'result.status 0 = Untested, 1 = Passed, 2 = Failed, 3 = Blocked, 4 = Retest, ' +
+        '5 = Skipped, 6 = Deleted, 7 = In progress, 8 = Invalid — those nine are built in and ' +
+        'fixed, but any ID above them is a workspace-defined status whose meaning differs per ' +
+        'workspace, so do not map those from a table: read GET /v1/system_field via qase_api ' +
+        'and use the `result_status` options. automation 0 = Manual, 1 = To be automated, ' +
+        '2 = Automated. Map them before reporting.',
       groupByAddsTitleSuffix:
         'Grouping by a string field returns it with a _title suffix — GROUP BY suite yields ' +
         'a `suite_title` key in the response, not `suite`.',
@@ -251,9 +262,17 @@ async function getQqlHelp(args: z.infer<typeof GetQqlHelpSchema>) {
       defectStatus: '"Open", "In progress", "Resolved", "Invalid"',
       runStatus: '"In Progress", "Passed", "Failed", "Aborted"',
       resultStatus:
-        '"passed", "failed", "skipped", "invalid", "untested" — "untested" results are ' +
-        'EXCLUDED BY DEFAULT (to preserve old query behavior); they reappear the moment the ' +
-        'query has ANY condition on status, e.g. status != "passed", not just status = "untested"',
+        'Built-in: "untested", "passed", "failed", "blocked", "retest", "skipped", "deleted", ' +
+        '"in_progress", "invalid". A workspace can add its own statuses on top, so this list is ' +
+        'not the whole set for a given workspace — read GET /v1/system_field via qase_api and ' +
+        'take the `result_status` field for that (its options carry read_only: true for the ' +
+        'built-ins above, false for the workspace\'s own). Either the title or the slug works, ' +
+        'case-insensitively: "not ready" and "not_ready" are the same value. ' +
+        '"untested" results are EXCLUDED BY DEFAULT (to preserve old query behavior). ANY ' +
+        'condition on status lifts that exclusion, but they only show up if the condition ' +
+        'actually matches them: status != "passed" and status is not empty include them, ' +
+        'status = "failed" and status in ["passed", "failed"] do not. To filter on status and ' +
+        'still keep them out, exclude them: status != "passed" and status != "untested".',
     },
     functions: {
       currentUser: 'currentUser() - Returns current user ID',

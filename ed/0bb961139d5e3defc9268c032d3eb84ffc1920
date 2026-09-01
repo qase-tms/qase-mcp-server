@@ -1,0 +1,19 @@
+examples/automation.md
+  s_a0c75c1523c8e8::t_b112bf7452f25d 447-455
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.0",
+  "base_commit_sha": "ed0bb961139d5e3defc9268c032d3eb84ffc1920",
+  "prompts": {},
+  "sessions": {
+    "s_a0c75c1523c8e8": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b3666cfb-6323-4858-89c4-222db0ca9f00",
+        "model": "claude-opus-5"
+      },
+      "human_author": "Dmitrii Gridnev <dgridnev@qase.io>"
+    }
+  }
+}

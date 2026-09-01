@@ -1,0 +1,30 @@
+src/utils/integration-context.ts
+  s_83aef87e51486c::t_c333ce77135009 17-26,28,33-35
+src/index.ts
+  s_83aef87e51486c::t_b9e04c3dbe1b85 186-191,193-195
+  s_83aef87e51486c::t_00723ec1a1f85e 100-104,108
+  s_83aef87e51486c::t_2aa8251189c4c4 29-32,109-112,115-127,129-143,145-152,154-175,180
+src/utils/call-markers.ts
+  s_83aef87e51486c::t_8b3f542077ce6b 1-27,33-39
+  s_83aef87e51486c::t_2aa8251189c4c4 28-32
+src/utils/call-markers.test.ts
+  s_83aef87e51486c::t_89ee08431f4c14 1-39
+src/utils/producer-context.ts
+  s_83aef87e51486c::t_eb1a58306823a3 1-15
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.0",
+  "base_commit_sha": "381fa641d666984cbae93488dea471783d0399f3",
+  "prompts": {},
+  "sessions": {
+    "s_83aef87e51486c": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "7944e6ee-240e-49b6-9eb7-de18115607c7",
+        "model": "claude-opus-5"
+      },
+      "human_author": "Dmitrii Gridnev <dgridnev@qase.io>"
+    }
+  }
+}

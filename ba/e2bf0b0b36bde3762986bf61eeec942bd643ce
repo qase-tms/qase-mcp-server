@@ -1,0 +1,23 @@
+CHANGELOG.md
+  s_7029b8c8c3fc99::t_6adb99fbd21dbb 12-17
+src/operations-v2/qql/index.ts
+  s_7029b8c8c3fc99::t_51db59db9e44a4 206-209,228,232-235,238-243,265-275
+src/operations-v2/qql/qql-help.test.ts
+  s_7029b8c8c3fc99::t_3fcb46b0e3a70c 127-155,179-186,227-255
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.0",
+  "base_commit_sha": "bae2bf0b0b36bde3762986bf61eeec942bd643ce",
+  "prompts": {},
+  "sessions": {
+    "s_7029b8c8c3fc99": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ce1bf5c4-d85c-4032-ae4a-89d06fca38af",
+        "model": "claude-opus-5"
+      },
+      "human_author": "Dmitrii Gridnev <dgridnev@qase.io>"
+    }
+  }
+}

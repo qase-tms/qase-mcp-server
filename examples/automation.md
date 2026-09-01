@@ -444,6 +444,15 @@ AI will iterate through pages to get complete results
 
 ### Rate Limiting
 
+The Qase API enforces a per-minute request limit that depends on your plan:
+
+| Plan            | Limit (rpm) |
+|-----------------|-------------|
+| Free            | 150         |
+| Startup         | 300         |
+| Business/Teams  | 600         |
+| Enterprise      | 1000        |
+
 Be mindful of API limits:
 ```
 Prompt: "Create 1000 test cases in batches of 50 with delays"

@@ -26,6 +26,10 @@ import { formatApiError, ToolExecutionError } from './utils/errors.js';
 import { compactResponse } from './utils/response-shape.js';
 import { isRichResult } from './utils/rich-response.js';
 import { serverStorage, confirmDestructiveAction } from './utils/server-context.js';
+import { extractCallMarkers } from './utils/call-markers.js';
+import { parseProducerMarker } from './utils/producer-marker.js';
+import { producerStorage } from './utils/producer-context.js';
+import { callIntegrationStorage } from './utils/integration-context.js';
 import { setupSSETransport } from './transports/sse.js';
 import { setupStreamableHttpTransport } from './transports/streamableHttp.js';
 import { VERSION } from './version.js';
@@ -93,87 +97,102 @@ function createServer(): Server {
    */
   server.setRequestHandler(CallToolRequestSchema, async (request) => {
     return serverStorage.run(server, async () => {
-      const { name, arguments: args } = request.params;
+      const { name, arguments: rawArgs } = request.params;
+      // The two hidden attribution arguments never reach a tool handler — see
+      // call-markers.ts for why they travel as arguments rather than a header.
+      const markers = extractCallMarkers(rawArgs);
+      const args = markers.rest;
 
       console.error(`[Server] Executing tool: ${name}`);
 
-      // Get tool handler from registry
-      const handler = toolRegistry.getHandler(name);
-      if (!handler) {
-        throw new Error(`Unknown tool: ${name}. Use list_tools to see available tools.`);
-      }
-
-      // Elicitation: confirm destructive actions before execution
-      const toolDef = toolRegistry.getTool(name);
-      if (toolDef?.annotations?.destructiveHint === true) {
-        const confirmed = await confirmDestructiveAction(
-          name,
-          (args as Record<string, unknown>) || {},
-        );
-        if (!confirmed) {
-          return {
-            content: [{ type: 'text' as const, text: `Action "${name}" cancelled by user.` }],
-          };
-        }
-      }
-
-      try {
-        // Execute the tool handler with provided arguments
-        const result = await handler(args || {});
-
-        // Rich results: pass through pre-formatted content blocks directly
-        if (isRichResult(result)) {
-          return {
-            content: result.content,
-            ...(result.structuredContent && { structuredContent: result.structuredContent }),
-          };
+      const runCall = async () => {
+        // Get tool handler from registry
+        const handler = toolRegistry.getHandler(name);
+        if (!handler) {
+          throw new Error(`Unknown tool: ${name}. Use list_tools to see available tools.`);
         }
 
-        // Default: wrap in compact JSON text block
-        const compacted = compactResponse(result);
-        const hasOutputSchema = toolDef?.outputSchema !== undefined;
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(compacted),
-            },
-          ],
-          // SDK requires structuredContent when outputSchema is defined
-          ...(hasOutputSchema && { structuredContent: compacted as Record<string, unknown> }),
-        };
-      } catch (error) {
-        // Handle tool execution errors (expected failures like validation, API errors)
-        // These are returned with isError: true so the LLM can understand and recover
-        if (error instanceof ToolExecutionError) {
-          console.error(`[Server] Tool '${name}' execution error:`, error.message);
+        // Elicitation: confirm destructive actions before execution
+        const toolDef = toolRegistry.getTool(name);
+        if (toolDef?.annotations?.destructiveHint === true) {
+          const confirmed = await confirmDestructiveAction(
+            name,
+            (args as Record<string, unknown>) || {},
+          );
+          if (!confirmed) {
+            return {
+              content: [{ type: 'text' as const, text: `Action "${name}" cancelled by user.` }],
+            };
+          }
+        }
+
+        try {
+          // Execute the tool handler with provided arguments
+          const result = await handler(args || {});
+
+          // Rich results: pass through pre-formatted content blocks directly
+          if (isRichResult(result)) {
+            return {
+              content: result.content,
+              ...(result.structuredContent && { structuredContent: result.structuredContent }),
+            };
+          }
+
+          // Default: wrap in compact JSON text block
+          const compacted = compactResponse(result);
+          const hasOutputSchema = toolDef?.outputSchema !== undefined;
           return {
             content: [
               {
                 type: 'text',
-                text: error.toUserMessage(),
+                text: JSON.stringify(compacted),
+              },
+            ],
+            // SDK requires structuredContent when outputSchema is defined
+            ...(hasOutputSchema && { structuredContent: compacted as Record<string, unknown> }),
+          };
+        } catch (error) {
+          // Handle tool execution errors (expected failures like validation, API errors)
+          // These are returned with isError: true so the LLM can understand and recover
+          if (error instanceof ToolExecutionError) {
+            console.error(`[Server] Tool '${name}' execution error:`, error.message);
+            return {
+              content: [
+                {
+                  type: 'text',
+                  text: error.toUserMessage(),
+                },
+              ],
+              isError: true,
+            };
+          }
+
+          // Handle unexpected errors (protocol-level failures)
+          // Format error message using our error utilities
+          const errorMessage = formatApiError(error);
+          console.error(`[Server] Tool '${name}' unexpected error:`, errorMessage);
+
+          // Return as tool execution error with isError: true for better LLM recovery
+          return {
+            content: [
+              {
+                type: 'text',
+                text: errorMessage,
               },
             ],
             isError: true,
           };
         }
+      };
 
-        // Handle unexpected errors (protocol-level failures)
-        // Format error message using our error utilities
-        const errorMessage = formatApiError(error);
-        console.error(`[Server] Tool '${name}' unexpected error:`, errorMessage);
+      // Both scopes stay open for the whole call, so the outbound interceptor
+      // sees them however deep in the handler the API request is made.
+      const producer = parseProducerMarker(markers.producer);
+      const withProducer = producer ? () => producerStorage.run(producer, runCall) : runCall;
 
-        // Return as tool execution error with isError: true for better LLM recovery
-        return {
-          content: [
-            {
-              type: 'text',
-              text: errorMessage,
-            },
-          ],
-          isError: true,
-        };
-      }
+      return markers.integration
+        ? callIntegrationStorage.run(markers.integration, withProducer)
+        : withProducer();
     });
   });
 

@@ -1,0 +1,30 @@
+CHANGELOG.md
+  s_b315bbc081772c::t_df89486005dcc8 8-13
+server.json
+  s_b315bbc081772c::t_1db7f755e312f1 11,16
+package.json
+  s_b315bbc081772c::t_1349a91ae8c834 3
+src/operations-v2/qql/qql-help.test.ts
+  s_b315bbc081772c::t_551f6a1174782d 185,188-190
+src/operations-v2/qql/index.ts
+  s_b315bbc081772c::t_5637cbe63050f3 205-206
+  s_b315bbc081772c::t_2b0785e0671bb0 253-256
+package-lock.json
+  s_b315bbc081772c::t_1c22806bb9f4cd 3,9
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.0",
+  "base_commit_sha": "6321404abf7f9b1e12750e2fccf9da37156ce65f",
+  "prompts": {},
+  "sessions": {
+    "s_b315bbc081772c": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "0b44fc8e-5a5b-4e3d-99a2-10c55a81c8bb",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "Manju R <cskmnrpt@gmail.com>"
+    }
+  }
+}

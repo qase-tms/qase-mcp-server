@@ -7,7 +7,7 @@
  * guessed base64-vs-path from the value, decoding plain text into noise.
  */
 
-import { describe, it, expect, beforeEach, afterAll } from '@jest/globals';
+import { describe, it, expect, beforeEach, afterEach, afterAll } from '@jest/globals';
 import { writeFileSync, mkdtempSync, rmSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
@@ -37,6 +37,25 @@ function uploadedBuffer(): Buffer {
 }
 
 const scratch = mkdtempSync(join(tmpdir(), 'qase-attach-'));
+
+// A path input becomes createReadStream(path), which opens the file on a later
+// tick. Tests that only assert on `.path` never read the stream, so the open
+// lands after the test finished and after afterAll's rmSync removed the file —
+// and with no 'error' listener on the stream, that ENOENT surfaced as an
+// unhandled failure against whichever suite the worker happened to be running
+// (integration-headers.test.ts, which touches no files at all), while the open
+// handle also kept the worker alive past the end of the run. destroy() alone
+// does not cancel a scheduled open, so the listener is what actually matters.
+afterEach(() => {
+  for (const [, files] of mockUpload.mock.calls) {
+    for (const file of files as Array<{ value: unknown }>) {
+      const stream = file.value as { destroy?: () => void; on?: (e: string, f: () => void) => void };
+      if (typeof stream?.destroy !== 'function') continue;
+      stream.on?.('error', () => {});
+      stream.destroy();
+    }
+  }
+});
 
 afterAll(() => rmSync(scratch, { recursive: true, force: true }));
 

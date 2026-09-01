@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`GROUP BY status` returned rows nothing could tell apart.** The documented example `SELECT (COUNT(id)) ... GROUP BY status` comes back as bare `{count_id}` rows with no status key, because a grouped field is only returned when it is also in `SELECT`. The example now reads `SELECT (status, COUNT(id))`, and the pitfall is spelled out.
 - **Untested results carry no execution data**, which `entities.result` did not mention: `comment`, `stacktrace`, `steps` and `end_time` come back empty and `timeSpent` is 0. `timeSpent` aggregates skip them, but `COUNT` does not — so the same query can report more rows without moving its averages.
 
+- **The attachment tests could fail the release build on an unrelated suite.** A path input becomes `createReadStream(path)`, which opens the file on a later tick; tests that only assert on `.path` never read the stream, so the open landed after `afterAll` had removed the scratch directory. With no `error` listener on the stream, that `ENOENT` surfaced as an unhandled failure attributed to whichever suite the worker was running by then — `integration-headers.test.ts`, which touches no files — and the open handle kept the worker alive past the end of the run. It only reproduced when Jest had few workers, which is exactly the CI runner, and it blocked the 2.2.3 publish job three runs in a row.
+
 ## [2.2.2]
 
 ### Added

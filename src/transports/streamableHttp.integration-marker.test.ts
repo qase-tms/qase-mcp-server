@@ -35,6 +35,19 @@ function makeServer(): Server {
 
 const ACCEPT = 'application/json, text/event-stream';
 
+/**
+ * Responses are SSE (the transport streams them so mid-call server→client
+ * requests are possible), so the JSON-RPC payload arrives in `data:` lines.
+ */
+function parseSse(body: string): any {
+  const data = body
+    .split('\n')
+    .filter((line) => line.startsWith('data:'))
+    .map((line) => line.slice('data:'.length).trim())
+    .join('');
+  return JSON.parse(data);
+}
+
 /** Initialize a session, optionally with a header and/or a query marker. */
 async function initSession(opts: { header?: string; query?: string } = {}): Promise<string> {
   let req = request(app).post('/mcp');
@@ -68,7 +81,7 @@ async function whoami(sessionId: string, header?: string): Promise<string> {
     .send({ jsonrpc: '2.0', id: 2, method: 'tools/call', params: { name: 'whoami', arguments: {} } });
 
   expect(res.status).toBe(200);
-  return res.body.result.content[0].text;
+  return parseSse(res.text).result.content[0].text;
 }
 
 beforeAll(async () => {

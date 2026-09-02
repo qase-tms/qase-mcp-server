@@ -1,4 +1,5 @@
 import express, { Express } from 'express';
+import type http from 'node:http';
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
 import { requestTokenStorage } from '../utils/auth-context.js';
@@ -63,16 +64,22 @@ export function setupSSETransport(server: Server, config: SSETransportConfig): E
     const requestToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : '';
     const integration =
       readIntegrationMarker(req.headers['x-qase-integration']) ?? connectionIntegration ?? '';
+    // `express.json()` above has already consumed the body, so it has to be
+    // handed over — otherwise the SDK reads a spent stream and every call fails
+    // with "stream is not readable".
     requestTokenStorage.run(requestToken, () =>
-      integrationStorage.run(integration, () => transport!.handlePostMessage(req, res)),
+      integrationStorage.run(integration, () => transport!.handlePostMessage(req, res, req.body)),
     );
   });
 
   // Start server
-  app.listen(config.port, host, () => {
+  const httpServer = app.listen(config.port, host, () => {
     console.error(`[SSE] Server listening on http://${host}:${config.port}${sseEndpoint}`);
     console.error(`[SSE] Health check: http://${host}:${config.port}/health`);
   });
+
+  // Keep server reference alive (prevent garbage collection), same as streamable-http
+  (app as unknown as { _httpServer: http.Server })._httpServer = httpServer;
 
   return app;
 }

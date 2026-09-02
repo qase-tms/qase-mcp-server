@@ -17,6 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
   A refusal explains itself. `unsupported` (the client cannot be asked) and `undeliverable` (the prompt went unanswered) come back with `isError: true` and say what to do about it; a plain `declined` does not, because a human saying no is a decision rather than a failure. Clients that cannot be asked are refused in milliseconds instead of hanging for a minute.
 
+- **The legacy HTTP+SSE transport was dead on arrival — every client call failed.** `express.json()` consumes the request body, but `handlePostMessage()` was called without the parsed body, so the SDK tried to read a spent stream and answered `HTTP 400: stream is not readable` to every `tools/call`. Nothing behind `--transport sse` worked, confirmation included. The body is now handed over. The transport is deprecated in the MCP spec (Streamable HTTP replaced it in revision 2025-03-26) and the hosted connector does not use it, but while it ships it should not be broken. It had no test coverage at all; `sse.test.ts` now drives it over real HTTP.
+
 ### Changed
 
 - **Responses on the streamable-http transport are now SSE rather than JSON**, the default the spec assumes. Any client that ever worked already declares `Accept: application/json, text/event-stream` — the SDK rejects the request otherwise — so no supported client loses the transport.

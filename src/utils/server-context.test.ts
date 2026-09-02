@@ -1,11 +1,20 @@
 /**
  * Server Context Tests
  *
- * Tests AsyncLocalStorage-based server context and elicitation logic.
+ * Tests AsyncLocalStorage-based server context and the destructive-action gate.
+ *
+ * The gate is fail-closed: a destructive tool runs only when the human said yes.
+ * Every other outcome — no elicitation capability, an undelivered prompt, a
+ * decline — refuses the call and names why.
  */
 
 import { describe, it, expect, beforeEach, afterEach } from '@jest/globals';
-import { serverStorage, getServer, confirmDestructiveAction } from './server-context.js';
+import {
+  serverStorage,
+  getServer,
+  confirmDestructiveAction,
+  describeRefusal,
+} from './server-context.js';
 
 // Minimal mock of the Server interface — only the methods we use
 function createMockServer(overrides: {
@@ -22,7 +31,7 @@ function createMockServer(overrides: {
     elicitInput: elicitError
       ? jest.fn().mockRejectedValue(elicitError)
       : jest.fn().mockResolvedValue(
-          elicitResult ?? { action: 'accept', content: { confirm: true } },
+          elicitResult ?? { action: 'accept', content: {} },
         ),
   } as any;
 }
@@ -68,23 +77,23 @@ describe('Server Context', () => {
   });
 
   describe('confirmDestructiveAction', () => {
-    it('returns true when no server in context', async () => {
+    it('refuses as unsupported when no server in context', async () => {
       const result = await confirmDestructiveAction('qase_case_delete', { code: 'TEST', id: 1 });
-      expect(result).toBe(true);
+      expect(result).toEqual({ allowed: false, reason: 'unsupported' });
     });
 
-    it('returns true when client does not support elicitation', async () => {
+    it('refuses as unsupported when client does not support elicitation', async () => {
       const server = createMockServer({ elicitation: false });
 
       const result = await serverStorage.run(server, () =>
         confirmDestructiveAction('qase_case_delete', { code: 'TEST', id: 1 }),
       );
 
-      expect(result).toBe(true);
+      expect(result).toEqual({ allowed: false, reason: 'unsupported' });
       expect(server.elicitInput).not.toHaveBeenCalled();
     });
 
-    it('returns true when user confirms (accept + confirm=true)', async () => {
+    it('allows when user confirms (accept + confirm=true)', async () => {
       const server = createMockServer({
         elicitResult: { action: 'accept', content: { confirm: true } },
       });
@@ -93,59 +102,53 @@ describe('Server Context', () => {
         confirmDestructiveAction('qase_case_delete', { code: 'TEST', id: 42 }),
       );
 
-      expect(result).toBe(true);
+      expect(result).toEqual({ allowed: true });
       expect(server.elicitInput).toHaveBeenCalledTimes(1);
-      // Verify the elicitation message contains the tool name
       const call = server.elicitInput.mock.calls[0][0];
       expect(call.message).toContain('qase_case_delete');
     });
 
-    it('returns false when user declines (action=decline)', async () => {
-      const server = createMockServer({
-        elicitResult: { action: 'decline' },
-      });
+    it('refuses as declined when user declines (action=decline)', async () => {
+      const server = createMockServer({ elicitResult: { action: 'decline' } });
 
       const result = await serverStorage.run(server, () =>
         confirmDestructiveAction('qase_case_delete', { code: 'TEST', id: 1 }),
       );
 
-      expect(result).toBe(false);
+      expect(result).toEqual({ allowed: false, reason: 'declined' });
     });
 
-    it('returns false when user cancels (action=cancel)', async () => {
-      const server = createMockServer({
-        elicitResult: { action: 'cancel' },
-      });
+    it('refuses as declined when user cancels (action=cancel)', async () => {
+      const server = createMockServer({ elicitResult: { action: 'cancel' } });
 
       const result = await serverStorage.run(server, () =>
         confirmDestructiveAction('qase_case_delete', { code: 'TEST', id: 1 }),
       );
 
-      expect(result).toBe(false);
+      expect(result).toEqual({ allowed: false, reason: 'declined' });
     });
 
-    it('returns false when user accepts but confirm=false', async () => {
-      const server = createMockServer({
-        elicitResult: { action: 'accept', content: { confirm: false } },
-      });
+    // Accepting the prompt IS the confirmation — the client's own accept button
+    // is the yes. A second checkbox inside the form only produced false refusals:
+    // people confirmed the dialog and left the box at its default.
+    it('allows on accept alone, whatever the form content is', async () => {
+      const server = createMockServer({ elicitResult: { action: 'accept' } });
 
       const result = await serverStorage.run(server, () =>
         confirmDestructiveAction('qase_case_delete', { code: 'TEST', id: 1 }),
       );
 
-      expect(result).toBe(false);
+      expect(result).toEqual({ allowed: true });
     });
 
-    it('returns true on elicitation error (graceful degradation)', async () => {
-      const server = createMockServer({
-        elicitError: new Error('client disconnected'),
-      });
+    it('refuses as undeliverable when elicitation throws', async () => {
+      const server = createMockServer({ elicitError: new Error('client disconnected') });
 
       const result = await serverStorage.run(server, () =>
         confirmDestructiveAction('qase_case_delete', { code: 'TEST', id: 1 }),
       );
 
-      expect(result).toBe(true);
+      expect(result).toEqual({ allowed: false, reason: 'undeliverable' });
       expect(consoleErrorSpy).toHaveBeenCalledWith(
         expect.stringContaining('Elicitation failed'),
         expect.any(Error),
@@ -165,7 +168,7 @@ describe('Server Context', () => {
       expect(call.message).toContain('99');
     });
 
-    it('sends correct schema with boolean confirm field', async () => {
+    it('asks for no form fields, so accepting is the whole answer', async () => {
       const server = createMockServer();
 
       await serverStorage.run(server, () =>
@@ -174,8 +177,52 @@ describe('Server Context', () => {
 
       const call = server.elicitInput.mock.calls[0][0];
       expect(call.requestedSchema.type).toBe('object');
-      expect(call.requestedSchema.properties.confirm.type).toBe('boolean');
-      expect(call.requestedSchema.required).toContain('confirm');
+      expect(call.requestedSchema.properties).toEqual({});
+      expect(call.requestedSchema.required).toBeUndefined();
+    });
+
+    // The whole point of the fix: without relatedRequestId the SDK routes the
+    // prompt to the standalone SSE stream nobody opened, and it is dropped.
+    it('routes the prompt to the stream of the originating call', async () => {
+      const server = createMockServer();
+
+      await serverStorage.run(server, () =>
+        confirmDestructiveAction('qase_case_delete', { code: 'TEST', id: 1 }, 7),
+      );
+
+      const options = server.elicitInput.mock.calls[0][1];
+      expect(options).toEqual(expect.objectContaining({ relatedRequestId: 7 }));
+    });
+
+    it('omits relatedRequestId when the caller has no request id', async () => {
+      const server = createMockServer();
+
+      await serverStorage.run(server, () =>
+        confirmDestructiveAction('qase_case_delete', { code: 'TEST', id: 1 }),
+      );
+
+      const options = server.elicitInput.mock.calls[0][1];
+      expect(options?.relatedRequestId).toBeUndefined();
+    });
+  });
+
+  describe('describeRefusal', () => {
+    it('tells an elicitation-less client why the deletion was refused', () => {
+      const text = describeRefusal('qase_case_delete', 'unsupported');
+      expect(text).toContain('qase_case_delete');
+      expect(text).toContain('elicitation');
+    });
+
+    it('reports an undelivered prompt as unconfirmed, not as a failure to delete', () => {
+      const text = describeRefusal('qase_case_delete', 'undeliverable');
+      expect(text).toContain('qase_case_delete');
+      expect(text).toContain('not confirmed');
+    });
+
+    it('states plainly that the user declined', () => {
+      const text = describeRefusal('qase_case_delete', 'declined');
+      expect(text).toContain('qase_case_delete');
+      expect(text).toContain('declined');
     });
   });
 });

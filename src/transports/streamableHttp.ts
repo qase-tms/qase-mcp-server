@@ -301,7 +301,9 @@ export function setupStreamableHttpTransport(
       const newSessionId = randomUUID();
       transport = new StreamableHTTPServerTransport({
         sessionIdGenerator: () => newSessionId,
-        enableJsonResponse: true,
+        // Responses stream as SSE (the spec default). In JSON mode the pending
+        // HTTP response cannot carry a server→client request, so a destructive
+        // confirmation prompt can never reach the caller mid-call.
       });
 
       // Store session and record creation time

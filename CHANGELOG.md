@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.3.1]
+
+### Fixed
+
+- **Entities were deleted without the confirmation the server thought it was asking for.** On the HTTP transports — that is, on the hosted connector — the destructive-action gate never worked. A client that does not declare the `elicitation` capability was waved straight through (`return true`), and a client that *does* declare it fared no better: the prompt was sent without a `relatedRequestId`, so the SDK routed it to the standalone SSE stream opened by `GET /mcp`, which MCP clients do not open. With no event store configured the request was dropped in silence, `elicitInput()` waited out its 60-second timeout, and the `catch` around it treated the timeout as a reason to proceed. Every deletion therefore either happened unasked, or froze for a minute and then happened unasked. The confirmation users did see in some clients came from the client's own `destructiveHint` gate, never from this server.
+
+  Three changes make the prompt arrive and make an unanswered prompt mean *no*: `confirmDestructiveAction()` now passes `relatedRequestId`, so the request travels on the stream of the very `tools/call` that triggered it; the streamable-http transport no longer sets `enableJsonResponse`, because a JSON response cannot carry a server→client request mid-call; and the gate is now fail-closed — it returns a reason (`declined`, `unsupported`, `undeliverable`) instead of a bare boolean, and only an explicit yes lets the deletion run.
+
+  The prompt asks for no form fields. Accepting it *is* the confirmation, and the client's own decline button is the refusal — an extra "Confirm deletion" checkbox inside the form (which is what this originally sent) only produced false refusals: people accepted the dialog, left the box at its default `false`, and were told they had declined. Verified against Claude Code, which does declare the `elicitation` capability.
+
+  A refusal explains itself. `unsupported` (the client cannot be asked) and `undeliverable` (the prompt went unanswered) come back with `isError: true` and say what to do about it; a plain `declined` does not, because a human saying no is a decision rather than a failure. Clients that cannot be asked are refused in milliseconds instead of hanging for a minute.
+
+- **The legacy HTTP+SSE transport was dead on arrival — every client call failed.** `express.json()` consumes the request body, but `handlePostMessage()` was called without the parsed body, so the SDK tried to read a spent stream and answered `HTTP 400: stream is not readable` to every `tools/call`. Nothing behind `--transport sse` worked, confirmation included. The body is now handed over. The transport is deprecated in the MCP spec (Streamable HTTP replaced it in revision 2025-03-26) and the hosted connector does not use it, but while it ships it should not be broken. It had no test coverage at all; `sse.test.ts` now drives it over real HTTP.
+
+### Changed
+
+- **Responses on the streamable-http transport are now SSE rather than JSON**, the default the spec assumes. Any client that ever worked already declares `Accept: application/json, text/event-stream` — the SDK rejects the request otherwise — so no supported client loses the transport.
+- **The 11 `*_delete` tools now refuse to run on clients without the `elicitation` capability.** This is the point of the fix: previously they deleted unasked. Deletions from such a client have to move to a client that supports elicitation, or to the Qase UI.
+
 ## [2.3.0]
 
 ### Added

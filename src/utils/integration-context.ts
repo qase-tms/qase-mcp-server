@@ -14,15 +14,25 @@ import { AsyncLocalStorage } from 'async_hooks';
 export const integrationStorage = new AsyncLocalStorage<string>();
 
 /**
- * Read the marker for the current async context: request-scoped value first,
- * then the QASE_MCP_INTEGRATION env var (the stdio path, where there is no
- * request to carry a header).
+ * Per-call integration marker, supplied in the call arguments rather than a
+ * header. Takes priority over the session-scoped value: a per-call claim is more
+ * specific than one captured when the session opened.
+ */
+export const callIntegrationStorage = new AsyncLocalStorage<string>();
+
+/**
+ * Read the marker for the current async context: the per-call value first, then
+ * the request-scoped one, then the QASE_MCP_INTEGRATION env var (the stdio path,
+ * where there is no request to carry a header).
  *
- * Returns undefined when neither is set — the common case, and the one that must
+ * Returns undefined when none is set — the common case, and the one that must
  * leave the outbound request untouched. The value is unvalidated; callers pass it
  * through parseIntegrationMarker().
  */
 export function getIntegration(): string | undefined {
+  const callIntegration = callIntegrationStorage.getStore();
+  if (callIntegration) return callIntegration;
+
   const requestIntegration = integrationStorage.getStore();
   if (requestIntegration) return requestIntegration;
   return process.env.QASE_MCP_INTEGRATION?.trim() || undefined;

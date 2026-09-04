@@ -19,6 +19,8 @@ import './write/environments.js';
 import './write/attachments.js';
 import './write/external-issues.js';
 import './write/reviews.js';
+import './write/projects.js';
+import './write/custom-fields.js';
 
 // Composites
 import './composites/ci-report.js';

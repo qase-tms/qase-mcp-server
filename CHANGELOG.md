@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.0]
+
+### Added
+
+- **Projects can be created and deleted.** `qase_project_create` takes a title and a code, plus optional description, access level (`all` / `group` / `none`, with a group hash required for `group`) and settings. There is deliberately no upsert: the API has no update endpoint for a project, and an `id`-style switch would imply an edit that cannot happen. `qase_project_delete` takes a code and removes the project with every case, suite, run, result, defect and milestone in it — the most destructive call in the API, and it goes through the confirmation gate like every other deletion.
+
+- **Custom fields have a full lifecycle.** `qase_custom_field_upsert` creates a field or, given an `id`, updates one; `qase_custom_field_delete` removes it along with the values entered for it. Reading them already worked through `qase_project_context` and `qase_get`.
+
+  The tools speak labels where the API speaks numbers: `entity` is `case` / `run` / `defect` and `type` is `number` / `string` / `text` / `selectbox` / `checkbox` / `radio` / `multiselect` / `url` / `user` / `datetime`, mapped to their codes on the way out. Nothing has to know that a selectbox is a 3. Option lists are given as plain strings and wrapped into the objects the API expects.
+
+  `entity` and `type` are fixed when a field is created. The update endpoint has no field for either, so passing a different `type` to an update returns a warning saying the field kept its shape and what to do instead, rather than silently accepting a change that never happened.
+
+### Fixed
+
+- **`qase_api` could delete without asking.** The escape hatch is annotated `destructiveHint: false` — correctly, since most calls through it read, and a `GET` must not prompt — but that also placed it outside the confirmation gate that every `*_delete` tool goes through. A `DELETE /v1/project/DEMO` therefore removed an entire project unasked, which became harder to justify now that `qase_project_delete` exists and does ask. The handler now requests confirmation itself whenever the method is `DELETE`, naming the path in the prompt. Other methods are untouched.
+
 ## [2.3.1]
 
 ### Fixed

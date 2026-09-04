@@ -61,7 +61,9 @@ beforeAll(async () => {
     return answer.action === 'accept' ? { action: 'accept', content: {} } : { action: 'decline' };
   });
   await client.connect(new SSEClientTransport(sseUrl));
-});
+  // Real listener plus a real SSE handshake: under a loaded parallel run this
+  // does not fit in Jest's 5s default.
+}, 30000);
 
 beforeEach(() => {
   deleteCase.mockReset();
@@ -72,8 +74,12 @@ beforeEach(() => {
 afterAll(async () => {
   await client.close().catch(() => {});
   const httpServer = app._httpServer;
-  if (httpServer) await new Promise<void>((resolve) => httpServer.close(() => resolve()));
-});
+  if (!httpServer) return;
+  // The SSE stream is a response that never ends on its own, so close() would
+  // wait for it forever — drop the sockets first.
+  httpServer.closeAllConnections?.();
+  await new Promise<void>((resolve) => httpServer.close(() => resolve()));
+}, 30000);
 
 describe('legacy SSE transport', () => {
   it('understands a client POST at all', async () => {

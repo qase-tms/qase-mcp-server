@@ -1,0 +1,38 @@
+src/operations-v2/write/suites.ts
+  s_739726d20c1c33::t_5d7fa6da4bd951 22-25
+  s_739726d20c1c33::t_94029289be1d6e 81-90
+src/operations-v2/composites/triage-defect.ts
+  s_739726d20c1c33::t_2f63364d7a4d6d 3,30-33
+src/operations-v2/composites/triage-defect.test.ts
+  s_739726d20c1c33::t_78778c1a098428 98-101,107
+  s_739726d20c1c33::t_bcd69fe0810038 9,24-32
+src/operations-v2/write/runs.ts
+  s_739726d20c1c33::t_6e198e53077b1e 108-114
+src/operations-v2/write/defects.test.ts
+  s_739726d20c1c33::t_bdf9348354db9b 1-17,19-21,23-57,59-88,91-92,103-111
+  s_739726d20c1c33::t_28e7ad937b6b4e 18,22,58,89-90,93-102
+src/operations-v2/write/defects.ts
+  s_739726d20c1c33::t_78778c1a098428 107-116
+  s_739726d20c1c33::t_28e7ad937b6b4e 6-14,47-48
+src/utils/case-enums.ts
+  s_739726d20c1c33::t_28e7ad937b6b4e 114-121,123,126,137-140
+  s_739726d20c1c33::t_cbbcaaac3f2099 141-142
+CHANGELOG.md
+  s_739726d20c1c33::t_4fb0fa8f0069c3 28-29,48-49
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.0",
+  "base_commit_sha": "8ca6abeab0fde9d1e1c0fff6481804c70487c0d2",
+  "prompts": {},
+  "sessions": {
+    "s_739726d20c1c33": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "8d8e7dc3-0287-4ced-91db-67bc7cc94571",
+        "model": "claude-opus-5"
+      },
+      "human_author": "Dmitrii Gridnev <dgridnev@qase.io>"
+    }
+  }
+}

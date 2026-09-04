@@ -253,11 +253,17 @@ async function del(args: z.infer<typeof DeleteSchema>) {
 toolRegistry.register({
   name: 'qase_custom_field_upsert',
   description:
-    'Create or update a custom field. If `id` is provided, updates the existing field; if ' +
-    'omitted, creates a new one, and `entity` and `type` are then required. Both are fixed at ' +
-    'creation and cannot be changed afterwards. Custom fields are workspace-wide: scope them ' +
-    'with `projects_codes`, or set is_enabled_for_all_projects. Read existing fields with ' +
-    'qase_project_context or qase_get (entity: "custom_field").',
+    'Create or update a custom field. With `id` it updates that field, without `id` it creates ' +
+    'one, and `entity` ("case", "run" or "defect") and `type` ("number", "string", "text", ' +
+    '"selectbox", "checkbox", "radio", "multiselect", "url", "user", "datetime") are then ' +
+    'required. Both are fixed at creation: the update endpoint cannot change them, and passing a ' +
+    'different `type` to an update returns a warning rather than silently doing nothing. Options ' +
+    'for selectbox, radio and multiselect are given as a plain list of titles. Custom fields are ' +
+    'workspace-wide, not per-project: scope them with `projects_codes` or set ' +
+    'is_enabled_for_all_projects. Anything left out of an update is carried over from the current ' +
+    'field, so a rename does not empty the rest. Read existing fields with qase_project_context ' +
+    'or qase_get. Cost: one API call to create, two to update (the current field is read first), ' +
+    'about 0.5-0.9s.',
   schema: UpsertSchema,
   handler: upsert,
   annotations: CreateAnnotation,
@@ -267,8 +273,11 @@ toolRegistry.register({
 toolRegistry.register({
   name: 'qase_custom_field_delete',
   description:
-    'Delete a custom field by ID. The field disappears from every project it applies to, ' +
-    'along with the values entered for it. This cannot be undone.',
+    'Delete a custom field by ID. The field disappears from every project it applies to, and the ' +
+    'values entered for it on cases, runs or defects go with it — the reach is workspace-wide, ' +
+    'not project-wide. This cannot be undone. To take a field out of one project only, use ' +
+    'qase_custom_field_upsert and remove that code from `projects_codes` instead. Deletion asks ' +
+    'the user for confirmation and does not proceed without it. Cost: one API call, about 0.4s.',
   schema: DeleteSchema,
   handler: del,
   annotations: DeleteAnnotation,

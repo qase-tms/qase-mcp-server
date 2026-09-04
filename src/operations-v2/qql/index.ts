@@ -266,7 +266,7 @@ async function getQqlHelp(args: z.infer<typeof GetQqlHelpSchema>) {
         '"in_progress", "invalid". A workspace can add its own statuses on top, so this list is ' +
         'not the whole set for a given workspace — read GET /v1/system_field via qase_api and ' +
         'take the `result_status` field for that (its options carry read_only: true for the ' +
-        'built-ins above, false for the workspace\'s own). Either the title or the slug works, ' +
+        "built-ins above, false for the workspace's own). Either the title or the slug works, " +
         'case-insensitively: "not ready" and "not_ready" are the same value. ' +
         '"untested" results are EXCLUDED BY DEFAULT (to preserve old query behavior). ANY ' +
         'condition on status lifts that exclusion, but they only show up if the condition ' +
@@ -309,7 +309,16 @@ async function getQqlHelp(args: z.infer<typeof GetQqlHelpSchema>) {
 toolRegistry.register({
   name: 'qql_search',
   description:
-    'Search entities using Qase Query Language (QQL) with powerful filtering and cross-project queries',
+    'Search any entity with Qase Query Language: filtering, cross-project queries, sorting, and ' +
+    'aggregation. This is the right tool for every question that is not "give me this one record ' +
+    'by ID" — "cases without automation", "results that failed this week", "open blockers across ' +
+    'projects" — and the right way to fetch many records at once instead of looping over ' +
+    'qase_get. Call qql_help first for the syntax, the fields available per entity, and the enum ' +
+    'values; a query naming an unknown attribute is rejected outright. Use qase_get instead when ' +
+    'you already know the entity and its ID and want just that one. Cost: one API call. 0.5-0.9s ' +
+    'for pages up to 50 records; a page of 100 measured 0.9-2.8s depending on how much each ' +
+    'record carries. Prefer one search over N single fetches: the same ten records cost 1.2s here ' +
+    'against 5.3s as ten qase_get calls.',
   schema: QqlSearchSchema,
   handler: qqlSearch,
   annotations: ReadAnnotation,
@@ -319,10 +328,14 @@ toolRegistry.register({
 toolRegistry.register({
   name: 'qql_help',
   description:
-    'Get one section of the Qase Query Language (QQL) reference. `topic` is required — ask for ' +
-    'the section you need rather than the whole reference. Start with "entities" when you are ' +
-    'unsure which fields an entity has (they differ per entity), "aggregation" to count or ' +
-    'summarise without paging, and "enumValues" for valid field values.',
+    'Read the QQL reference before writing a query. Pass a `topic`: overview, syntax, entities, ' +
+    'operators, functions, examples, aggregation, or enumValues. `entities` lists the fields each ' +
+    'entity actually exposes, and `enumValues` gives the accepted values for status, priority, ' +
+    'severity and the rest — both matter, because QQL rejects a query naming an attribute that ' +
+    'does not exist on the entity rather than ignoring it, and the field names differ from those ' +
+    'in the write tools. Read this once per session before the first qql_search rather than ' +
+    'guessing and retrying. Cost: no API call, static text, about 2ms. Free to call, and cheaper ' +
+    'than one rejected query.',
   schema: GetQqlHelpSchema,
   handler: getQqlHelp,
   annotations: ReadAnnotation,

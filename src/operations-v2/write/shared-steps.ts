@@ -67,8 +67,11 @@ async function del(args: z.infer<typeof DeleteSchema>) {
 toolRegistry.register({
   name: 'qase_shared_step_upsert',
   description:
-    'Create or update a shared step. If `hash` is provided, updates the existing shared step; ' +
-    'if omitted, creates a new one. Shared steps are reusable steps included in multiple test cases.',
+    'Create or update a shared step — a block of steps written once and reused across many cases, ' +
+    'so a change to a login flow is made in one place. Without `hash` it creates, with `hash` it ' +
+    'updates. Shared steps are identified by hash, not by numeric ID, and that hash is what ' +
+    "qase_case_upsert takes in a step's `shared` field. Updating a shared step changes every case " +
+    'that references it, which is the point, and also the risk. Cost: one API call, about 0.5s.',
   schema: UpsertSchema,
   handler: upsert,
   annotations: CreateAnnotation,
@@ -77,7 +80,13 @@ toolRegistry.register({
 
 toolRegistry.register({
   name: 'qase_shared_step_delete',
-  description: 'Delete a shared step by project code and hash.',
+  description:
+    'Delete a shared step by project code and hash. Every case that referenced it loses those ' +
+    'steps, so the deletion reaches much further than the one record named here — check what ' +
+    'references it before calling. This cannot be undone. To change the content instead, use ' +
+    'qase_shared_step_upsert with the same hash. Identified by hash, not numeric ID. Deletion ' +
+    'asks the user for confirmation and does not proceed without it. Cost: one API call, about ' +
+    '0.4s.',
   schema: DeleteSchema,
   handler: del,
   annotations: DeleteAnnotation,

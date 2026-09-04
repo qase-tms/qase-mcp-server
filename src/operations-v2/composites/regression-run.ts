@@ -107,9 +107,14 @@ async function handler(args: z.infer<typeof Schema>) {
 toolRegistry.register({
   name: 'qase_regression_run',
   description:
-    'Set up a regression test run in one call. Accepts case selection by suite IDs, ' +
-    'explicit case IDs, or plan ID. Creates the run and adds all matching cases. ' +
-    'Replaces the multi-step workflow of find cases → create run → add cases.',
+    'Build and start a test run from a suite, a test plan, or an explicit list of case IDs, in ' +
+    'one step. Use it to launch a regression cycle without first querying for cases and then ' +
+    'creating a run around them — give it the source and it resolves the cases itself. For a run ' +
+    'you assemble by hand, use qase_run_upsert and pass the case IDs. For a pipeline that has ' +
+    'already finished and just needs its results filed, use qase_ci_report instead: this tool ' +
+    'opens a run, it does not close one. Cost: two API calls behind one tool call — resolving the ' +
+    'source, then creating the run — roughly 1s, growing with the number of cases the source ' +
+    'resolves to.',
   schema: Schema,
   handler,
   annotations: CreateAnnotation,

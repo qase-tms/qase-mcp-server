@@ -93,8 +93,13 @@ async function del(args: z.infer<typeof DeleteSchema>) {
 toolRegistry.register({
   name: 'qase_defect_upsert',
   description:
-    'Create or update a defect. If `id` is provided, updates (including status changes and resolve). ' +
-    'If omitted, creates a new defect. Set `status: "resolved"` to resolve an existing defect.',
+    'Create or update a defect — a tracked problem found by testing. Without `id` it creates, ' +
+    "with `id` it updates. Severity and status accept a label or the project's numeric ID. When " +
+    'the defect comes from a specific test failure, use qase_triage_defect instead: it takes the ' +
+    'failure context and enforces the fields the API requires. Note that the API has no way to ' +
+    'attach runs or results to a defect, so reference failing results in the text rather than ' +
+    'expecting a link. Find existing defects with qql_search before filing a duplicate. Cost: one ' +
+    'API call, about 0.5s.',
   schema: UpsertSchema,
   handler: upsert,
   annotations: CreateAnnotation,
@@ -102,7 +107,12 @@ toolRegistry.register({
 
 toolRegistry.register({
   name: 'qase_defect_delete',
-  description: 'Delete a defect by project code and defect ID.',
+  description:
+    'Delete a defect by project code and defect ID. The defect and its links to results ' +
+    'disappear, and the failure history stops pointing anywhere. This cannot be undone. Usually ' +
+    'the right move is to resolve or reopen the defect through qase_defect_upsert with its `id` ' +
+    'rather than delete it, so the record of what was found survives. Deletion asks the user for ' +
+    'confirmation and does not proceed without it. Cost: one API call, about 0.4s.',
   schema: DeleteSchema,
   handler: del,
   annotations: DeleteAnnotation,

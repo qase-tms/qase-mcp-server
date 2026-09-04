@@ -239,13 +239,17 @@ async function handler(args: z.infer<typeof Schema>) {
 toolRegistry.register({
   name: 'qase_project_context',
   description:
-    'Get full project context in one call: project details, suites tree, milestones, ' +
-    'environments, custom fields, and users. Cached for 5 minutes. Use this as the ' +
-    'first call when starting work with a project — it seeds all the metadata the LLM ' +
-    `needs without making 6 separate list calls. Each collection returns its first ${PAGE_SIZE} ` +
-    'entities by default; the `coverage` field reports `{ total, loaded, truncated }` per ' +
-    'collection, so check it before assuming a list is complete. Pass `full: true` to page ' +
-    'through everything.',
+    'Seed everything about a project in one call: project details, the full suite tree, ' +
+    'milestones, environments, custom fields, and users. This is the first call to make when ' +
+    'starting work on a project — it replaces six separate list calls and gives the model the ' +
+    'metadata it needs to build any later query. Each collection returns its first ' +
+    `${PAGE_SIZE} entities; the \`coverage\` field reports { total, loaded, truncated } per ` +
+    'collection, so check it before assuming a list is complete, and pass `full: true` to page ' +
+    'through everything. For a single record you already have the ID for, qase_get is cheaper; ' +
+    'for filtered or cross-project questions, use qql_search. Cost: six API calls behind one ' +
+    'tool call, 0.5-1.3s cold, and 16-48KB of response depending on project size. Cached for ' +
+    '5 minutes, so repeat calls inside that window return in about 5ms. `full: true` costs one ' +
+    'extra call per 100 entities and can return thousands of items.',
   schema: Schema,
   handler,
   annotations: ReadAnnotation,

@@ -41,11 +41,15 @@ async function handler(args: z.infer<typeof Schema>) {
 toolRegistry.register({
   name: 'qase_api',
   description:
-    'Direct Qase REST API call for endpoints not covered by other tools. ' +
-    'Pass the HTTP method, path (starting with /v1/), and optional body/query. ' +
-    'See https://developers.qase.io for API reference. Use this as an escape hatch ' +
-    'when the dedicated tools do not cover your use case. Sends JSON only: it cannot ' +
-    'upload files, which need multipart/form-data — use qase_attachment_upload for that.',
+    'Call any Qase REST endpoint directly, for the few things no dedicated tool covers. Pass the ' +
+    'HTTP method, a path starting with /v1/, and an optional body or query. See ' +
+    'developers.qase.io for the reference. Prefer a dedicated tool wherever one exists: they ' +
+    'normalize enums, validate arguments before spending a round trip, and shape the response for ' +
+    'a model. This one hands back whatever the API returns. It sends JSON only and cannot upload ' +
+    'files — multipart uploads go through qase_attachment_upload. A DELETE through this tool asks ' +
+    'for confirmation the same way the dedicated delete tools do. Cost: one API call, typically ' +
+    '0.3-1.5s depending on the endpoint. No caching, no pagination help, no retries beyond the ' +
+    'client defaults.',
   schema: Schema,
   handler,
   annotations: {

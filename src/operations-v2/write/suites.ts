@@ -61,8 +61,11 @@ async function del(args: z.infer<typeof DeleteSchema>) {
 toolRegistry.register({
   name: 'qase_suite_upsert',
   description:
-    'Create or update a test suite. If `id` is provided, updates the existing suite; ' +
-    'if omitted, creates a new one.',
+    'Create or update a test suite — the folder cases live in. Without `id` it creates, with `id` ' +
+    'it updates. Nest a suite by passing `parent_id`; the whole existing tree comes back from ' +
+    'qase_project_context, so read that first rather than guessing at parent IDs. Building a deep ' +
+    'tree means one call per node, so create parents before children and reuse the IDs returned. ' +
+    'Cost: one API call, about 0.5s.',
   schema: UpsertSchema,
   handler: upsert,
   annotations: CreateAnnotation,
@@ -72,8 +75,12 @@ toolRegistry.register({
 toolRegistry.register({
   name: 'qase_suite_delete',
   description:
-    'Delete a test suite. If `delete_cases` is true, removes all cases in the suite; ' +
-    'if false or omitted, cases are moved to the parent suite.',
+    'Delete a test suite by project code and suite ID. By default the cases inside it are not ' +
+    'deleted — they move up to the parent suite. Pass `delete_cases: true` to remove them along ' +
+    'with the suite, which also removes their history and cannot be undone. Deleting a suite with ' +
+    'children deletes the whole subtree, so check the tree in qase_project_context before ' +
+    'calling. Deletion asks the user for confirmation and does not proceed without it. Cost: one ' +
+    'API call, about 0.4s, longer for a large subtree.',
   schema: DeleteSchema,
   handler: del,
   annotations: DeleteAnnotation,

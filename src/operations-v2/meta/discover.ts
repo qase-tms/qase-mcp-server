@@ -81,9 +81,14 @@ async function handler(args: z.infer<typeof Schema>) {
 toolRegistry.register({
   name: 'qase_discover_tools',
   description:
-    'Search for and activate additional Qase tools. By default, only core tools are visible. ' +
-    'Use this to find tools for specific needs: deletions, milestone management, attachments, etc. ' +
-    'Found tools are automatically activated and become available for use.',
+    'Find and switch on tools that are hidden by default. Only core tools appear in the tool ' +
+    'list; deletes, shared steps and parameters, attachments, external issue links, case reviews, ' +
+    'defect triage, and project and custom-field management all exist but stay hidden until ' +
+    'discovered. Search by what you are trying to do — "delete", "milestone", "attachment", ' +
+    '"review", "custom field" — and matching tools are activated and become callable. Every word ' +
+    "in the query must appear in a tool's name or description, so prefer two or three words over " +
+    'a sentence. Never conclude a capability is missing without searching here first. Cost: no ' +
+    'API call, matching happens in memory, about 3ms. Free to call as often as needed.',
   schema: Schema,
   handler,
   annotations: ReadAnnotation,

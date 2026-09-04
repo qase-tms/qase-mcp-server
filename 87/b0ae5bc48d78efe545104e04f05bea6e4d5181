@@ -1,0 +1,85 @@
+src/operations-v2/composites/regression-run.ts
+  s_739726d20c1c33::t_940146e5837ac0 110-114
+  s_739726d20c1c33::t_9764a61d43a3ef 115-117
+src/operations-v2/write/runs.ts
+  s_739726d20c1c33::t_940146e5837ac0 92-99,107-113,122-128
+src/operations-v2/write/attachments.ts
+  s_739726d20c1c33::t_642d78ea4e2eee 129-136,138-140
+  s_739726d20c1c33::t_16db88a386a973 137
+  s_739726d20c1c33::t_4e571fb443f119 151-156
+src/operations-v2/composites/triage-defect.ts
+  s_739726d20c1c33::t_77acf715bc26ee 72-77,80-81
+  s_739726d20c1c33::t_8dc46a4820bf7a 78-79
+src/operations-v2/descriptions.test.ts
+  s_739726d20c1c33::t_420759a1345e7c 1-17,19-90
+  s_739726d20c1c33::t_2a27bca5e37bc6 18
+src/operations-v2/write/plans.ts
+  s_739726d20c1c33::t_15c77642eef336 57-62,71-76
+src/operations-v2/write/results.ts
+  s_739726d20c1c33::t_9065a8b528c71d 86-90,94
+  s_739726d20c1c33::t_4d65caf0aa8f60 91-93
+  s_739726d20c1c33::t_4e571fb443f119 102-108
+src/operations-v2/write/suites.ts
+  s_739726d20c1c33::t_15c77642eef336 64-68,78-83
+src/operations-v2/write/cases-bulk.ts
+  s_739726d20c1c33::t_047657805dadf2 64-72
+src/operations-v2/write/defects.ts
+  s_739726d20c1c33::t_4e571fb443f119 96-97,110-115
+  s_739726d20c1c33::t_9764a61d43a3ef 98-102
+src/operations-v2/write/external-issues.ts
+  s_739726d20c1c33::t_9764a61d43a3ef 116-122
+src/operations-v2/write/projects.ts
+  s_739726d20c1c33::t_c7d29e6cc4492f 82-88
+  s_739726d20c1c33::t_7d961134b8df7e 65-71
+src/operations-v2/meta/discover.ts
+  s_739726d20c1c33::t_940146e5837ac0 84-91
+src/operations-v2/write/reviews.ts
+  s_739726d20c1c33::t_7d961134b8df7e 465-470,481-485
+  s_739726d20c1c33::t_b8c2ae7a1c9438 434-439,451-454,495-501
+src/operations-v2/read/get.ts
+  s_739726d20c1c33::t_2de459176d3f83 131-140
+src/operations-v2/write/milestones.ts
+  s_739726d20c1c33::t_15c77642eef336 58-62,71-76
+CHANGELOG.md
+  s_739726d20c1c33::t_c79b5c04f17f68 22-25
+src/operations-v2/write/environments.ts
+  s_739726d20c1c33::t_15c77642eef336 58-63,72-77
+src/server.ts
+  s_739726d20c1c33::t_fb21980517bbde 31,54
+src/server-instructions.ts
+  s_739726d20c1c33::t_fb21980517bbde 1-20
+src/operations-v2/write/custom-fields.ts
+  s_739726d20c1c33::t_4e571fb443f119 276-280
+  s_739726d20c1c33::t_c7d29e6cc4492f 256-266
+src/operations-v2/write/cases.ts
+  s_739726d20c1c33::t_4e571fb443f119 76-82
+  s_739726d20c1c33::t_9065a8b528c71d 59-68
+src/operations-v2/write/shared-steps.ts
+  s_739726d20c1c33::t_4e571fb443f119 70-74,83-89
+src/operations-v2/escape/api.ts
+  s_739726d20c1c33::t_940146e5837ac0 44-52
+src/operations-v2/composites/ci-report.ts
+  s_739726d20c1c33::t_9065a8b528c71d 123-125,130-131
+  s_739726d20c1c33::t_9764a61d43a3ef 126-129
+src/operations-v2/qql/index.ts
+  s_739726d20c1c33::t_2de459176d3f83 312-321,331-338
+  s_739726d20c1c33::t_93087814c45403 269
+src/operations-v2/read/project-context.ts
+  s_739726d20c1c33::t_78d1397609f9fd 242-252
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.0",
+  "base_commit_sha": "87b0ae5bc48d78efe545104e04f05bea6e4d5181",
+  "prompts": {},
+  "sessions": {
+    "s_739726d20c1c33": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "8d8e7dc3-0287-4ced-91db-67bc7cc94571",
+        "model": "claude-opus-5"
+      },
+      "human_author": "Dmitrii Gridnev <dgridnev@qase.io>"
+    }
+  }
+}

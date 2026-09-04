@@ -40,9 +40,12 @@ beforeEach(() => {
   mockCreate.mockReset().mockResolvedValue({ data: { status: true, result: { id: 7 } } });
   mockUpdate.mockReset().mockResolvedValue({ data: { status: true } });
   mockDelete.mockReset().mockResolvedValue({ data: { status: true } });
+  // The API answers with labels — `"type": "string"` — while taking numbers on
+  // the way in. Verified against the live API; mocking numbers here once hid a
+  // real failure behind a green test.
   mockGet
     .mockReset()
-    .mockResolvedValue({ data: { status: true, result: { id: 7, entity: 0, type: 1 } } });
+    .mockResolvedValue({ data: { status: true, result: { id: 7, entity: 'case', type: 'string' } } });
 });
 
 describe('registration', () => {
@@ -166,7 +169,7 @@ describe('updating a custom field', () => {
   });
 
   it('says so when the caller asks for a type that cannot be changed', async () => {
-    // The field is a string (type 1); the caller asks for datetime.
+    // The field is a string; the caller asks for datetime.
     const result = (await invoke('qase_custom_field_upsert', {
       id: 7,
       title: 'Renamed',
@@ -185,6 +188,146 @@ describe('updating a custom field', () => {
     })) as { warning?: string };
 
     expect(result.warning).toBeUndefined();
+  });
+});
+
+// Verified against the live API: updating a selectbox without re-sending its
+// options fails with an opaque "Data is invalid". Renaming a field is the most
+// ordinary thing to do, so the options are carried over rather than demanded.
+describe('updating a field whose type needs options', () => {
+  beforeEach(() => {
+    mockGet.mockResolvedValue({
+      data: {
+        status: true,
+        result: {
+          id: 7,
+          entity: 'case',
+          type: 'selectbox',
+          value: '[{"id": 1, "title": "API"}, {"id": 2, "title": "UI"}]',
+        },
+      },
+    });
+  });
+
+  it('carries the existing options over when the caller sends none', async () => {
+    await invoke('qase_custom_field_upsert', { id: 7, title: 'Renamed' });
+
+    expect(updated().value).toEqual([
+      { id: 1, title: 'API' },
+      { id: 2, title: 'UI' },
+    ]);
+  });
+
+  it('keeps the option ids, so values already chosen on cases survive', async () => {
+    await invoke('qase_custom_field_upsert', { id: 7, title: 'Renamed' });
+
+    expect((updated().value as Array<{ id?: number }>).every((o) => o.id !== undefined)).toBe(true);
+  });
+
+  it('uses the options the caller sent instead, when there are any', async () => {
+    await invoke('qase_custom_field_upsert', { id: 7, title: 'Renamed', value: ['Only'] });
+
+    expect(updated().value).toEqual([{ title: 'Only' }]);
+  });
+
+  it('sends no options for a type that has none', async () => {
+    mockGet.mockResolvedValue({
+      data: { status: true, result: { id: 7, entity: 'case', type: 'string' } },
+    });
+
+    await invoke('qase_custom_field_upsert', { id: 7, title: 'Renamed' });
+
+    expect(updated()).not.toHaveProperty('value');
+  });
+
+  it('understands a numeric type code too, not only the label', async () => {
+    mockGet.mockResolvedValue({
+      data: {
+        status: true,
+        result: { id: 7, entity: 0, type: 3, value: '[{"id": 1, "title": "API"}]' },
+      },
+    });
+
+    await invoke('qase_custom_field_upsert', { id: 7, title: 'Renamed' });
+
+    expect(updated().value).toEqual([{ id: 1, title: 'API' }]);
+  });
+
+  it('still updates when the current options cannot be read', async () => {
+    mockGet.mockRejectedValue(new Error('nope'));
+
+    await invoke('qase_custom_field_upsert', { id: 7, title: 'Renamed' });
+
+    expect(mockUpdate).toHaveBeenCalled();
+  });
+});
+
+// Verified against the live API: the update endpoint replaces the record
+// rather than patching it. Renaming a field silently emptied its
+// projects_codes, unscoping it from every project it belonged to.
+describe('updating carries over what the caller did not mention', () => {
+  beforeEach(() => {
+    mockGet.mockResolvedValue({
+      data: {
+        status: true,
+        result: {
+          id: 7,
+          entity: 'case',
+          type: 'string',
+          placeholder: 'ph',
+          default_value: 'dv',
+          is_filterable: true,
+          is_visible: true,
+          is_required: true,
+          is_enabled_for_all_projects: false,
+          projects_codes: ['DEMO', 'NP'],
+        },
+      },
+    });
+  });
+
+  it('keeps the field scoped to the projects it already applied to', async () => {
+    await invoke('qase_custom_field_upsert', { id: 7, title: 'Renamed' });
+
+    expect(updated().projects_codes).toEqual(['DEMO', 'NP']);
+  });
+
+  it('keeps the flags, placeholder and default value', async () => {
+    await invoke('qase_custom_field_upsert', { id: 7, title: 'Renamed' });
+
+    expect(updated()).toMatchObject({
+      placeholder: 'ph',
+      default_value: 'dv',
+      is_filterable: true,
+      is_visible: true,
+      is_required: true,
+      is_enabled_for_all_projects: false,
+    });
+  });
+
+  it('lets the caller override any of them', async () => {
+    await invoke('qase_custom_field_upsert', {
+      id: 7,
+      title: 'Renamed',
+      is_required: false,
+      projects_codes: ['OTHER'],
+    });
+
+    expect(updated()).toMatchObject({ is_required: false, projects_codes: ['OTHER'] });
+  });
+
+  it('sends the new title, not the old one', async () => {
+    await invoke('qase_custom_field_upsert', { id: 7, title: 'Renamed' });
+
+    expect(updated().title).toBe('Renamed');
+  });
+
+  it('updates with what it was given when the field cannot be read', async () => {
+    mockGet.mockRejectedValue(new Error('nope'));
+
+    await invoke('qase_custom_field_upsert', { id: 7, title: 'Renamed' });
+
+    expect(updated()).toEqual({ title: 'Renamed' });
   });
 });
 

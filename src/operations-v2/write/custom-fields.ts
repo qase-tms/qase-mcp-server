@@ -78,12 +78,26 @@ async function upsert(rawArgs: unknown) {
   const options = value?.map((title) => ({ title }));
 
   if (id) {
+    const current = await readField(id);
+
     // `entity` and `type` are fixed at creation — the update endpoint has no
     // field for either. Accepting them silently would let a caller believe a
     // field changed shape when it did not, so say what was ignored.
-    const warning = await describeIgnoredShape(id, type);
+    const warning = describeIgnoredShape(current, type);
 
-    const body = { ...rest, ...(options && { value: options }) };
+    // The endpoint replaces the record instead of patching it, so everything
+    // the caller left out has to be sent back as it stands. Renaming a field
+    // otherwise empties its projects_codes and unscopes it from every project.
+    // A select-type field additionally rejects an update carrying no options,
+    // with nothing but "Data is invalid" to explain itself; the option ids come
+    // along too, since dropping them recreates the options and orphans the
+    // values already chosen on cases.
+    const optionsToSend = options ?? existingOptions(current);
+    const body = {
+      ...carriedOver(current, rest),
+      ...rest,
+      ...(optionsToSend && { value: optionsToSend }),
+    };
     const result = await toResultAsync(client.customFields.updateCustomField(id, body as never));
     return result.match(
       () => ({ id, ...(warning && { warning }) }),
@@ -124,24 +138,101 @@ async function upsert(rawArgs: unknown) {
 }
 
 /**
+ * The field as it currently stands, or undefined if it cannot be read.
+ *
+ * `type` comes back as a label — `"selectbox"` — even though writes take the
+ * numeric code, so both forms have to be understood here.
+ */
+type CurrentField = { type?: number | string; value?: unknown } | undefined;
+
+/**
+ * Settings the update endpoint replaces rather than patches: anything omitted
+ * comes back empty. Carried over so an update only changes what was asked for.
+ */
+const CARRIED_OVER = [
+  'placeholder',
+  'default_value',
+  'is_filterable',
+  'is_visible',
+  'is_required',
+  'is_enabled_for_all_projects',
+  'projects_codes',
+] as const;
+
+async function readField(id: number): Promise<CurrentField> {
+  const client = getApiClient();
+  const result = await toResultAsync(client.customFields.getCustomField(id));
+  return result.match(
+    (r) => r.data.result as CurrentField,
+    () => undefined,
+  );
+}
+
+/**
+ * The options a select-type field already has, ready to be sent back.
+ * Undefined for types that have none, or when they cannot be read — the update
+ * should still go out and let the API speak for itself.
+ */
+function existingOptions(current: CurrentField): Array<Record<string, unknown>> | undefined {
+  const label = currentTypeLabel(current);
+  if (label === undefined) return undefined;
+
+  if (!TYPES_NEEDING_OPTIONS.includes(label as (typeof TYPES_NEEDING_OPTIONS)[number])) {
+    return undefined;
+  }
+
+  // The API hands options back as a JSON string, not as an array.
+  const raw = current?.value;
+  const parsed = typeof raw === 'string' ? safeParseJson(raw) : raw;
+  return Array.isArray(parsed) ? (parsed as Array<Record<string, unknown>>) : undefined;
+}
+
+/** Current settings the caller did not mention, ready to be sent back. */
+function carriedOver(
+  current: CurrentField,
+  given: Record<string, unknown>,
+): Record<string, unknown> {
+  if (!current) return {};
+
+  const source = current as Record<string, unknown>;
+  const carried: Record<string, unknown> = {};
+  for (const key of CARRIED_OVER) {
+    if (given[key] === undefined && source[key] !== undefined && source[key] !== null) {
+      carried[key] = source[key];
+    }
+  }
+  return carried;
+}
+
+/** The field's type as a label, whichever form the API used to report it. */
+function currentTypeLabel(current: CurrentField): TypeLabel | undefined {
+  const raw = current?.type;
+  if (raw === undefined) return undefined;
+  if (typeof raw === 'string') {
+    return (Object.keys(TYPE_CODES) as TypeLabel[]).find((k) => k === raw);
+  }
+  return (Object.keys(TYPE_CODES) as TypeLabel[]).find((k) => TYPE_CODES[k] === raw);
+}
+
+function safeParseJson(raw: string): unknown {
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return undefined;
+  }
+}
+
+/**
  * Report a type the caller asked for that the field cannot be given. Returns
  * undefined when nothing was asked for, when it matches, or when the current
  * shape cannot be read — a warning is a courtesy, never a reason to fail.
  */
-async function describeIgnoredShape(id: number, type?: TypeLabel): Promise<string | undefined> {
+function describeIgnoredShape(current: CurrentField, type?: TypeLabel): string | undefined {
   if (type === undefined) return undefined;
 
-  const client = getApiClient();
-  const current = await toResultAsync(client.customFields.getCustomField(id));
-  const field = current.match(
-    (r) => r.data.result as { type?: number } | undefined,
-    () => undefined,
-  );
-  if (!field || field.type === undefined || field.type === TYPE_CODES[type]) return undefined;
+  const currentLabel = currentTypeLabel(current);
+  if (currentLabel === undefined || currentLabel === type) return undefined;
 
-  const currentLabel =
-    (Object.keys(TYPE_CODES) as TypeLabel[]).find((k) => TYPE_CODES[k] === field.type) ??
-    String(field.type);
   return (
     `The field stays a ${currentLabel}: a custom field's type is fixed when it is created, ` +
     `so "${type}" was ignored. Delete and recreate the field to change its type.`

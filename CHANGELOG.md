@@ -15,9 +15,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
   The tools speak labels where the API speaks numbers: `entity` is `case` / `run` / `defect` and `type` is `number` / `string` / `text` / `selectbox` / `checkbox` / `radio` / `multiselect` / `url` / `user` / `datetime`, mapped to their codes on the way out. Nothing has to know that a selectbox is a 3. Option lists are given as plain strings and wrapped into the objects the API expects.
 
+  Updating carries over what the call did not mention. The endpoint replaces the record rather than patching it, so a rename that sent only a title used to empty `projects_codes` and unscope the field from every project it belonged to, and a select-type field rejected the update outright with nothing but `Data is invalid` to explain itself. The current placeholder, default value, flags, project scoping and options are read and sent back, option ids included — dropping those would recreate the options and orphan the values already chosen on cases.
+
   `entity` and `type` are fixed when a field is created. The update endpoint has no field for either, so passing a different `type` to an update returns a warning saying the field kept its shape and what to do instead, rather than silently accepting a change that never happened.
 
 ### Fixed
+
+- **`qase_discover_tools` found nothing for the most natural queries.** The search matched the whole query as one literal substring, so `delete project` returned zero results — that exact phrase appears in no tool, even though `qase_project_delete` contains both words. `create custom field` and `delete test case` were empty too. Single words worked, which is why this went unnoticed. It matters more than it looks: every `*_delete` tool and both new pairs are `discoverable`, meaning search is the only way to reach them, so a miss hides them entirely. The query is now split into words, and a tool matches when all of them appear in its name or description.
 
 - **`qase_api` could delete without asking.** The escape hatch is annotated `destructiveHint: false` — correctly, since most calls through it read, and a `GET` must not prompt — but that also placed it outside the confirmation gate that every `*_delete` tool goes through. A `DELETE /v1/project/DEMO` therefore removed an entire project unasked, which became harder to justify now that `qase_project_delete` exists and does ask. The handler now requests confirmation itself whenever the method is `DELETE`, naming the path in the prompt. Other methods are untouched.
 

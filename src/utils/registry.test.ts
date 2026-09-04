@@ -365,6 +365,43 @@ describe('ToolRegistry', () => {
       const results = registry.searchTools('qase');
       expect(results).toHaveLength(3); // all qase_* tools
     });
+
+    // A multi-word query used to be matched as one literal substring, so the
+    // most natural phrasings returned nothing: "delete run" does not appear in
+    // "Delete a test run", even though both words do. Discoverable tools are
+    // invisible until search finds them, so a miss here hides them entirely.
+    it('matches a multi-word query on words, not as one literal substring', () => {
+      const results = registry.searchTools('delete run');
+      expect(results.map((t) => t.name)).toEqual(['qase_run_delete']);
+    });
+
+    it('requires every word to match, so unrelated words narrow the result', () => {
+      expect(registry.searchTools('delete case').map((t) => t.name)).toEqual([
+        'qase_case_delete',
+      ]);
+      expect(registry.searchTools('delete unicorn')).toEqual([]);
+    });
+
+    it('matches words across the name and the description together', () => {
+      // "upsert" is only in the name, "test case" only in the description.
+      expect(registry.searchTools('upsert test case').map((t) => t.name)).toEqual([
+        'qase_case_upsert',
+      ]);
+    });
+
+    it('ignores extra whitespace between words', () => {
+      expect(registry.searchTools('  delete   run  ').map((t) => t.name)).toEqual([
+        'qase_run_delete',
+      ]);
+    });
+
+    it('still treats a single word as a plain substring', () => {
+      expect(registry.searchTools('qql').map((t) => t.name)).toEqual(['qql_search']);
+    });
+
+    it('returns nothing for an empty query rather than every tool', () => {
+      expect(registry.searchTools('   ')).toEqual([]);
+    });
   });
 
   describe('unregister with visibility', () => {

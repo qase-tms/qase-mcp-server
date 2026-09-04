@@ -20,6 +20,11 @@ jest.mock('../utils/auth-context.js', () => ({
 let server: http.Server;
 let received: Array<{ path: string; userAgent?: string }> = [];
 
+// Real listener, real requests, and a fresh SDK client per case: a single test
+// here costs ~2s on its own, which leaves no room under Jest's 5s default once
+// the rest of the run competes for the machine.
+jest.setTimeout(30000);
+
 beforeAll(async () => {
   server = http.createServer((req, res) => {
     received.push({ path: req.url ?? '', userAgent: req.headers['user-agent'] });

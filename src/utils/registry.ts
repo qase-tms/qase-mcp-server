@@ -156,12 +156,17 @@ export class ToolRegistry {
    * Searches the full catalog including inactive tools.
    */
   searchTools(query: string): Tool[] {
-    const lower = query.toLowerCase();
-    return this.getAllTools().filter(
-      (t) =>
-        t.name.toLowerCase().includes(lower) ||
-        (t.description?.toLowerCase().includes(lower) ?? false),
-    );
+    // Match on words rather than on the whole string: a caller asking for
+    // "delete project" means both words, and that phrase appears verbatim in no
+    // tool. Matching it literally returned nothing and left every discoverable
+    // tool hidden, since search is the only way to reach them.
+    const words = query.toLowerCase().split(/\s+/).filter(Boolean);
+    if (words.length === 0) return [];
+
+    return this.getAllTools().filter((t) => {
+      const haystack = `${t.name} ${t.description ?? ''}`.toLowerCase();
+      return words.every((word) => haystack.includes(word));
+    });
   }
 
   /**

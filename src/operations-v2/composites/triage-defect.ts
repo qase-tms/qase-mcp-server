@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { getApiClient } from '../../client/index.js';
+import { normalizeEnumFields } from '../../utils/case-enums.js';
 import { toolRegistry, CreateAnnotation } from '../../utils/registry.js';
 import { toResultAsync, createToolError } from '../../utils/errors.js';
 import { ProjectCodeSchema } from '../../utils/validation.js';
@@ -26,7 +27,10 @@ const Schema = z.object({
 
 async function handler(args: z.infer<typeof Schema>) {
   const client = getApiClient();
-  const { code, ...defectData } = args;
+  const { code, ...rest } = args;
+  // Same as qase_defect_upsert: the API wants severity as a numeric ID and
+  // rejects the label with a bare "Data is invalid".
+  const defectData = await normalizeEnumFields(rest, ['severity']);
 
   // Create defect
   const defectRes = await toResultAsync(client.defects.createDefect(code, defectData as any));
@@ -69,10 +73,16 @@ async function handler(args: z.infer<typeof Schema>) {
 toolRegistry.register({
   name: 'qase_triage_defect',
   description:
-    'Create a defect from a test failure. Requires title, actual_result, and severity. ' +
-    'Note: the API offers no way to attach existing runs or results to a defect — the ' +
-    'runs/results seen on a defect are populated by the test runner when a result is ' +
-    'reported as a defect. Reference failing results in actual_result instead.',
+    'Create a defect from a test failure, with the failure context written into it. Requires ' +
+    'title, actual_result and severity — the API rejects a defect missing any of the three. ' +
+    'Note: the API offers no way to attach existing runs or results to a defect. The runs and ' +
+    'results seen on a defect in the UI are populated by the test runner when it reports a ' +
+    'result as a defect, so there is nothing to pass here for that — reference the failing ' +
+    'results inside actual_result instead, and do not expect a link to appear. For a defect ' +
+    'unrelated to a test failure use qase_defect_upsert. Cost: one API call, about 0.5s. ' +
+    'Triaging a whole run means ' +
+    'one call per defect, so cluster identical failures and file one defect per distinct cause ' +
+    'rather than one per failed test.',
   schema: Schema,
   handler,
   annotations: CreateAnnotation,

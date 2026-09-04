@@ -55,8 +55,11 @@ async function del(args: z.infer<typeof DeleteSchema>) {
 toolRegistry.register({
   name: 'qase_milestone_upsert',
   description:
-    'Create or update a milestone. If `id` is provided, updates the existing milestone; ' +
-    'if omitted, creates a new one.',
+    'Create or update a milestone — a dated marker that runs and cases can be grouped under, ' +
+    'typically a release. Without `id` it creates, with `id` it updates. Use the milestone ID ' +
+    'when opening a run to tie that execution to the release, which is what makes "is this ' +
+    'release ready" answerable later through qql_search. Existing milestones for a project come ' +
+    'back from qase_project_context. Cost: one API call, about 0.5s.',
   schema: UpsertSchema,
   handler: upsert,
   annotations: CreateAnnotation,
@@ -65,7 +68,12 @@ toolRegistry.register({
 
 toolRegistry.register({
   name: 'qase_milestone_delete',
-  description: 'Delete a milestone by project code and milestone ID.',
+  description:
+    'Delete a milestone by project code and milestone ID. The milestone disappears and runs and ' +
+    'cases that referenced it lose the association, though they are not deleted themselves — ' +
+    'release reporting built on that milestone stops working. This cannot be undone. Deletion ' +
+    'asks the user for confirmation and does not proceed without it. Cost: one API call, about ' +
+    '0.4s.',
   schema: DeleteSchema,
   handler: del,
   annotations: DeleteAnnotation,

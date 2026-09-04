@@ -126,13 +126,18 @@ async function del(args: z.infer<typeof DeleteSchema>) {
 toolRegistry.register({
   name: 'qase_attachment_upload',
   description:
-    'Upload a file attachment and get back its hash, which the `attachments` field of ' +
-    'qase_case_upsert, qase_result_record, qase_ci_report, qase_triage_defect, and ' +
-    'qase_shared_step_upsert accepts. This is the only way to obtain such a hash — the upload ' +
-    'endpoint needs multipart/form-data, which qase_api cannot send. Pass the file as base64 ' +
-    '(`file_base64`), which is the only option when the server runs remotely, such as the ' +
-    'hosted connector; `file_path` works only when the server runs on the same machine as ' +
-    'the file.',
+    'Upload a file and get back the hash that other tools reference it by — screenshots, logs, ' +
+    'HAR files, videos. Pass `file_base64` with the base64-encoded bytes, or `file_path` with an ' +
+    'absolute path; `filename` with its extension is always required. Use `file_base64` unless ' +
+    'the server runs on the same machine as the file: a remote server, the hosted connector ' +
+    'included, cannot see your filesystem, and `file_path` will simply not find the file. The ' +
+    'returned hash is what goes in the `attachments` field of qase_case_upsert, ' +
+    'qase_result_record, qase_defect_upsert or qase_triage_defect — uploading alone attaches ' +
+    'nothing, the hash has to be passed on. This is the only tool that sends ' +
+    'multipart/form-data, which is why qase_api cannot send them. Upload once and reuse the ' +
+    'hash rather than re-uploading the same evidence per case. Cost: one API call per file, ' +
+    'dominated by file size rather than round trip — well under a second for a screenshot, ' +
+    'seconds for a video. Base64 inflates the payload by about a third.',
   schema: UploadSchema,
   handler: upload,
   annotations: CreateAnnotation,
@@ -143,7 +148,12 @@ toolRegistry.register({
 
 toolRegistry.register({
   name: 'qase_attachment_delete',
-  description: 'Delete an attachment by its hash.',
+  description:
+    'Delete an attachment by its hash. Anything referencing it — a case, a result, a defect — ' +
+    'keeps the reference but the file is gone, so screenshots and logs attached to a failure ' +
+    'disappear from the evidence trail. This cannot be undone. Attachments are addressed by hash, ' +
+    'not numeric ID; the hash comes back from qase_attachment_upload. Deletion asks the user for ' +
+    'confirmation and does not proceed without it. Cost: one API call, about 0.4s.',
   schema: DeleteSchema,
   handler: del,
   annotations: DeleteAnnotation,

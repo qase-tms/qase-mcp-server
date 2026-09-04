@@ -54,8 +54,12 @@ async function del(args: z.infer<typeof DeleteSchema>) {
 toolRegistry.register({
   name: 'qase_plan_upsert',
   description:
-    'Create or update a test plan. If `id` is provided, updates the existing plan; ' +
-    'if omitted, creates a new one.',
+    'Create or update a test plan — a named, reusable set of cases to run together, such as a ' +
+    'smoke or regression pack. Without `id` it creates, with `id` it updates, and the case list ' +
+    'is given explicitly. Once a plan exists, qase_regression_run turns it into a run in one ' +
+    'call, which is the point of having one. Find the cases to put in it with qql_search rather ' +
+    'than fetching them one by one. Cost: one API call, about 0.5s, growing with the number of ' +
+    'cases in the plan.',
   schema: UpsertSchema,
   handler: upsert,
   annotations: CreateAnnotation,
@@ -64,7 +68,12 @@ toolRegistry.register({
 
 toolRegistry.register({
   name: 'qase_plan_delete',
-  description: 'Delete a test plan by project code and plan ID.',
+  description:
+    'Delete a test plan by project code and plan ID. Only the plan is removed — the cases it ' +
+    'referenced stay, and runs already created from it are untouched — but anything that launches ' +
+    'this plan by ID stops working. This cannot be undone. To change which cases a plan holds, ' +
+    'use qase_plan_upsert with its `id` instead of deleting and recreating. Deletion asks the ' +
+    'user for confirmation and does not proceed without it. Cost: one API call, about 0.4s.',
   schema: DeleteSchema,
   handler: del,
   annotations: DeleteAnnotation,

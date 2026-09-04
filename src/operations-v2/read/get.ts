@@ -128,10 +128,16 @@ async function handler(args: z.infer<typeof Schema>) {
 toolRegistry.register({
   name: 'qase_get',
   description:
-    'Get any Qase entity by type and ID. Supports field projection via the `fields` parameter. ' +
-    'For project-scoped entities (case, suite, run, result, plan, defect, milestone, environment, ' +
-    'shared_step, shared_parameter, configuration), `code` is required. ' +
-    'For global entities (user, author, attachment, custom_field), `code` can be omitted.',
+    'Fetch one known record by type and ID: case, suite, run, result, plan, defect, milestone, ' +
+    'environment, shared_step, shared_parameter, configuration, attachment, author, user, review, ' +
+    'or custom_field. `code` is required for project-scoped entities and can be omitted for ' +
+    'global ones (user, author, attachment, custom_field). Narrow the payload with `fields`, or ' +
+    'pass ["*"] for everything. Use this only when you already know the ID and want a single ' +
+    'record. For several records, for anything filtered or cross-project, or when you are about ' +
+    'to call this in a loop, use qql_search instead — one search returns the whole page at once. ' +
+    'Cost: one API call, 0.3-0.5s. Ten of these in sequence measured 5.3s against 1.2s for a ' +
+    'single qql_search returning the same ten records, so a loop over IDs is roughly four times ' +
+    'slower and ten times more calls.',
   schema: Schema,
   handler,
   annotations: ReadAnnotation,

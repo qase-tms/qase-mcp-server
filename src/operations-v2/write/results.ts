@@ -83,9 +83,15 @@ async function del(args: z.infer<typeof DeleteSchema>) {
 toolRegistry.register({
   name: 'qase_result_record',
   description:
-    'Record one or more test results into a run. Accepts an array of results — ' +
-    'a single entry uses the single-result API, multiple entries use bulk. ' +
-    'Each result must include a status; case_id is recommended.',
+    'Record one or more results into an existing run. A case says what should be tested; a result ' +
+    'says what happened when it ran — status, duration, comment, stacktrace, attachments — so a ' +
+    'result always needs a run to live in. Pass several results in one call rather than calling ' +
+    'once per test: the tool takes a list and sends them together. If the run does not exist yet ' +
+    'and this is a finished CI job, qase_ci_report is the single call that creates the run, ' +
+    'records the results and completes it. Status is a label, one of "passed", "failed", ' +
+    '"blocked", "skipped" or "invalid" — unlike the case enums, numeric IDs are not accepted ' +
+    'here. Cost: one API call for the whole list, about 0.5s for a small ' +
+    'batch, growing with payload rather than with the number of results.',
   schema: RecordSchema,
   handler: record,
   annotations: CreateAnnotation,
@@ -93,7 +99,13 @@ toolRegistry.register({
 
 toolRegistry.register({
   name: 'qase_result_delete',
-  description: 'Delete a test result by run ID and result hash.',
+  description:
+    'Delete a single result from a run, addressed by run ID and result hash. Use it to remove one ' +
+    'wrong or duplicated execution record; the case itself and the rest of the run are untouched. ' +
+    'This cannot be undone, and pass rates and any trend built on that run shift accordingly. ' +
+    "Results are addressed by hash, not numeric ID. To discard a whole run's worth of results, " +
+    'delete the run with qase_run_delete instead of looping here. Deletion asks the user for ' +
+    'confirmation and does not proceed without it. Cost: one API call, about 0.4s.',
   schema: DeleteSchema,
   handler: del,
   annotations: DeleteAnnotation,

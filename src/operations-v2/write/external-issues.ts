@@ -113,11 +113,13 @@ async function handler(rawArgs: unknown) {
 toolRegistry.register({
   name: 'qase_external_issue_link',
   description:
-    'Link or unlink test cases and test runs to issues in an external tracker (Jira Cloud or ' +
-    'Jira Server). Use `entity` to choose between cases and runs and `action` to attach or ' +
-    'detach. A test case can be linked to several issues; a test run can have only one link, ' +
-    'and attaching a new issue replaces the previous one. Read linked issues back with ' +
-    '`qase_get` (entity "case" or "run").',
+    'Link or unlink test cases and test runs to issues in an external tracker — Jira Cloud or ' +
+    'Jira Server, the only two supported. Use `entity` to choose between cases and runs and ' +
+    '`action` to attach or detach. A test case can be linked to several issues; a test run can ' +
+    'have only one link, and attaching a new issue replaces the previous one. Read the links back ' +
+    'with qase_get (entity "case" or "run"). Note this covers cases and runs, not defects — a ' +
+    'defect tracked elsewhere has no link field here. Cost: one API call for the whole set of ' +
+    'links, about 0.5s, so link several entities in one call rather than one call each.',
   schema: Schema,
   handler,
   annotations: UpdateAnnotation,

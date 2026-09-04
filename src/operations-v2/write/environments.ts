@@ -55,8 +55,12 @@ async function del(args: z.infer<typeof DeleteSchema>) {
 toolRegistry.register({
   name: 'qase_environment_upsert',
   description:
-    'Create or update a test environment. If `id` is provided, updates the existing environment; ' +
-    'if omitted, creates a new one.',
+    'Create or update an environment — a named target that runs can be attributed to, such as ' +
+    'staging or production. Without `id` it creates, with `id` it updates; `slug` and `host` are ' +
+    'optional. Attach the environment ID when opening a run so results can later be filtered by ' +
+    'where they ran, which is how "did this fail only on staging" gets answered through ' +
+    'qql_search. Existing environments come back from qase_project_context. Cost: one API call, ' +
+    'about 0.5s.',
   schema: UpsertSchema,
   handler: upsert,
   annotations: CreateAnnotation,
@@ -65,7 +69,12 @@ toolRegistry.register({
 
 toolRegistry.register({
   name: 'qase_environment_delete',
-  description: 'Delete a test environment by project code and environment ID.',
+  description:
+    'Delete an environment by project code and environment ID. Runs that referenced it are not ' +
+    'deleted but lose the attribution, so "where did this run" becomes unanswerable for that ' +
+    'history, and queries filtering by that environment stop matching. This cannot be undone. ' +
+    'Deletion asks the user for confirmation and does not proceed without it. Cost: one API call, ' +
+    'about 0.4s.',
   schema: DeleteSchema,
   handler: del,
   annotations: DeleteAnnotation,

@@ -28,6 +28,7 @@ import { producerStorage } from './utils/producer-context.js';
 import { callIntegrationStorage } from './utils/integration-context.js';
 import { VERSION } from './version.js';
 import { listPrompts, getPrompt } from './prompts/index.js';
+import { SERVER_INSTRUCTIONS } from './server-instructions.js';
 
 // Import operation modules - each module registers its tools on import
 import './operations-v2/index.js';
@@ -50,6 +51,7 @@ export function createServer(): Server {
         tools: { listChanged: true },
         prompts: {},
       },
+      instructions: SERVER_INSTRUCTIONS,
     },
   );
 

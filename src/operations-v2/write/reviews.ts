@@ -431,9 +431,12 @@ toolRegistry.register({
   name: 'qase_review_create',
   description:
     'Open a test case review — the pull-request flow for test cases. Pass `case_id` to propose ' +
-    'changes to an existing case ("edit" review, send only the fields that change); omit it to ' +
-    'propose a brand-new case ("create" review, `title` required). Case fields are named and ' +
-    `normalised exactly as in qase_case_upsert. ${REVIEW_MUST_BE_ENABLED} ${NO_WORKFLOW_ACTIONS}`,
+    'changes to an existing case (an "edit" review; send only the fields that change), or omit ' +
+    'it to propose a brand-new case (a "create" review, where `title` is required). Case fields ' +
+    'are named and normalised exactly as in qase_case_upsert, enum labels included. ' +
+    `${REVIEW_MUST_BE_ENABLED} Opening several reviews at once? Use qase_review_bulk_create — ` +
+    'one request instead of one per review. ' +
+    `${NO_WORKFLOW_ACTIONS} Cost: one API call, about 0.5s.`,
   schema: CreateSchema,
   handler: create,
   annotations: CreateAnnotation,
@@ -445,8 +448,10 @@ toolRegistry.register({
   name: 'qase_review_update',
   description:
     'Update an open review: change the proposed case fields, reassign reviewers, or both. ' +
-    'IMPORTANT: changing the proposal RESETS every approval already given; updating only ' +
-    `\`reviewers\` keeps them. ${NO_WORKFLOW_ACTIONS}`,
+    'Addressed by review ID; case fields follow the same naming and enum handling as ' +
+    'qase_case_upsert. IMPORTANT: changing the proposal RESETS every approval already given, ' +
+    'so a review that was ready to merge goes back to square one; updating only `reviewers` ' +
+    `keeps the approvals. ${NO_WORKFLOW_ACTIONS} Cost: one API call, about 0.5s.`,
   schema: UpdateSchema,
   handler: update,
   annotations: UpdateAnnotation,
@@ -457,9 +462,12 @@ toolRegistry.register({
 toolRegistry.register({
   name: 'qase_review_list',
   description:
-    'List test case reviews, filtered by status, type, reviewed case, author, reviewer, or ' +
-    'title. Reports the total alongside what was returned, so a partial page is visible. ' +
-    'This is how to read review and per-reviewer approval status — QQL has no review entity.',
+    'List the reviews in a project, with their current state, so you can see what is waiting on a ' +
+    'human. Filter by status to find what is still open. Use this rather than guessing whether a ' +
+    'proposal went through: since approving and merging are UI-only, the state here is the only ' +
+    'way to know what happened to a review you opened. For one review whose ID you already have, ' +
+    'qase_get with entity "review" is cheaper. Cost: one API call, about 0.5s, growing with the ' +
+    'number of reviews returned.',
   schema: ListSchema,
   handler: list,
   annotations: ReadAnnotation,
@@ -470,8 +478,11 @@ toolRegistry.register({
 toolRegistry.register({
   name: 'qase_review_delete',
   description:
-    'Delete a review by ID. Merged reviews cannot be deleted. This removes the proposal ' +
-    'entirely; it does not decline it — declining is UI-only.',
+    'Delete a review by ID. This removes the proposal entirely — it does not decline it, and ' +
+    'declining is UI-only, so deleting is not a way to reject a change while keeping the record ' +
+    'of it. Merged reviews cannot be deleted. The proposed case content goes with the review; the ' +
+    'case it referenced is untouched. This cannot be undone. Deletion asks the user for ' +
+    'confirmation and does not proceed without it. Cost: one API call, about 0.4s.',
   schema: GetIdSchema,
   handler: del,
   annotations: DeleteAnnotation,
@@ -481,9 +492,13 @@ toolRegistry.register({
 toolRegistry.register({
   name: 'qase_review_bulk_create',
   description:
-    'Open several reviews in one request. The batch is validated as a whole — if any item is ' +
-    'invalid, nothing is created — then each item is processed and reported individually. ' +
-    `${REVIEW_MUST_BE_ENABLED} ${NO_WORKFLOW_ACTIONS}`,
+    'Open several test case reviews in one request — the batch form of qase_review_create, and ' +
+    'the right tool when proposing more than one change. The batch is validated as a whole, so ' +
+    'if any item is invalid nothing is created, and each item is then processed and reported ' +
+    'individually. Items take the same fields as qase_review_create: `case_id` for an edit ' +
+    `review, omitted for a create review. ${REVIEW_MUST_BE_ENABLED} ${NO_WORKFLOW_ACTIONS} ` +
+    'Cost: one API call regardless of batch size, so ten reviews cost roughly what one ' +
+    'qase_review_create costs, not ten times as much.',
   schema: BulkCreateSchema,
   handler: bulkCreate,
   annotations: CreateAnnotation,

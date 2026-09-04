@@ -87,7 +87,9 @@ beforeAll(async () => {
   }
   const address = httpServer.address() as AddressInfo;
   baseUrl = new URL(`http://127.0.0.1:${address.port}/mcp`);
-});
+  // Real listener on a real port: under a loaded parallel run this does not
+  // fit in Jest's 5s default.
+}, 30000);
 
 beforeEach(() => {
   deleteCase.mockReset();
@@ -97,8 +99,12 @@ beforeEach(() => {
 afterAll(async () => {
   await Promise.all(openClients.map((c) => c.close().catch(() => {})));
   const httpServer = app._httpServer;
-  if (httpServer) await new Promise<void>((resolve) => httpServer.close(() => resolve()));
-});
+  if (!httpServer) return;
+  // Streamed responses can outlive the clients; drop the sockets so close()
+  // does not wait on them.
+  httpServer.closeAllConnections?.();
+  await new Promise<void>((resolve) => httpServer.close(() => resolve()));
+}, 30000);
 
 describe('destructive confirmation over streamable-http', () => {
   it('deletes once the user confirms the prompt', async () => {

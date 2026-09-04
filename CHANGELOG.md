@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.0]
+
+### Added
+
+- **Projects can be created and deleted.** `qase_project_create` takes a title and a code, plus optional description, access level (`all` / `group` / `none`, with a group hash required for `group`) and settings. There is deliberately no upsert: the API has no update endpoint for a project, and an `id`-style switch would imply an edit that cannot happen. `qase_project_delete` takes a code and removes the project with every case, suite, run, result, defect and milestone in it — the most destructive call in the API, and it goes through the confirmation gate like every other deletion.
+
+- **Custom fields have a full lifecycle.** `qase_custom_field_upsert` creates a field or, given an `id`, updates one; `qase_custom_field_delete` removes it along with the values entered for it. Reading them already worked through `qase_project_context` and `qase_get`.
+
+  The tools speak labels where the API speaks numbers: `entity` is `case` / `run` / `defect` and `type` is `number` / `string` / `text` / `selectbox` / `checkbox` / `radio` / `multiselect` / `url` / `user` / `datetime`, mapped to their codes on the way out. Nothing has to know that a selectbox is a 3. Option lists are given as plain strings and wrapped into the objects the API expects.
+
+  Updating carries over what the call did not mention. The endpoint replaces the record rather than patching it, so a rename that sent only a title used to empty `projects_codes` and unscope the field from every project it belonged to, and a select-type field rejected the update outright with nothing but `Data is invalid` to explain itself. The current placeholder, default value, flags, project scoping and options are read and sent back, option ids included — dropping those would recreate the options and orphan the values already chosen on cases.
+
+  `entity` and `type` are fixed when a field is created. The update endpoint has no field for either, so passing a different `type` to an update returns a warning saying the field kept its shape and what to do instead, rather than silently accepting a change that never happened.
+
+- **Every tool description now says what it does, when to use something else, and what the call costs.** Descriptions averaged 202 characters against the 2000 Claude will read, twenty-one of them under 200, the shortest eighteen — and not one mentioned latency or pointed at a cheaper alternative. Agents behaved accordingly: 518K single-record calls against 242K list calls over thirteen weeks. They now average 578 characters and each ends with a measured `Cost:` line, taken from timing the tools against the live API rather than estimated. The pairs an agent gets wrong cross-reference each other in both directions, with the numbers attached: ten `qase_get` calls measured 5.3s against 1.2s for one `qql_search` returning the same ten records, and ten `qase_case_upsert` calls 5.6s against 1.2s for one `qase_case_bulk_create`. `descriptions.test.ts` holds the line: length bounds, a cost statement in every description, and the cross-references.
+
+- **The server now ships `instructions`.** Sent once with the `initialize` response and read before any tool is chosen, they say where to start (`qase_project_context`), when to search rather than fetch (`qql_search`), that hidden tools exist and how to reach them (`qase_discover_tools`), and that batch calls beat loops. Previously the server said nothing about itself and every agent had to infer the map from tool names.
+
+### Fixed
+
+- **No defect could be created at all.** `qase_defect_upsert` and `qase_triage_defect` advertise severity as a label — "blocker", "major" — and forwarded it to an API that takes only the numeric ID from the workspace's `severity` system field, so every attempt came back as a bare `Data is invalid`. Cases have had label normalisation since v2; defects never got it. Both tools now map the label through the same cached system-field lookup, custom options included. Confirmed against the live API on two projects, before and after: `severity: "major"` went from a flat rejection to a created defect. The existing triage test had frozen the broken behaviour by asserting the label was forwarded verbatim; it now asserts the numeric ID.
+
+- **`qase_discover_tools` found nothing for the most natural queries.** The search matched the whole query as one literal substring, so `delete project` returned zero results — that exact phrase appears in no tool, even though `qase_project_delete` contains both words. `create custom field` and `delete test case` were empty too. Single words worked, which is why this went unnoticed. It matters more than it looks: every `*_delete` tool and both new pairs are `discoverable`, meaning search is the only way to reach them, so a miss hides them entirely. The query is now split into words, and a tool matches when all of them appear in its name or description.
+
+- **`qase_api` could delete without asking.** The escape hatch is annotated `destructiveHint: false` — correctly, since most calls through it read, and a `GET` must not prompt — but that also placed it outside the confirmation gate that every `*_delete` tool goes through. A `DELETE /v1/project/DEMO` therefore removed an entire project unasked, which became harder to justify now that `qase_project_delete` exists and does ask. The handler now requests confirmation itself whenever the method is `DELETE`, naming the path in the prompt. Other methods are untouched.
+
 ## [2.3.1]
 
 ### Fixed
@@ -18,6 +44,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   A refusal explains itself. `unsupported` (the client cannot be asked) and `undeliverable` (the prompt went unanswered) come back with `isError: true` and say what to do about it; a plain `declined` does not, because a human saying no is a decision rather than a failure. Clients that cannot be asked are refused in milliseconds instead of hanging for a minute.
 
 - **The legacy HTTP+SSE transport was dead on arrival — every client call failed.** `express.json()` consumes the request body, but `handlePostMessage()` was called without the parsed body, so the SDK tried to read a spent stream and answered `HTTP 400: stream is not readable` to every `tools/call`. Nothing behind `--transport sse` worked, confirmation included. The body is now handed over. The transport is deprecated in the MCP spec (Streamable HTTP replaced it in revision 2025-03-26) and the hosted connector does not use it, but while it ships it should not be broken. It had no test coverage at all; `sse.test.ts` now drives it over real HTTP.
+
+- **Two tool descriptions promised behaviour the API does not have**, both found by running the tools against the live API rather than reading the code. `qase_run_complete` claimed a completed run stops accepting results — it does not; results recorded afterwards are accepted and change the run's counts, so completion is a reporting state and not a lock. `qase_suite_delete` claimed that without `delete_cases` the cases move up to the parent suite — they do not; they are deleted with the suite. The `delete_cases` parameter has no effect at all: the server sends `after_delete_case`, a field this endpoint does not accept, so the outcome is the same whether it is true, false or omitted. The endpoint's real mechanism is a destination suite to move cases into, which the tool does not expose. Both descriptions now say what actually happens, and the dead parameter says so in its own description; making it work is left for a separate change.
 
 ### Changed
 

@@ -3,6 +3,15 @@ import { getApiClient } from '../../client/index.js';
 import { toolRegistry, CreateAnnotation, DeleteAnnotation } from '../../utils/registry.js';
 import { toResultAsync, createToolError } from '../../utils/errors.js';
 import { ProjectCodeSchema, IdSchema } from '../../utils/validation.js';
+import { normalizeEnumFields } from '../../utils/case-enums.js';
+
+/**
+ * The defect API takes severity as the numeric ID from the workspace's
+ * `severity` system field and rejects the label with a bare "Data is invalid",
+ * so a label has to be mapped before it goes out. Status is left alone: the API
+ * takes that one as the label it is.
+ */
+const DEFECT_ENUM_FIELDS = ['severity'] as const;
 
 const DefectFieldsSchema = z.object({
   title: z.string().min(1).max(255).describe('Defect title'),
@@ -35,7 +44,8 @@ const DeleteSchema = z.object({
 
 async function upsert(args: z.infer<typeof UpsertSchema>) {
   const client = getApiClient();
-  const { code, id, status, ...data } = args;
+  const { code, id, status, ...rest } = args;
+  const data = await normalizeEnumFields(rest, DEFECT_ENUM_FIELDS);
 
   if (id) {
     // Update path: handle status changes
@@ -93,8 +103,17 @@ async function del(args: z.infer<typeof DeleteSchema>) {
 toolRegistry.register({
   name: 'qase_defect_upsert',
   description:
-    'Create or update a defect. If `id` is provided, updates (including status changes and resolve). ' +
-    'If omitted, creates a new defect. Set `status: "resolved"` to resolve an existing defect.',
+    'Create or update a defect — a tracked problem found by testing. Without `id` it creates, ' +
+    'with `id` it updates. Creating one requires `title`, `actual_result` and `severity`; the ' +
+    'API rejects a defect missing any of the three. Severity is given as a label ("blocker", ' +
+    '"critical", "major", "normal", "minor", "trivial") and the server maps it to the ' +
+    'workspace\'s numeric ID, custom options included. Status is a label too ("open", ' +
+    '"in_progress", "resolved", "invalid") and passes through as written; setting it to ' +
+    '"resolved" on an existing defect goes through the dedicated resolve endpoint. When the ' +
+    'defect comes from a specific test failure, use qase_triage_defect instead. The API has no ' +
+    'way to attach runs or results to a defect, so reference the failing results in the text ' +
+    'rather than expecting a link. Find existing defects with qql_search before filing a ' +
+    'duplicate. Cost: one API call, about 0.5s, plus a cached lookup of the severity options.',
   schema: UpsertSchema,
   handler: upsert,
   annotations: CreateAnnotation,
@@ -102,7 +121,12 @@ toolRegistry.register({
 
 toolRegistry.register({
   name: 'qase_defect_delete',
-  description: 'Delete a defect by project code and defect ID.',
+  description:
+    'Delete a defect by project code and defect ID. The defect and its links to results ' +
+    'disappear, and the failure history stops pointing anywhere. This cannot be undone. Usually ' +
+    'the right move is to resolve or reopen the defect through qase_defect_upsert with its `id` ' +
+    'rather than delete it, so the record of what was found survives. Deletion asks the user for ' +
+    'confirmation and does not proceed without it. Cost: one API call, about 0.4s.',
   schema: DeleteSchema,
   handler: del,
   annotations: DeleteAnnotation,

@@ -19,7 +19,10 @@ const DeleteSchema = z.object({
   delete_cases: z
     .boolean()
     .optional()
-    .describe('If true, delete all cases in suite; if false, move to parent'),
+    .describe(
+      'Has no effect today: the server sends a field this endpoint does not accept, so the ' +
+        'cases are deleted either way. Kept so existing callers do not break.',
+    ),
 });
 
 async function upsert(args: z.infer<typeof UpsertSchema>) {
@@ -75,12 +78,16 @@ toolRegistry.register({
 toolRegistry.register({
   name: 'qase_suite_delete',
   description:
-    'Delete a test suite by project code and suite ID. By default the cases inside it are not ' +
-    'deleted — they move up to the parent suite. Pass `delete_cases: true` to remove them along ' +
-    'with the suite, which also removes their history and cannot be undone. Deleting a suite with ' +
-    'children deletes the whole subtree, so check the tree in qase_project_context before ' +
-    'calling. Deletion asks the user for confirmation and does not proceed without it. Cost: one ' +
-    'API call, about 0.4s, longer for a large subtree.',
+    'Delete a test suite by project code and suite ID. WARNING: the cases inside are deleted with ' +
+    'it, along with their history, and this cannot be undone. Deleting a suite with children ' +
+    'takes the whole subtree and everything in it, so read the tree from qase_project_context and ' +
+    'move anything worth keeping — qase_case_upsert with a different suite_id — before calling. ' +
+    'The `delete_cases` parameter currently has no effect: the server sends a field this endpoint ' +
+    'does not accept, so cases are deleted whether it is true, false, or omitted. Verified ' +
+    "against the live API. The endpoint's own mechanism for sparing them is a destination suite " +
+    'to move them into, which this tool does not expose yet. Deletion asks the user for ' +
+    'confirmation and does not proceed without it. Cost: one API call, about 0.4s, longer for a ' +
+    'large subtree.',
   schema: DeleteSchema,
   handler: del,
   annotations: DeleteAnnotation,

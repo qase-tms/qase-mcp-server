@@ -111,13 +111,19 @@ async function getSystemFieldMaps(): Promise<SystemFieldMap> {
   return fresh;
 }
 
-export async function normalizeCaseEnums<T extends Record<string, unknown>>(
-  caseData: T,
+/**
+ * Replace enum labels with the numeric IDs the API expects, for the named
+ * fields, using the workspace's own system fields — so a workspace that has
+ * added its own option is handled as well as the built-in ones.
+ */
+export async function normalizeEnumFields<T extends Record<string, unknown>>(
+  data: T,
+  fields: readonly string[],
 ): Promise<T> {
-  const normalized = { ...caseData };
+  const normalized = { ...data };
   const systemFields = await getSystemFieldMaps();
 
-  for (const field of caseEnumFields) {
+  for (const field of fields) {
     const raw = normalized[field];
     const lookup = systemFields[field];
     const mapped = normalizeEnumValue(raw, lookup);
@@ -126,6 +132,12 @@ export async function normalizeCaseEnums<T extends Record<string, unknown>>(
     }
   }
   return normalized;
+}
+
+export async function normalizeCaseEnums<T extends Record<string, unknown>>(
+  caseData: T,
+): Promise<T> {
+  return normalizeEnumFields(caseData, caseEnumFields);
 }
 
 /** @internal — used by tests to pre-populate the tenant-scoped shard. */

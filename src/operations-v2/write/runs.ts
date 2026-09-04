@@ -105,12 +105,13 @@ toolRegistry.register({
 toolRegistry.register({
   name: 'qase_run_complete',
   description:
-    'Close a test run so it stops accepting results and reports as finished. Call it once every ' +
-    'result has been recorded; a run left open keeps showing as in progress and skews dashboards ' +
-    'and any "is the release ready" question asked later. If the results are all in hand at once, ' +
-    'qase_ci_report does this as its final step and you do not need this call. A completed run ' +
-    'cannot take further results — record them first, then complete. Cost: one API call, about ' +
-    '0.4s.',
+    'Mark a test run as complete so it reports as finished rather than in progress. Call it once ' +
+    'the results are in; a run left open keeps showing as running and skews dashboards and any ' +
+    '"is the release ready" question asked later. Note that completing does not seal the run: the ' +
+    'API still accepts results recorded into it afterwards, and they change its counts, so ' +
+    'completion is a reporting state rather than a lock. If the results are all in hand at once, ' +
+    'qase_ci_report does this as its final step and you do not need this call. Cost: one API ' +
+    'call, about 0.4s.',
   schema: CompleteSchema,
   handler: complete,
   annotations: UpdateAnnotation,

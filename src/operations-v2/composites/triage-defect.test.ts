@@ -6,7 +6,7 @@
  * offers no way to attach runs or results to a defect at all.
  */
 
-import { describe, it, expect, beforeEach } from '@jest/globals';
+import { describe, it, expect, beforeAll, beforeEach } from '@jest/globals';
 import { setTestEnv } from '../../utils/test-helpers.js';
 
 setTestEnv();
@@ -21,6 +21,15 @@ jest.mock('../../client/index.js', () => ({
 
 import './triage-defect.js';
 import { toolRegistry } from '../../utils/registry.js';
+import { __setCaseEnumCacheForTest } from '../../utils/case-enums.js';
+
+// The severity label is mapped to the workspace's numeric ID before the API
+// call; seed the map so the mapping runs without reaching for system fields.
+beforeAll(async () => {
+  await __setCaseEnumCacheForTest({
+    severity: { blocker: 1, critical: 2, major: 3, normal: 4, minor: 5, trivial: 6 },
+  });
+});
 
 function invoke(args: Record<string, unknown>) {
   const handler = toolRegistry.getHandler('qase_triage_defect')!;
@@ -86,13 +95,16 @@ describe('qase_triage_defect — API-required fields', () => {
     expect(schema.required).toContain('severity');
   });
 
-  it('forwards the defect payload to the API', async () => {
+  // Severity goes out as the workspace's numeric ID. Forwarding the label,
+  // which this asserted before, meant the API answered "Data is invalid" to
+  // every call — the tool could not file a single defect.
+  it('forwards the defect payload with severity as a numeric ID', async () => {
     await invoke({ ...validArgs, tags: ['checkout'] });
 
     expect(mockCreateDefect).toHaveBeenCalledWith('DEMO', {
       title: validArgs.title,
       actual_result: validArgs.actual_result,
-      severity: 'blocker',
+      severity: 1,
       tags: ['checkout'],
     });
   });

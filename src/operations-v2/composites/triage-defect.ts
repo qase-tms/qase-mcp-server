@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { getApiClient } from '../../client/index.js';
+import { normalizeEnumFields } from '../../utils/case-enums.js';
 import { toolRegistry, CreateAnnotation } from '../../utils/registry.js';
 import { toResultAsync, createToolError } from '../../utils/errors.js';
 import { ProjectCodeSchema } from '../../utils/validation.js';
@@ -26,7 +27,10 @@ const Schema = z.object({
 
 async function handler(args: z.infer<typeof Schema>) {
   const client = getApiClient();
-  const { code, ...defectData } = args;
+  const { code, ...rest } = args;
+  // Same as qase_defect_upsert: the API wants severity as a numeric ID and
+  // rejects the label with a bare "Data is invalid".
+  const defectData = await normalizeEnumFields(rest, ['severity']);
 
   // Create defect
   const defectRes = await toResultAsync(client.defects.createDefect(code, defectData as any));

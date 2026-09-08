@@ -4,6 +4,17 @@ import { toolRegistry, CreateAnnotation, DeleteAnnotation } from '../../utils/re
 import { toResultAsync, createToolError } from '../../utils/errors.js';
 import { ProjectCodeSchema, IdSchema } from '../../utils/validation.js';
 
+const CONTEXT = 'result operation';
+
+/**
+ * The bulk endpoint takes 200 results per request. Rejected here rather than
+ * split into chunks: results are append-only, so a batch that fails half way
+ * cannot be rolled back, and the obvious retry records the first chunk twice
+ * and leaves the run with a wrong pass rate. qase_ci_report chunks instead,
+ * because a retry there makes a new run rather than adding to a real one.
+ */
+const MAX_RESULTS = 200;
+
 const ResultStepSchema = z.object({
   position: z.number().int().min(0),
   status: z.enum(['passed', 'failed', 'blocked', 'skipped']),
@@ -32,7 +43,15 @@ const SingleResultSchema = z.object({
 const RecordSchema = z.object({
   code: ProjectCodeSchema,
   run_id: IdSchema.describe('Run ID to record results into'),
-  results: z.array(SingleResultSchema).min(1).describe('One or more results to record'),
+  results: z
+    .array(SingleResultSchema)
+    .min(1)
+    .max(
+      MAX_RESULTS,
+      `A single call records at most ${MAX_RESULTS} results — split larger batches into ` +
+        'consecutive calls.',
+    )
+    .describe(`Results to record, 1 to ${MAX_RESULTS} per call`),
 });
 
 const DeleteSchema = z.object({
@@ -41,9 +60,20 @@ const DeleteSchema = z.object({
   hash: z.string().min(1).describe('Result hash to delete'),
 });
 
-async function record(args: z.infer<typeof RecordSchema>) {
+async function record(rawArgs: unknown) {
+  // Tool handlers get raw MCP arguments — the registry only turns the schema
+  // into JSON Schema for the protocol, so nothing has checked them yet. An
+  // oversized batch has to fail here to fail at all.
+  const parsed = RecordSchema.safeParse(rawArgs);
+  if (!parsed.success) {
+    const details = parsed.error.issues
+      .map((issue) => `${issue.path.join('.') || 'arguments'}: ${issue.message}`)
+      .join('; ');
+    throw createToolError(`Invalid arguments — ${details}`, CONTEXT);
+  }
+
   const client = getApiClient();
-  const { code, run_id, results } = args;
+  const { code, run_id, results } = parsed.data;
 
   if (results.length === 1) {
     const single = results[0];
@@ -51,7 +81,7 @@ async function record(args: z.infer<typeof RecordSchema>) {
     return res.match(
       (r) => r.data.result,
       (e) => {
-        throw createToolError(e, 'result operation');
+        throw createToolError(e, CONTEXT);
       },
     );
   }
@@ -62,7 +92,7 @@ async function record(args: z.infer<typeof RecordSchema>) {
   return res.match(
     () => ({ success: true, count: results.length }),
     (e) => {
-      throw createToolError(e, 'result operation');
+      throw createToolError(e, CONTEXT);
     },
   );
 }
@@ -75,7 +105,7 @@ async function del(args: z.infer<typeof DeleteSchema>) {
   return result.match(
     () => ({ success: true, hash: args.hash }),
     (e) => {
-      throw createToolError(e, 'result operation');
+      throw createToolError(e, CONTEXT);
     },
   );
 }
@@ -83,12 +113,15 @@ async function del(args: z.infer<typeof DeleteSchema>) {
 toolRegistry.register({
   name: 'qase_result_record',
   description:
-    'Record one or more results into an existing run. A case says what should be tested; a result ' +
-    'says what happened when it ran — status, duration, comment, stacktrace, attachments — so a ' +
-    'result always needs a run to live in. Pass several results in one call rather than calling ' +
-    'once per test: the tool takes a list and sends them together. If the run does not exist yet ' +
-    'and this is a finished CI job, qase_ci_report is the single call that creates the run, ' +
-    'records the results and completes it. Status is a label, one of "passed", "failed", ' +
+    `Record up to ${MAX_RESULTS} results into an existing run. A case says what should be tested; ` +
+    'a result says what happened when it ran — status, duration, comment, stacktrace, ' +
+    'attachments — so a result always needs a run to live in. Pass several results in one call ' +
+    'rather than calling once per test: the tool takes a list and sends them together. ' +
+    `${MAX_RESULTS} is the ceiling for one call, and a longer list is refused before anything is ` +
+    'written — split it into consecutive calls rather than dropping the tail. If the run does ' +
+    'not exist yet and this is a finished CI job, qase_ci_report is the single call that creates ' +
+    'the run, records the results and completes it, and it splits a larger batch for you. ' +
+    'Status is a label, one of "passed", "failed", ' +
     '"blocked", "skipped" or "invalid" — unlike the case enums, numeric IDs are not accepted ' +
     'here. Cost: one API call for the whole list, about 0.5s for a small ' +
     'batch, growing with payload rather than with the number of results.',

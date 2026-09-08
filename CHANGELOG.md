@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.1]
+
+### Fixed
+
+- **The bulk results endpoint takes 200 results per request, and nothing said so.** `qase_result_record` advertised no ceiling while its description told agents to "pass several results in one call rather than calling once per test", so a larger batch reached the API and came back as an error with no hint of what the limit was. It now states the cap, and refuses an oversized batch before anything is written. The cap is enforced rather than described: the registry turns a tool's schema into JSON Schema for the protocol but never validates a call against it, so `.max()` alone would have been advertising with nothing behind it — the handler parses its own arguments, which also means an empty results array and an unknown status are now rejected instead of being passed through to the API.
+
+- **`qase_ci_report` splits a large batch instead of failing on it.** A finished suite of more than 200 tests is the ordinary case for this tool, and refusing it would push an agent back onto the create-run, record, complete sequence the tool exists to replace. Results are now sent in batches of 200, up to 2000 in one report — a bound on the call rather than an open-ended loop, because a call that outlives the client's timeout is the one failure that says nothing about how far the recording got. Splitting is done here and deliberately not in `qase_result_record`: a retry of a CI report builds a new run, so a half-written attempt leaves a junk run behind, while a retry against an existing run records the first batch a second time and leaves a live run with a believable but wrong pass rate. If a batch does fail part way, the error names the run that exists, how many results reached it, and how to record the rest without creating a second run.
+
+- **`qase_ci_report` now honours its own defaults.** `complete` and `is_autotest` were declared as defaulting to true, but nothing ever applied the defaults: arguments reach a handler exactly as the client sent them. A report that omitted `complete` left the run active despite the description promising it would be completed, and one that omitted `is_autotest` created a manual run. Both now default as documented.
+
 ## [2.4.0]
 
 ### Added

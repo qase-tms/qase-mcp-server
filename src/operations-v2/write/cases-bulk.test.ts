@@ -35,6 +35,7 @@ beforeAll(async () => {
     priority: { high: 1, medium: 2, low: 3 },
     severity: { blocker: 1, minor: 5 },
     automation: { 'is-not-automated': 0, 'to-be-automated': 1, automated: 2 },
+    is_flaky: { no: 0, yes: 1, '0': 0, '1': 1 },
   });
 });
 
@@ -214,5 +215,34 @@ describe('qase_case_bulk_create — errors', () => {
     await expect(invoke({ code: 'DEMO', cases: [{ title: 'A', suite_id: 999 }] })).rejects.toThrow(
       /Suite not found/,
     );
+  });
+});
+
+describe('qase_case_bulk_create — is_flaky', () => {
+  // The bulk tool validates its arguments against the schema before sending, so
+  // it is the path that proves both spellings are actually accepted, not just
+  // normalised afterwards.
+  it('normalises the label on every case', async () => {
+    await invoke({
+      code: 'DEMO',
+      cases: [
+        { title: 'A', is_flaky: 'yes' },
+        { title: 'B', is_flaky: 'no' },
+      ],
+    });
+
+    expect(sentCases().map((c) => c.is_flaky)).toEqual([1, 0]);
+  });
+
+  it('accepts a boolean and sends the option id', async () => {
+    await invoke({
+      code: 'DEMO',
+      cases: [
+        { title: 'A', is_flaky: true },
+        { title: 'B', is_flaky: false },
+      ],
+    });
+
+    expect(sentCases().map((c) => c.is_flaky)).toEqual([1, 0]);
   });
 });

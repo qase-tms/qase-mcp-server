@@ -9,7 +9,8 @@ type CaseEnumField =
   | 'severity'
   | 'status'
   | 'layer'
-  | 'automation';
+  | 'automation'
+  | 'is_flaky';
 
 const caseEnumFields: CaseEnumField[] = [
   'priority',
@@ -19,6 +20,7 @@ const caseEnumFields: CaseEnumField[] = [
   'status',
   'layer',
   'automation',
+  'is_flaky',
 ];
 
 interface SystemFieldOption {
@@ -134,10 +136,33 @@ export async function normalizeEnumFields<T extends Record<string, unknown>>(
   return normalized;
 }
 
+/**
+ * `is_flaky` is a dictionary field like the rest (0=No, 1=Yes), but its name
+ * reads like a boolean and earlier versions declared it as one, so a caller
+ * reaching for `true` is the expected mistake rather than an odd one. Map it
+ * onto the matching option id.
+ *
+ * This is deliberately kept out of normalizeEnumValue: for the other enum
+ * fields a boolean is a genuine caller mistake, and silently turning
+ * `priority: true` into High would be worse than the API rejecting it.
+ */
+export function coerceFlakyBoolean(value: unknown): unknown {
+  if (typeof value !== 'boolean') return value;
+  return value ? '1' : '0';
+}
+
 export async function normalizeCaseEnums<T extends Record<string, unknown>>(
   caseData: T,
 ): Promise<T> {
-  return normalizeEnumFields(caseData, caseEnumFields);
+  // qase_case_upsert and the review tools hand their arguments to the handler
+  // without parsing them against the schema, so the coercion the schema
+  // declares never runs for them — apply it here too.
+  const data =
+    typeof caseData.is_flaky === 'boolean'
+      ? { ...caseData, is_flaky: coerceFlakyBoolean(caseData.is_flaky) }
+      : caseData;
+
+  return normalizeEnumFields(data, caseEnumFields);
 }
 
 /** @internal — used by tests to pre-populate the tenant-scoped shard. */

@@ -9,6 +9,7 @@ const defaultFieldSnapshot = {
   priority: { high: 1, medium: 2, low: 3 },
   type: { functional: 8, smoke: 2, regression: 3 },
   behavior: { positive: 2, negative: 3 },
+  is_flaky: { no: 0, yes: 1, '0': 0, '1': 1 },
 };
 
 describe('normalizeCaseEnums', () => {
@@ -55,6 +56,39 @@ describe('normalizeCaseEnums', () => {
     const payload = { priority: 'super-high', behavior: 'dangerous' };
     const normalized = await normalizeCaseEnums(payload);
     expect(normalized).toEqual(payload);
+  });
+
+  // is_flaky is a dictionary field (0=No, 1=Yes), not the boolean its name
+  // suggests. Sending a JSON boolean fails with "The selected field value is
+  // invalid. Allowed values: 0, 1." — an error that names no field, so it is
+  // expensive to place inside a multi-field payload. Every spelling a caller
+  // might reach for has to resolve here instead.
+  it.each([
+    ['yes', 1],
+    ['no', 0],
+    ['Yes', 1],
+    ['1', 1],
+    ['0', 0],
+    [true, 1],
+    [false, 0],
+    [1, 1],
+    [0, 0],
+  ])('maps is_flaky %p to %p', async (input, expected) => {
+    const normalized = await normalizeCaseEnums({ is_flaky: input });
+    expect(normalized.is_flaky).toBe(expected);
+  });
+
+  it('leaves is_flaky absent when it was not given', async () => {
+    const normalized = await normalizeCaseEnums({ title: 'Case' });
+    expect(normalized).not.toHaveProperty('is_flaky');
+  });
+
+  // A boolean priority is a genuine caller mistake rather than the spelling the
+  // field name invites, so it is left for the API to reject — mapping it onto
+  // High silently would be worse.
+  it('leaves a boolean on the other enum fields untouched', async () => {
+    const normalized = await normalizeCaseEnums({ priority: true });
+    expect(normalized.priority).toBe(true);
   });
 
   it('isolates different tenants — tokenA cannot see tokenB data', async () => {

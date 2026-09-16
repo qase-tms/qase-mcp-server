@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.2]
+
+### Fixed
+
+- **`is_flaky` could not be set at all.** The field was declared a boolean in the case schemas and forwarded to the API as a JSON boolean, but the API treats it like every other dictionary field — `GET /v1/system_field` returns it with `input_type: 3` and the options `{id: 0, slug: "no"}` / `{id: 1, slug: "yes"}`, the same shape as priority, severity, type, behavior, status, layer and automation. Both `true` and `false` therefore came back as `The selected field value is invalid. Allowed values: 0, 1.` — an error that names no field, so it was expensive to place inside a multi-field payload. `is_flaky` was simply missing from the list of fields the enum normaliser walks; the other seven were all there.
+
+  It now normalises like its siblings: `"yes"`, `"no"`, `"Yes"`, `"1"`, `"0"` and numeric IDs all resolve through the same cached system-field lookup, custom options included. A boolean is accepted too and folded into the option ID, because the name invites one — that coercion is deliberately kept out of the shared `normalizeEnumValue`, since for the other enum fields a boolean is a genuine caller mistake and silently turning `priority: true` into High would be worse than the API rejecting it. The advertised type stays a single `string` rather than a `["string","boolean"]` union: a type array is valid JSON Schema that not every MCP client handles.
+
+  Affects `qase_case_upsert`, `qase_case_bulk_create`, `qase_review_create` and `qase_review_bulk_create`, which all build their case body through the same normaliser. Confirmed against the live API: a case created with `is_flaky: 1` reads back as `is_flaky: 1`, where the boolean was refused outright. The smoke test had frozen the broken behaviour by asserting the schema declares a boolean; it now lists `is_flaky` with the other enum fields.
+
 ## [2.4.1]
 
 ### Fixed

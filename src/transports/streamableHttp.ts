@@ -11,6 +11,7 @@ import { getOAuthConfig, type OAuthConfig } from '../auth/oauth-config.js';
 import { createJwksVerifier, type JwksVerifier } from '../auth/jwks-verifier.js';
 import { createProxyProvider } from '../auth/proxy-provider.js';
 import { createMcpGuard } from '../auth/mcp-guard.js';
+import { createBearerRequiredGuard } from '../auth/bearer-guard.js';
 import { authorizeRedirectUriStorage } from '../auth/client-context.js';
 import type { RequestHandler } from 'express';
 
@@ -164,7 +165,12 @@ export function setupStreamableHttpTransport(
 
   const endpoint = config.endpoint || '/mcp';
   const host = config.host || '0.0.0.0';
-  const guards: RequestHandler[] = mcpGuard ? [mcpGuard] : [];
+  // With OAuth on, mcpGuard validates JWTs and passes opaque tokens through.
+  // With OAuth off there used to be no guard at all, which meant an
+  // unauthenticated request ran under the operator's QASE_API_TOKEN. The
+  // fallback guard keeps that door shut without pulling OAuth into a
+  // deployment that deliberately turned it off.
+  const guards: RequestHandler[] = [mcpGuard ?? createBearerRequiredGuard()];
 
   // Session management - store transport and last-seen timestamp per session.
   // Sessions are in-memory per pod; one idle longer than this window is evicted

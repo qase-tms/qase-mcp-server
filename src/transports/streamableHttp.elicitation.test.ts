@@ -29,6 +29,21 @@ jest.mock('../client/index.js', () => ({
   resetApiClient: () => {},
 }));
 
+// Wrap global fetch to add bearer token for all requests to the test server
+const originalFetch = globalThis.fetch;
+const testToken = 'Bearer test-token';
+globalThis.fetch = ((url: string | URL, options?: RequestInit): Promise<Response> => {
+  const opts = { ...options };
+  if (!opts.headers) {
+    opts.headers = { Authorization: testToken };
+  } else if (opts.headers instanceof Headers) {
+    opts.headers.set('Authorization', testToken);
+  } else if (typeof opts.headers === 'object' && !Array.isArray(opts.headers)) {
+    (opts.headers as Record<string, string>)['Authorization'] = testToken;
+  }
+  return originalFetch(url, opts);
+}) as typeof fetch;
+
 let app: { _httpServer?: http.Server };
 let baseUrl: URL;
 const openClients: Client[] = [];
@@ -37,6 +52,8 @@ const openClients: Client[] = [];
  * Connect a client. `onElicit` present → the client declares the elicitation
  * capability and answers prompts with it; absent → no capability at all, like
  * the clients that were deleting entities without ever being asked.
+ *
+ * Global fetch override adds the bearer token for requests to the server.
  */
 async function connect(
   onElicit?: (

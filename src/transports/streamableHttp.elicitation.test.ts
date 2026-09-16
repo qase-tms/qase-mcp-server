@@ -29,21 +29,6 @@ jest.mock('../client/index.js', () => ({
   resetApiClient: () => {},
 }));
 
-// Wrap global fetch to add bearer token for all requests to the test server
-const originalFetch = globalThis.fetch;
-const testToken = 'Bearer test-token';
-globalThis.fetch = ((url: string | URL, options?: RequestInit): Promise<Response> => {
-  const opts = { ...options };
-  if (!opts.headers) {
-    opts.headers = { Authorization: testToken };
-  } else if (opts.headers instanceof Headers) {
-    opts.headers.set('Authorization', testToken);
-  } else if (typeof opts.headers === 'object' && !Array.isArray(opts.headers)) {
-    (opts.headers as Record<string, string>)['Authorization'] = testToken;
-  }
-  return originalFetch(url, opts);
-}) as typeof fetch;
-
 let app: { _httpServer?: http.Server };
 let baseUrl: URL;
 const openClients: Client[] = [];
@@ -53,7 +38,8 @@ const openClients: Client[] = [];
  * capability and answers prompts with it; absent → no capability at all, like
  * the clients that were deleting entities without ever being asked.
  *
- * Global fetch override adds the bearer token for requests to the server.
+ * With OAuth disabled, the server requires a bearer token. Pass it via the
+ * transport's requestInit option.
  */
 async function connect(
   onElicit?: (
@@ -77,7 +63,11 @@ async function connect(
     });
   }
 
-  await client.connect(new StreamableHTTPClientTransport(baseUrl));
+  await client.connect(
+    new StreamableHTTPClientTransport(baseUrl, {
+      requestInit: { headers: { Authorization: 'Bearer test-token' } },
+    }),
+  );
   openClients.push(client);
   return client;
 }
@@ -201,6 +191,7 @@ describe('destructive confirmation without a standalone SSE stream', () => {
       headers: {
         'content-type': 'application/json',
         accept: ACCEPT,
+        Authorization: 'Bearer test-token',
         ...(sessionId ? { 'mcp-session-id': sessionId } : {}),
       },
       body: JSON.stringify(body),

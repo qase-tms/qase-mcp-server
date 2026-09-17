@@ -1,0 +1,22 @@
+docs/self-run.md
+  s_ef35ddefe29e10::t_e598b087acfc74 291-294
+  s_ef35ddefe29e10::t_fad28d0881f97a 100-127
+SECURITY.md
+  s_ef35ddefe29e10::t_890182cf683d8f 1-35
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "ec3be5041ced339acfe4a7805a3b9c6cdcdf28f2",
+  "prompts": {},
+  "sessions": {
+    "s_ef35ddefe29e10": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "108e7088-9b53-46a7-88ca-10f8f0f05884",
+        "model": "claude-opus-5"
+      },
+      "human_author": "Dmitrii Gridnev <dgridnev@qase.io>"
+    }
+  }
+}

@@ -1,0 +1,24 @@
+src/transports/sse.test.ts
+  s_ef35ddefe29e10::t_5299850f3cf519 47
+  s_ef35ddefe29e10::t_9caf1251b05c5e 157-215
+src/index.ts
+  s_ef35ddefe29e10::t_5299850f3cf519 96
+src/transports/sse.ts
+  s_ef35ddefe29e10::t_18e05f721b4718 23-29,42-46,61,64-77,82-86,89,93-94,99-101
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "e3995c4eae3040ae97c8de41b683e0468da869cc",
+  "prompts": {},
+  "sessions": {
+    "s_ef35ddefe29e10": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "108e7088-9b53-46a7-88ca-10f8f0f05884",
+        "model": "claude-opus-5"
+      },
+      "human_author": "Dmitrii Gridnev <dgridnev@qase.io>"
+    }
+  }
+}

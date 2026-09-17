@@ -97,6 +97,34 @@ Only `http` and `https` are recognised (case-insensitive, with or without a trai
 
 Use `http` only for deployments you control on a trusted network: the API token travels in a request header, unencrypted, on every call.
 
+## Security of network transports
+
+`stdio` has no network listener: the client starts the process and the token
+lives in the client's configuration. The `sse` and `streamable-http` transports
+listen on a port, and two things follow from that.
+
+**The client supplies the token.** Every request must carry
+`Authorization: Bearer <token>`; the server does not fall back to its own
+`QASE_API_TOKEN` when a request arrives without one. Sharing a single operator
+token across a team is still fine — it just belongs in the client config:
+
+```json
+{
+  "mcpServers": {
+    "qase": {
+      "url": "http://your-host:3000/mcp",
+      "headers": { "Authorization": "Bearer YOUR_QASE_API_TOKEN" }
+    }
+  }
+}
+```
+
+**Bind deliberately.** `--host` defaults to `0.0.0.0`, which accepts connections
+from anywhere that can route to the machine. Pass `--host 127.0.0.1` unless the
+server is meant to be reachable from the network, and keep OAuth on
+(`QASE_OAUTH_ENABLED` defaults to enabled) unless you have a specific reason to
+turn it off.
+
 ## Client Setup (stdio)
 
 ### Claude Desktop
@@ -259,6 +287,10 @@ npm run start:stdio
 ```
 
 ### SSE Transport
+
+> **Deprecated.** The SSE transport was deprecated in the MCP specification on
+> 2025-03-26 and will be removed in Qase MCP Server 3.0. Use
+> `--transport streamable-http` instead.
 
 Server-Sent Events for web-based clients:
 

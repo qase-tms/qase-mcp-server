@@ -53,6 +53,7 @@ async function del(args: z.infer<typeof DeleteSchema>) {
 
 toolRegistry.register({
   name: 'qase_plan_upsert',
+  title: 'Create or update test plan',
   description:
     'Create or update a test plan — a named, reusable set of cases to run together, such as a ' +
     'smoke or regression pack. Without `id` it creates, with `id` it updates, and the case list ' +
@@ -68,6 +69,7 @@ toolRegistry.register({
 
 toolRegistry.register({
   name: 'qase_plan_delete',
+  title: 'Delete test plan',
   description:
     'Delete a test plan by project code and plan ID. Only the plan is removed — the cases it ' +
     'referenced stay, and runs already created from it are untouched — but anything that launches ' +

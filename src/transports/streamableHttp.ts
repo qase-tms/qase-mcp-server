@@ -14,6 +14,7 @@ import { createMcpGuard } from '../auth/mcp-guard.js';
 import { createBearerRequiredGuard } from '../auth/bearer-guard.js';
 import { authorizeRedirectUriStorage } from '../auth/client-context.js';
 import type { RequestHandler } from 'express';
+import { createJsonParseErrorHandler } from './json-parse-error.js';
 
 export interface StreamableHttpConfig {
   port: number;
@@ -96,6 +97,7 @@ export function setupStreamableHttpTransport(
   });
 
   app.use(express.json());
+  app.use(createJsonParseErrorHandler());
 
   // OAuth: mount proxy auth router + protected-resource metadata, and guard /mcp.
   const oauthConfig = oauthDeps?.config ?? getOAuthConfig();

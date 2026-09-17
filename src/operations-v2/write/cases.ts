@@ -55,6 +55,7 @@ async function del(args: z.infer<typeof DeleteSchema>) {
 
 toolRegistry.register({
   name: 'qase_case_upsert',
+  title: 'Create or update test case',
   description:
     'Create or update a single test case. With `id` it updates that case, without `id` it creates ' +
     'a new one. Enum fields (priority, severity, type, layer, behavior, automation, is_flaky) ' +
@@ -73,6 +74,7 @@ toolRegistry.register({
 
 toolRegistry.register({
   name: 'qase_case_delete',
+  title: 'Delete test case',
   description:
     'Delete a test case by project code and case ID. The case goes, and so does its execution ' +
     'history — every result recorded against it stops being reachable. This cannot be undone. ' +

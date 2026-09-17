@@ -12,6 +12,8 @@ import {
   ListToolsRequestSchema,
   ListPromptsRequestSchema,
   GetPromptRequestSchema,
+  ErrorCode,
+  McpError,
 } from '@modelcontextprotocol/sdk/types.js';
 import { toolRegistry } from './utils/registry.js';
 import { formatApiError, ToolExecutionError } from './utils/errors.js';
@@ -34,6 +36,17 @@ import { SERVER_INSTRUCTIONS } from './server-instructions.js';
 import './operations-v2/index.js';
 
 /**
+ * Both catalogs are served whole — no page is ever split, so no `nextCursor` is
+ * issued. Any cursor a client sends is therefore one this server never handed
+ * out, and the spec asks for Invalid params rather than a silently re-served
+ * first page, which would loop a paginating client forever.
+ */
+function rejectUnknownCursor(cursor: unknown): void {
+  if (cursor === undefined) return;
+  throw new McpError(ErrorCode.InvalidParams, 'Unknown pagination cursor');
+}
+
+/**
  * Create and configure a new MCP Server instance.
  *
  * Called once for stdio (single connection) and once per session for both
@@ -45,7 +58,17 @@ export function createServer(): Server {
   const server = new Server(
     {
       name: 'qase-mcp-server',
+      // Display metadata clients render in their server list. Kept in sync with
+      // server.json, the registry manifest that carries the same three values.
+      title: 'Qase Test Management',
       version: VERSION,
+      websiteUrl: 'https://qase.io',
+      icons: [
+        {
+          src: 'https://raw.githubusercontent.com/qase-tms/qase-mcp-server/main/icon.png',
+          mimeType: 'image/png',
+        },
+      ],
     },
     {
       capabilities: {
@@ -62,7 +85,8 @@ export function createServer(): Server {
    * Returns all tools registered in the tool registry.
    * Called when the MCP client wants to discover available tools.
    */
-  server.setRequestHandler(ListToolsRequestSchema, async () => {
+  server.setRequestHandler(ListToolsRequestSchema, async (request) => {
+    rejectUnknownCursor(request.params?.cursor);
     const tools = toolRegistry.getTools();
     console.error(`[Server] Listing ${tools.length} tools`);
     return { tools };
@@ -71,7 +95,8 @@ export function createServer(): Server {
   /**
    * Handler: List available prompts (workflow templates)
    */
-  server.setRequestHandler(ListPromptsRequestSchema, async () => {
+  server.setRequestHandler(ListPromptsRequestSchema, async (request) => {
+    rejectUnknownCursor(request.params?.cursor);
     const prompts = listPrompts();
     console.error(`[Server] Listing ${prompts.length} prompts`);
     return { prompts };

@@ -308,6 +308,7 @@ async function getQqlHelp(args: z.infer<typeof GetQqlHelpSchema>) {
 
 toolRegistry.register({
   name: 'qql_search',
+  title: 'Search with QQL',
   description:
     'Search any entity with Qase Query Language: filtering, cross-project queries, sorting, and ' +
     'aggregation. This is the right tool for every question that is not "give me this one record ' +
@@ -327,6 +328,7 @@ toolRegistry.register({
 
 toolRegistry.register({
   name: 'qql_help',
+  title: 'QQL syntax help',
   description:
     'Read the QQL reference before writing a query. Pass a `topic`: overview, syntax, entities, ' +
     'operators, functions, examples, aggregation, or enumValues. `entities` lists the fields each ' +

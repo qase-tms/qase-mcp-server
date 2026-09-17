@@ -54,6 +54,7 @@ async function del(args: z.infer<typeof DeleteSchema>) {
 
 toolRegistry.register({
   name: 'qase_environment_upsert',
+  title: 'Create or update environment',
   description:
     'Create or update an environment — a named target that runs can be attributed to, such as ' +
     'staging or production. Without `id` it creates, with `id` it updates; `slug` and `host` are ' +
@@ -69,6 +70,7 @@ toolRegistry.register({
 
 toolRegistry.register({
   name: 'qase_environment_delete',
+  title: 'Delete environment',
   description:
     'Delete an environment by project code and environment ID. Runs that referenced it are not ' +
     'deleted but lose the attribution, so "where did this run" becomes unanswerable for that ' +

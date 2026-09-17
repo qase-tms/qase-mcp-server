@@ -27,6 +27,11 @@ RUN npm ci --omit=dev --ignore-scripts && npm cache clean --force
 # Copy built code
 COPY --from=builder /app/build ./build
 
+# Express and its dependencies branch on this: among other things, it keeps the
+# default error handler from serializing stack traces into responses. The JSON
+# parse-error handler covers that case explicitly; this is the belt-and-braces.
+ENV NODE_ENV=production
+
 # Switch to non-root user
 USER mcpuser
 

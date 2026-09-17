@@ -1,4 +1,5 @@
 import express, { Express } from 'express';
+import { createJsonParseErrorHandler } from './json-parse-error.js';
 import type http from 'node:http';
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
@@ -29,6 +30,7 @@ interface SseSession {
 export function setupSSETransport(createServer: () => Server, config: SSETransportConfig): Express {
   const app = express();
   app.use(express.json());
+  app.use(createJsonParseErrorHandler());
 
   const sseEndpoint = config.sseEndpoint || '/sse';
   const messagesEndpoint = config.messagesEndpoint || '/messages';

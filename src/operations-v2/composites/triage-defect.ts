@@ -16,13 +16,16 @@ const Schema = z.object({
     .enum(['undefined', 'blocker', 'critical', 'major', 'normal', 'minor', 'trivial'])
     .describe('Required by the API'),
   actual_result: z.string().describe('Observed behavior. Required by the API'),
-  description: z.string().optional(),
-  tags: z.array(z.string()).optional(),
+  description: z.string().optional().describe('Extra context beyond the observed behavior'),
+  tags: z.array(z.string()).optional().describe('Tag names, e.g. ["regression", "payments"]'),
   attachments: z
     .array(z.string())
     .optional()
     .describe('Attachment hashes from qase_attachment_upload'),
-  custom_field: z.record(z.any()).optional(),
+  custom_field: z
+    .record(z.any())
+    .optional()
+    .describe('Custom field values keyed by field ID, e.g. { "12": "value" }'),
 });
 
 async function handler(args: z.infer<typeof Schema>) {
@@ -72,6 +75,7 @@ async function handler(args: z.infer<typeof Schema>) {
 
 toolRegistry.register({
   name: 'qase_triage_defect',
+  title: 'Triage failure into defect',
   description:
     'Create a defect from a test failure, with the failure context written into it. Requires ' +
     'title, actual_result and severity — the API rejects a defect missing any of the three. ' +

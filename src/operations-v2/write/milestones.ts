@@ -54,6 +54,7 @@ async function del(args: z.infer<typeof DeleteSchema>) {
 
 toolRegistry.register({
   name: 'qase_milestone_upsert',
+  title: 'Create or update milestone',
   description:
     'Create or update a milestone — a dated marker that runs and cases can be grouped under, ' +
     'typically a release. Without `id` it creates, with `id` it updates. Use the milestone ID ' +
@@ -68,6 +69,7 @@ toolRegistry.register({
 
 toolRegistry.register({
   name: 'qase_milestone_delete',
+  title: 'Delete milestone',
   description:
     'Delete a milestone by project code and milestone ID. The milestone disappears and runs and ' +
     'cases that referenced it lose the association, though they are not deleted themselves — ' +

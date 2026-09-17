@@ -61,6 +61,7 @@ async function del(args: z.infer<typeof DeleteSchema>) {
 
 toolRegistry.register({
   name: 'qase_project_create',
+  title: 'Create project',
   description:
     'Create a new project. The code must be unique in the workspace and may contain letters only ' +
     '— no digits or special characters — and it is what every other tool takes as `code`. ' +
@@ -77,6 +78,7 @@ toolRegistry.register({
 
 toolRegistry.register({
   name: 'qase_project_delete',
+  title: 'Delete project',
   description:
     'Delete an entire project by its code. This removes every test case, suite, run, result, ' +
     'defect and milestone it holds, and cannot be undone — it is the most destructive call in the ' +

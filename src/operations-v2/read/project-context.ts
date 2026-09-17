@@ -238,6 +238,7 @@ async function handler(args: z.infer<typeof Schema>) {
 
 toolRegistry.register({
   name: 'qase_project_context',
+  title: 'Project context',
   description:
     'Seed everything about a project in one call: project details, the full suite tree, ' +
     'milestones, environments, custom fields, and users. This is the first call to make when ' +

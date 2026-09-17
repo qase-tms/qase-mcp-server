@@ -34,6 +34,8 @@ export interface OutputSchema {
 
 export interface ToolDefinition<T extends z.ZodType = z.ZodType> {
   name: string;
+  /** Human-readable name clients show in tool pickers and call confirmations */
+  title: string;
   description: string;
   schema: T;
   handler: ToolHandler;
@@ -66,6 +68,7 @@ export class ToolRegistry {
    * ```typescript
    * toolRegistry.register({
    *   name: 'list_projects',
+   *   title: 'List projects',
    *   description: 'Get all projects',
    *   schema: z.object({ limit: z.number().optional() }),
    *   handler: async (args) => { ... },
@@ -74,7 +77,7 @@ export class ToolRegistry {
    * ```
    */
   register<T extends z.ZodType>(definition: ToolDefinition<T>): void {
-    const { name, description, schema, handler, annotations, outputSchema } = definition;
+    const { name, title, description, schema, handler, annotations, outputSchema } = definition;
     const visibility = definition.visibility ?? 'core';
 
     // Convert Zod schema to JSON Schema for MCP protocol
@@ -112,6 +115,7 @@ export class ToolRegistry {
     // Store tool definition
     this.tools.set(name, {
       name,
+      title,
       description,
       inputSchema,
       ...(annotations && { annotations }),

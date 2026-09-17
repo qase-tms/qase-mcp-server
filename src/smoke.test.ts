@@ -96,6 +96,12 @@ describe('Schema-API Contract Tests', () => {
       'layer',
       'behavior',
       'status',
+      // A dictionary field (0=No, 1=Yes) despite the name, declared like its
+      // siblings: the API rejects the JSON boolean the name reads like. A
+      // boolean is still accepted and folded into the option ID, but the
+      // advertised type stays a single string — a ["string","boolean"] union
+      // is valid JSON Schema that not every MCP client handles.
+      'is_flaky',
     ];
 
     it('qase_case_upsert: enum fields should be string type', () => {
@@ -109,12 +115,6 @@ describe('Schema-API Contract Tests', () => {
   describe('qase_case_upsert — steps_type field', () => {
     assertFieldsExist([
       ['qase_case_upsert', 'steps_type'],
-    ]);
-  });
-
-  describe('qase_case_upsert — is_flaky should be boolean', () => {
-    assertFieldTypes([
-      ['qase_case_upsert', 'is_flaky', 'boolean'],
     ]);
   });
 

@@ -7,6 +7,7 @@
  */
 
 import { z } from 'zod';
+import { coerceFlakyBoolean } from '../../utils/case-enums.js';
 
 const stepFields = {
   action: z
@@ -64,7 +65,15 @@ export const CaseFieldsSchema = z.object({
       'Automation status (label, slug, or numeric ID: 0=Manual / is-not-automated, 1=To be automated, 2=Automated)',
     ),
   status: z.string().optional().describe('Status label or numeric ID'),
-  is_flaky: z.boolean().optional(),
+  // Declared as a string like the other dictionary fields, with a boolean
+  // folded in first: the name invites `true`, which the API rejects outright.
+  is_flaky: z.preprocess(
+    coerceFlakyBoolean,
+    z
+      .string()
+      .optional()
+      .describe('Is flaky label or numeric ID (0=No, 1=Yes). A boolean is accepted too.'),
+  ),
   suite_id: z.number().int().positive().optional(),
   milestone_id: z.number().int().positive().optional(),
   steps: z.array(TestStepSchema).optional(),

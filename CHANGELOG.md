@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.5.0]
+
+### Security
+
+- **Network transports served unauthenticated requests under the operator's token.** `getEffectiveToken()` falls back to `QASE_API_TOKEN` when a request carries no token of its own — correct for stdio, where the token is the configuration and there is no listener, but on an HTTP transport it meant anyone who could reach the port acted as the operator: every write tool including `qase_project_delete`, plus `qase_api` and its access to any Qase REST endpoint, with the calls indistinguishable from the operator's own in the Qase audit log. The default `streamable-http` configuration was never exposed — OAuth is on unless `QASE_OAUTH_ENABLED=false`, and its guard already answered 401 without a bearer token. But the guard was mounted in exactly one place: `--transport sse` had none at all, and `streamable-http` with OAuth disabled fell back to an empty guard array, so switching OAuth off switched authentication off rather than only switching OAuth off. Both now require `Authorization: Bearer <token>` on the MCP endpoints, `/health` and `/metrics` excepted so container healthchecks keep working.
+
+  **This is breaking for those two configurations.** The fix is not to abandon a shared operator token: opaque Qase API tokens pass the guard unchanged, so the same token keeps working once the client presents it. Move it out of the server's environment and into the client config as `"headers": {"Authorization": "Bearer <token>"}`. Servers started on a network transport with `QASE_API_TOKEN` set now say so at startup, before the first 401 arrives.
+
+  Reported privately by an external researcher against 2.4.0. The repository now has a `SECURITY.md` — at the time of the report there was nowhere to send it.
+
+### Changed
+
+- **The SSE transport is deprecated.** It was deprecated in the MCP specification on 2025-03-26 and superseded by streamable-http; it now warns at startup and will be removed in 3.0. It keeps working meanwhile, and gained the bearer-token requirement above.
+
+- **Each SSE client gets its own session.** The transport kept one connection per process, so the second client to open `/sse` took over the first one's stream and the original session silently stopped answering. Streams are now tracked by the session id the SDK already hands the client, each with its own server instance, the way streamable-http has always worked. A POST naming a session that is gone answers 404 instead of 503, so the client reconnects.
+
+### Fixed
+
+- **`is_flaky` could not be set at all.** The field was declared a boolean in the case schemas and forwarded to the API as a JSON boolean, but the API treats it like every other dictionary field — `GET /v1/system_field` returns it with `input_type: 3` and the options `{id: 0, slug: "no"}` / `{id: 1, slug: "yes"}`, the same shape as priority, severity, type, behavior, status, layer and automation. Both `true` and `false` therefore came back as `The selected field value is invalid. Allowed values: 0, 1.` — an error that names no field, so it was expensive to place inside a multi-field payload. `is_flaky` was simply missing from the list of fields the enum normaliser walks; the other seven were all there.
+
+  It now normalises like its siblings: `"yes"`, `"no"`, `"Yes"`, `"1"`, `"0"` and numeric IDs all resolve through the same cached system-field lookup, custom options included. A boolean is accepted too and folded into the option ID, because the name invites one — that coercion is deliberately kept out of the shared `normalizeEnumValue`, since for the other enum fields a boolean is a genuine caller mistake and silently turning `priority: true` into High would be worse than the API rejecting it. The advertised type stays a single `string` rather than a `["string","boolean"]` union: a type array is valid JSON Schema that not every MCP client handles.
+
+  Affects `qase_case_upsert`, `qase_case_bulk_create`, `qase_review_create` and `qase_review_bulk_create`, which all build their case body through the same normaliser. Confirmed against the live API: a case created with `is_flaky: 1` reads back as `is_flaky: 1`, where the boolean was refused outright. The smoke test had frozen the broken behaviour by asserting the schema declares a boolean; it now lists `is_flaky` with the other enum fields.
+
 ## [2.4.1]
 
 ### Fixed

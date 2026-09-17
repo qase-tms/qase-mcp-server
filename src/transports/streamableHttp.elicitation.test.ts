@@ -37,6 +37,9 @@ const openClients: Client[] = [];
  * Connect a client. `onElicit` present → the client declares the elicitation
  * capability and answers prompts with it; absent → no capability at all, like
  * the clients that were deleting entities without ever being asked.
+ *
+ * With OAuth disabled, the server requires a bearer token. Pass it via the
+ * transport's requestInit option.
  */
 async function connect(
   onElicit?: (
@@ -60,7 +63,11 @@ async function connect(
     });
   }
 
-  await client.connect(new StreamableHTTPClientTransport(baseUrl));
+  await client.connect(
+    new StreamableHTTPClientTransport(baseUrl, {
+      requestInit: { headers: { Authorization: 'Bearer test-token' } },
+    }),
+  );
   openClients.push(client);
   return client;
 }
@@ -184,6 +191,7 @@ describe('destructive confirmation without a standalone SSE stream', () => {
       headers: {
         'content-type': 'application/json',
         accept: ACCEPT,
+        Authorization: 'Bearer test-token',
         ...(sessionId ? { 'mcp-session-id': sessionId } : {}),
       },
       body: JSON.stringify(body),

@@ -57,15 +57,15 @@ toolRegistry.register({
   name: 'qase_case_upsert',
   description:
     'Create or update a single test case. With `id` it updates that case, without `id` it creates ' +
-    'a new one. Enum fields (priority, severity, type, layer, behavior, automation) accept either ' +
-    'a label such as "high" or "blocker" or the project\'s numeric ID — the server normalizes ' +
-    'both. Steps can be classic action/expected pairs or Gherkin, and may reference shared steps ' +
-    'by hash. Writing more than one case? Use qase_case_bulk_create instead: it takes a list and ' +
-    'sends one request. If the project has "Test case review" enabled, direct writes may need to ' +
-    'go through a review — run qase_discover_tools with "review" for those tools. Cost: one API ' +
-    'call, about 0.6s to create and 0.4s to update. Ten sequential calls measured 5.6s against ' +
-    '1.2s for one qase_case_bulk_create writing the same ten, so a loop is roughly four times ' +
-    'slower.',
+    'a new one. Enum fields (priority, severity, type, layer, behavior, automation, is_flaky) ' +
+    'accept either a label such as "high" or "blocker" or the project\'s numeric ID — the server ' +
+    'normalizes both. Steps can be classic action/expected pairs or Gherkin, and may reference ' +
+    'shared steps by hash. Writing more than one case? Use qase_case_bulk_create instead: it takes ' +
+    'a list and sends one request. If the project has "Test case review" enabled, direct writes ' +
+    'may need to go through a review — run qase_discover_tools with "review" for those tools. ' +
+    'Cost: one API call, about 0.6s to create and 0.4s to update. Ten sequential calls measured ' +
+    '5.6s against 1.2s for one qase_case_bulk_create writing the same ten, so a loop is roughly ' +
+    'four times slower.',
   schema: UpsertSchema,
   handler: upsert,
   annotations: CreateAnnotation,

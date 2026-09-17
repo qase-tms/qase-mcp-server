@@ -54,16 +54,19 @@ async function initSession(opts: { header?: string; query?: string } = {}): Prom
   if (opts.query !== undefined) req = req.query({ integration: opts.query });
   if (opts.header !== undefined) req = req.set('X-Qase-Integration', opts.header);
 
-  const res = await req.set('Accept', ACCEPT).send({
-    jsonrpc: '2.0',
-    id: 1,
-    method: 'initialize',
-    params: {
-      protocolVersion: '2025-03-26',
-      capabilities: {},
-      clientInfo: { name: 'test-client', version: '1.0.0' },
-    },
-  });
+  const res = await req
+    .set('Accept', ACCEPT)
+    .set('Authorization', 'Bearer test-token')
+    .send({
+      jsonrpc: '2.0',
+      id: 1,
+      method: 'initialize',
+      params: {
+        protocolVersion: '2025-03-26',
+        capabilities: {},
+        clientInfo: { name: 'test-client', version: '1.0.0' },
+      },
+    });
 
   expect(res.status).toBe(200);
   const sessionId = res.headers['mcp-session-id'];
@@ -78,6 +81,7 @@ async function whoami(sessionId: string, header?: string): Promise<string> {
 
   const res = await req
     .set('Accept', ACCEPT)
+    .set('Authorization', 'Bearer test-token')
     .send({ jsonrpc: '2.0', id: 2, method: 'tools/call', params: { name: 'whoami', arguments: {} } });
 
   expect(res.status).toBe(200);

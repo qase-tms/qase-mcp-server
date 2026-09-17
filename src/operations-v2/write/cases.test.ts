@@ -35,7 +35,10 @@ function invoke(args: Record<string, unknown>) {
 const sentSteps = () => mockCreateCase.mock.calls[0][1].steps as Record<string, unknown>[];
 
 beforeAll(async () => {
-  await __setCaseEnumCacheForTest({ priority: { high: 1 } });
+  await __setCaseEnumCacheForTest({
+    priority: { high: 1 },
+    is_flaky: { no: 0, yes: 1, '0': 0, '1': 1 },
+  });
 });
 
 beforeEach(() => {
@@ -144,5 +147,47 @@ describe('qase_case_upsert — regressions', () => {
     expect(mockUpdateCase).toHaveBeenCalled();
     expect(mockUpdateCase.mock.calls[0][2].steps).toEqual([{ shared: HASH }]);
     expect(mockCreateCase).not.toHaveBeenCalled();
+  });
+});
+
+describe('qase_case_upsert — is_flaky', () => {
+  // is_flaky is a dictionary field (0=No, 1=Yes) like priority or severity, not
+  // the JSON boolean its name suggests. The API rejects a boolean with an error
+  // that names no field, so both spellings have to resolve to the option id.
+  const sentFlaky = () => mockCreateCase.mock.calls[0][1].is_flaky;
+
+  it('normalises the "yes" label to 1', async () => {
+    await invoke({ code: 'DEMO', title: 'Case', is_flaky: 'yes' });
+    expect(sentFlaky()).toBe(1);
+  });
+
+  it('normalises the "no" label to 0', async () => {
+    await invoke({ code: 'DEMO', title: 'Case', is_flaky: 'no' });
+    expect(sentFlaky()).toBe(0);
+  });
+
+  it('accepts a numeric ID as a string', async () => {
+    await invoke({ code: 'DEMO', title: 'Case', is_flaky: '1' });
+    expect(sentFlaky()).toBe(1);
+  });
+
+  it('coerces a boolean true to 1', async () => {
+    await invoke({ code: 'DEMO', title: 'Case', is_flaky: true });
+    expect(sentFlaky()).toBe(1);
+  });
+
+  it('coerces a boolean false to 0', async () => {
+    await invoke({ code: 'DEMO', title: 'Case', is_flaky: false });
+    expect(sentFlaky()).toBe(0);
+  });
+
+  it('never sends a boolean to the API', async () => {
+    await invoke({ code: 'DEMO', title: 'Case', is_flaky: true });
+    expect(typeof sentFlaky()).toBe('number');
+  });
+
+  it('leaves the field out when it is not given', async () => {
+    await invoke({ code: 'DEMO', title: 'Case' });
+    expect(mockCreateCase.mock.calls[0][1]).not.toHaveProperty('is_flaky');
   });
 });

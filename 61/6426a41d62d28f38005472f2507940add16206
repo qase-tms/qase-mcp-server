@@ -1,0 +1,104 @@
+src/operations-v2/qql/index.ts
+  s_6c8ddce2fbf3ad::t_a138261e2dce73 311,331
+src/operations-v2/read/get.ts
+  s_6c8ddce2fbf3ad::t_a138261e2dce73 130
+src/operations-v2/read/project-context.ts
+  s_6c8ddce2fbf3ad::t_a138261e2dce73 241
+src/transports/json-parse-error.ts
+  s_6c8ddce2fbf3ad::t_4a3c90b88af01d 1-29
+src/operations-v2/composites/ci-report.ts
+  s_6c8ddce2fbf3ad::t_4290c1e573f0af 37
+  s_6c8ddce2fbf3ad::t_ec08a997fbe058 38-42,184
+src/operations-v2/write/custom-fields.ts
+  s_6c8ddce2fbf3ad::t_a138261e2dce73 255,276
+src/operations-v2/composites/regression-run.ts
+  s_6c8ddce2fbf3ad::t_4290c1e573f0af 12-14
+  s_6c8ddce2fbf3ad::t_ce3605008d8f63 15-24,119
+src/operations-v2/write/results.ts
+  s_6c8ddce2fbf3ad::t_a138261e2dce73 115,136
+src/operations-v2/write/reviews.ts
+  s_6c8ddce2fbf3ad::t_a138261e2dce73 432,450,466,483,498
+src/operations-v2/write/shared-steps.ts
+  s_6c8ddce2fbf3ad::t_a138261e2dce73 69,84
+src/spec-compliance.test.ts
+  s_6c8ddce2fbf3ad::t_b66e32958ff8f4 1-132
+src/transports/sse.ts
+  s_6c8ddce2fbf3ad::t_42fa6e3b45dbb5 2,33
+src/operations-v2/write/cases.ts
+  s_6c8ddce2fbf3ad::t_a138261e2dce73 58,77
+src/operations-v2/write/attachments.ts
+  s_6c8ddce2fbf3ad::t_a138261e2dce73 128,152
+src/operations-v2/write/plans.ts
+  s_6c8ddce2fbf3ad::t_a138261e2dce73 56,72
+src/transports/streamableHttp.ts
+  s_6c8ddce2fbf3ad::t_42fa6e3b45dbb5 17,100
+src/operations-v2/write/suites.ts
+  s_6c8ddce2fbf3ad::t_a138261e2dce73 66,81
+src/transports/streamableHttp.malformed-json.test.ts
+  s_6c8ddce2fbf3ad::t_e5ea61d9a87abb 1-58
+src/operations-v2/meta/discover.ts
+  s_6c8ddce2fbf3ad::t_a138261e2dce73 83
+src/operations-v2/write/environments.ts
+  s_6c8ddce2fbf3ad::t_a138261e2dce73 57,73
+src/operations-v2/escape/api.ts
+  s_6c8ddce2fbf3ad::t_a138261e2dce73 43
+src/utils/registry.ts
+  s_6c8ddce2fbf3ad::t_4c9ebf4880e0c1 37-38,71,80,118
+CHANGELOG.md
+  s_6c8ddce2fbf3ad::t_54456deabb3b31 8-27
+src/operations-v2/write/projects.ts
+  s_6c8ddce2fbf3ad::t_a138261e2dce73 64,81
+src/prompts/index.ts
+  s_6c8ddce2fbf3ad::t_19fdb8cb4b4442 13-14,25,57,96,154,191,237
+src/operations-v2/meta/discover.test.ts
+  s_6c8ddce2fbf3ad::t_16c6a0194fc805 24
+src/utils/registry.test.ts
+  s_6c8ddce2fbf3ad::t_16c6a0194fc805 28,43,51,68,90,100,118,140,159,167,181,199,207,220,233,246,257,260,266,283,296,310,325,337,354-357,430,451-452
+src/server.ts
+  s_6c8ddce2fbf3ad::t_45a005ca6b40ed 15-16
+  s_6c8ddce2fbf3ad::t_241ed87a3ad385 88-89
+  s_6c8ddce2fbf3ad::t_6734cb77a5b8b9 61-63,65-71
+  s_6c8ddce2fbf3ad::t_45f3b0426f38e5 98-99
+  s_6c8ddce2fbf3ad::t_f549480e15c661 39-48
+  s_6c8ddce2fbf3ad::t_26613c8cc92d9c 38
+package.json
+  s_6c8ddce2fbf3ad::t_54456deabb3b31 3
+server.json
+  s_6c8ddce2fbf3ad::t_54456deabb3b31 11,16
+src/operations-v2/write/cases-bulk.ts
+  s_6c8ddce2fbf3ad::t_a138261e2dce73 63
+src/operations-v2/write/runs.ts
+  s_6c8ddce2fbf3ad::t_4290c1e573f0af 14-26
+  s_6c8ddce2fbf3ad::t_46f2c137e70f76 29-33,36-39,108,124,141
+Dockerfile
+  s_6c8ddce2fbf3ad::t_3edfe236abc1e4 30-34
+src/operations-v2/write/case-fields.ts
+  s_6c8ddce2fbf3ad::t_bb93f5fbd54df7 50-52,77-92
+  s_6c8ddce2fbf3ad::t_d3580c3ec4b7e0 97-100
+src/operations-v2/composites/triage-defect.ts
+  s_6c8ddce2fbf3ad::t_a138261e2dce73 78
+  s_6c8ddce2fbf3ad::t_4290c1e573f0af 19-20,25-28
+src/operations-v2/write/defects.ts
+  s_6c8ddce2fbf3ad::t_4290c1e573f0af 18-21,24-25,30,35
+  s_6c8ddce2fbf3ad::t_c55067b96ca106 36-38,112,132
+src/operations-v2/write/external-issues.ts
+  s_6c8ddce2fbf3ad::t_a138261e2dce73 115
+src/operations-v2/write/milestones.ts
+  s_6c8ddce2fbf3ad::t_a138261e2dce73 57,72
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "616426a41d62d28f38005472f2507940add16206",
+  "prompts": {},
+  "sessions": {
+    "s_6c8ddce2fbf3ad": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "cae9e70d-11ae-4fd4-a644-d105721c1f23",
+        "model": "claude-opus-5"
+      },
+      "human_author": "Dmitrii Gridnev <dgridnev@qase.io>"
+    }
+  }
+}

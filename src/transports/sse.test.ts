@@ -44,7 +44,7 @@ let prompts = 0;
 beforeAll(async () => {
   const { createServer } = await import('../server.js');
   const { setupSSETransport } = await import('./sse.js');
-  app = setupSSETransport(createServer(), {
+  app = setupSSETransport(createServer, {
     port: 0,
     host: '127.0.0.1',
   }) as unknown as { _httpServer?: http.Server };
@@ -152,5 +152,64 @@ describe('legacy SSE transport — authentication', () => {
     const res = await request(app._httpServer!).get('/health');
 
     expect(res.status).toBe(200);
+  });
+});
+
+describe('legacy SSE transport — concurrent sessions', () => {
+  // One `let transport` per process meant the second client to connect took the
+  // first one's stream: the operator's session simply stopped answering.
+  it('serves two clients at once without either losing its stream', async () => {
+    const httpServer = app._httpServer!;
+    const sseUrl = new URL(`http://127.0.0.1:${(httpServer.address() as AddressInfo).port}/sse`);
+
+    const makeClient = async () => {
+      const c = new Client({ name: 'concurrent', version: '1.0.0' }, { capabilities: {} });
+      await c.connect(
+        new SSEClientTransport(sseUrl, {
+          eventSourceInit: {
+            fetch: (url, init) =>
+              fetch(url as string, {
+                ...(init as RequestInit),
+                headers: {
+                  ...(init?.headers as Record<string, string>),
+                  Authorization: TEST_TOKEN,
+                },
+              }),
+          },
+          requestInit: { headers: { Authorization: TEST_TOKEN } },
+        }),
+      );
+      return c;
+    };
+
+    const first = await makeClient();
+    const second = await makeClient();
+
+    try {
+      // The first client must still answer after the second one connected.
+      const firstResult = (await first.callTool({
+        name: 'qase_discover_tools',
+        arguments: { query: 'delete' },
+      })) as { content: Array<{ text: string }> };
+      const secondResult = (await second.callTool({
+        name: 'qase_discover_tools',
+        arguments: { query: 'delete' },
+      })) as { content: Array<{ text: string }> };
+
+      expect(JSON.parse(firstResult.content[0].text).found).toBeGreaterThan(0);
+      expect(JSON.parse(secondResult.content[0].text).found).toBeGreaterThan(0);
+    } finally {
+      await first.close().catch(() => {});
+      await second.close().catch(() => {});
+    }
+  }, 30000);
+
+  it('answers 404 for a session id it does not know', async () => {
+    const res = await request(app._httpServer!)
+      .post('/messages?sessionId=00000000-0000-0000-0000-000000000000')
+      .set('Authorization', TEST_TOKEN)
+      .send({ jsonrpc: '2.0', id: 1, method: 'tools/list', params: {} });
+
+    expect(res.status).toBe(404);
   });
 });

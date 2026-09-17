@@ -93,7 +93,7 @@ async function main() {
 
       case 'sse': {
         console.error(`✓ Starting server with SSE transport on http://${host}:${port}/sse`);
-        setupSSETransport(createServer(), {
+        setupSSETransport(createServer, {
           port,
           host,
           sseEndpoint: '/sse',

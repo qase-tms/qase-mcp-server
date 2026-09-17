@@ -20,7 +20,13 @@ function readIntegrationMarker(value: unknown): string | undefined {
   return typeof value === 'string' ? normalizeIntegrationMarker(value) : undefined;
 }
 
-export function setupSSETransport(server: Server, config: SSETransportConfig): Express {
+/** One open stream: its transport and the integration marker seen when it opened. */
+interface SseSession {
+  transport: SSEServerTransport;
+  integration: string | undefined;
+}
+
+export function setupSSETransport(createServer: () => Server, config: SSETransportConfig): Express {
   const app = express();
   app.use(express.json());
 
@@ -33,11 +39,11 @@ export function setupSSETransport(server: Server, config: SSETransportConfig): E
   // so a request can no longer run under the operator's QASE_API_TOKEN.
   const requireBearer = createBearerRequiredGuard();
 
-  let transport: SSEServerTransport | null = null;
-  // This transport serves a single connection at a time, so the marker captured
-  // when the stream is opened plays the role the per-session map plays in
-  // streamable-http: it covers POSTs that cannot repeat the header.
-  let connectionIntegration: string | undefined;
+  // Keyed by the session id the SDK puts in the endpoint event it sends the
+  // client, which the client then echoes as ?sessionId= on every POST. A single
+  // `let transport` here used to mean the second client to connect took the
+  // first one's stream.
+  const sessions = new Map<string, SseSession>();
 
   // Health check endpoint
   app.get('/health', (_req, res) => {
@@ -52,29 +58,47 @@ export function setupSSETransport(server: Server, config: SSETransportConfig): E
 
   // SSE endpoint for establishing connection
   app.get(sseEndpoint, requireBearer, (req, res) => {
-    console.error('[SSE] Client connected');
-    connectionIntegration =
+    const integration =
       readIntegrationMarker(req.headers['x-qase-integration']) ??
       readIntegrationMarker(req.query.integration);
-    transport = new SSEServerTransport(messagesEndpoint, res);
-    server.connect(transport);
+    const transport = new SSEServerTransport(messagesEndpoint, res);
+
+    sessions.set(transport.sessionId, { transport, integration });
+    console.error(`[SSE] Client connected (session ${transport.sessionId})`);
+
+    res.on('close', () => {
+      sessions.delete(transport.sessionId);
+      console.error(`[SSE] Client disconnected (session ${transport.sessionId})`);
+    });
+
+    // A fresh Server per stream: Protocol.connect() stores the transport on the
+    // instance, so sharing one Server between two clients would put them back
+    // in the fight the session map exists to end.
+    createServer().connect(transport);
   });
 
   // Messages endpoint for receiving client messages
   app.post(messagesEndpoint, requireBearer, (req, res) => {
-    if (!transport) {
-      res.status(503).json({ error: 'No SSE connection established' });
+    const sessionId = typeof req.query.sessionId === 'string' ? req.query.sessionId : '';
+    const session = sessions.get(sessionId);
+
+    if (!session) {
+      res.status(404).json({ error: 'Unknown or closed SSE session — reconnect to /sse' });
       return;
     }
+
     const authHeader = (req.headers['authorization'] as string) || '';
     const requestToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : '';
     const integration =
-      readIntegrationMarker(req.headers['x-qase-integration']) ?? connectionIntegration ?? '';
+      readIntegrationMarker(req.headers['x-qase-integration']) ?? session.integration ?? '';
+
     // `express.json()` above has already consumed the body, so it has to be
     // handed over — otherwise the SDK reads a spent stream and every call fails
     // with "stream is not readable".
     requestTokenStorage.run(requestToken, () =>
-      integrationStorage.run(integration, () => transport!.handlePostMessage(req, res, req.body)),
+      integrationStorage.run(integration, () =>
+        session.transport.handlePostMessage(req, res, req.body),
+      ),
     );
   });
 

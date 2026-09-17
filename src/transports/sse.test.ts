@@ -36,8 +36,9 @@ let client: Client;
 
 const TEST_TOKEN = 'Bearer test-operator-token';
 
-// This transport serves one connection at a time, so every test shares a single
-// client and swaps the answer the elicitation handler gives.
+// The transport now supports multiple concurrent sessions (see the
+// "concurrent sessions" suite below), but these tests don't need that: they
+// share a single client and swap the answer the elicitation handler gives.
 let answer: { action: 'accept' | 'decline' } = { action: 'decline' };
 let prompts = 0;
 
@@ -150,6 +151,12 @@ describe('legacy SSE transport — authentication', () => {
 
   it('leaves /health open for the Docker healthcheck', async () => {
     const res = await request(app._httpServer!).get('/health');
+
+    expect(res.status).toBe(200);
+  });
+
+  it('leaves /metrics open without a token', async () => {
+    const res = await request(app._httpServer!).get('/metrics');
 
     expect(res.status).toBe(200);
   });

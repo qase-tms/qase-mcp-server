@@ -28,7 +28,9 @@ On both network transports every request must carry
 `Authorization: Bearer <token>`; the server does not fall back to
 `QASE_API_TOKEN` for unauthenticated requests. A single shared operator token
 still works — put it in the client configuration rather than in the server's
-environment.
+environment. Only `streamable-http` validates that token against OAuth/JWKS;
+on `sse` any non-empty token passes the server's guard and a bad one is only
+caught when the Qase API rejects it.
 
 Additionally, bind to `127.0.0.1` with `--host` unless the server is meant to be
 reachable from the network, and keep OAuth enabled unless you have a specific

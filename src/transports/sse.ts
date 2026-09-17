@@ -74,7 +74,17 @@ export function setupSSETransport(createServer: () => Server, config: SSETranspo
     // A fresh Server per stream: Protocol.connect() stores the transport on the
     // instance, so sharing one Server between two clients would put them back
     // in the fight the session map exists to end.
-    createServer().connect(transport);
+    //
+    // The catch matters: if transport.start() rejects (the client aborts the
+    // GET, or any other SDK error), an unhandled rejection here would take
+    // the whole process down on Node 22, the Dockerfile's base image, which
+    // exits by default on an unhandled rejection.
+    createServer()
+      .connect(transport)
+      .catch((error) => {
+        sessions.delete(transport.sessionId);
+        console.error(`[SSE] Failed to connect session ${transport.sessionId}:`, error);
+      });
   });
 
   // Messages endpoint for receiving client messages

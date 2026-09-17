@@ -36,9 +36,10 @@ import './operations-v2/index.js';
 /**
  * Create and configure a new MCP Server instance.
  *
- * Called once for stdio/SSE (single connection) and once per session for
- * Streamable HTTP (multiple concurrent connections). Each session needs its
- * own Server instance because the SDK enforces one transport per server.
+ * Called once for stdio (single connection) and once per session for both
+ * SSE and Streamable HTTP (multiple concurrent connections). Each session
+ * needs its own Server instance because the SDK enforces one transport per
+ * server.
  */
 export function createServer(): Server {
   const server = new Server(

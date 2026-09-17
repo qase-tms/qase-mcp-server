@@ -125,6 +125,10 @@ server is meant to be reachable from the network, and keep OAuth on
 (`QASE_OAUTH_ENABLED` defaults to enabled) unless you have a specific reason to
 turn it off.
 
+OAuth applies to `streamable-http` only: on `--transport sse` a token is
+required but not validated by the server — any non-empty value passes, and a
+bad one only fails later when the Qase API rejects it.
+
 ## Client Setup (stdio)
 
 ### Claude Desktop
@@ -301,6 +305,8 @@ npm run start:sse
 # Metrics: http://localhost:3000/metrics
 ```
 
+Clients must send a bearer token — see [Security of network transports](#security-of-network-transports).
+
 ### Streamable HTTP Transport
 
 Full HTTP-based transport with session management:
@@ -311,6 +317,8 @@ npm run start:http
 # Health check: http://localhost:3000/health
 # Metrics: http://localhost:3000/metrics
 ```
+
+Clients must send a bearer token — see [Security of network transports](#security-of-network-transports).
 
 ### Custom Configuration
 

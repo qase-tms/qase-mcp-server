@@ -15,6 +15,7 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach, jest } from '@jest/globals';
 import type http from 'node:http';
 import type { AddressInfo } from 'node:net';
+import request from 'supertest';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js';
 import { ElicitRequestSchema } from '@modelcontextprotocol/sdk/types.js';
@@ -32,6 +33,8 @@ jest.mock('../client/index.js', () => ({
 
 let app: { _httpServer?: http.Server };
 let client: Client;
+
+const TEST_TOKEN = 'Bearer test-operator-token';
 
 // This transport serves one connection at a time, so every test shares a single
 // client and swaps the answer the elicitation handler gives.
@@ -60,7 +63,20 @@ beforeAll(async () => {
     prompts += 1;
     return answer.action === 'accept' ? { action: 'accept', content: {} } : { action: 'decline' };
   });
-  await client.connect(new SSEClientTransport(sseUrl));
+  // The stream and the POSTs are separate requests and each needs the header:
+  // eventSourceInit covers GET /sse, requestInit covers POST /messages.
+  await client.connect(
+    new SSEClientTransport(sseUrl, {
+      eventSourceInit: {
+        fetch: (url, init) =>
+          fetch(url as string, {
+            ...(init as RequestInit),
+            headers: { ...(init?.headers as Record<string, string>), Authorization: TEST_TOKEN },
+          }),
+      },
+      requestInit: { headers: { Authorization: TEST_TOKEN } },
+    }),
+  );
   // Real listener plus a real SSE handshake: under a loaded parallel run this
   // does not fit in Jest's 5s default.
 }, 30000);
@@ -110,5 +126,31 @@ describe('legacy SSE transport', () => {
 
     expect(deleteCase).not.toHaveBeenCalled();
     expect(result.content[0].text).toContain('declined');
+  });
+});
+
+describe('legacy SSE transport — authentication', () => {
+  // SSE never had a guard of any kind: a POST with no Authorization header ran
+  // under the operator's QASE_API_TOKEN, so anyone who could reach the port
+  // could call any tool.
+  it('rejects a POST to the messages endpoint with no token', async () => {
+    const res = await request(app._httpServer!)
+      .post('/messages?sessionId=whatever')
+      .send({ jsonrpc: '2.0', id: 1, method: 'tools/list', params: {} });
+
+    expect(res.status).toBe(401);
+    expect(res.body.error).toBe('invalid_token');
+  });
+
+  it('rejects opening the stream with no token', async () => {
+    const res = await request(app._httpServer!).get('/sse');
+
+    expect(res.status).toBe(401);
+  });
+
+  it('leaves /health open for the Docker healthcheck', async () => {
+    const res = await request(app._httpServer!).get('/health');
+
+    expect(res.status).toBe(200);
   });
 });

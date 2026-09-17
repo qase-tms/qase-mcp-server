@@ -6,6 +6,7 @@ import { requestTokenStorage } from '../utils/auth-context.js';
 import { integrationStorage } from '../utils/integration-context.js';
 import { normalizeIntegrationMarker } from '../utils/integration-marker.js';
 import { getMetrics } from '../cache/index.js';
+import { createBearerRequiredGuard } from '../auth/bearer-guard.js';
 
 export interface SSETransportConfig {
   port: number;
@@ -27,6 +28,11 @@ export function setupSSETransport(server: Server, config: SSETransportConfig): E
   const messagesEndpoint = config.messagesEndpoint || '/messages';
   const host = config.host || '0.0.0.0';
 
+  // SSE has no OAuth wiring and is not getting any — the transport is
+  // deprecated. What it does get is the floor: a caller must present a token,
+  // so a request can no longer run under the operator's QASE_API_TOKEN.
+  const requireBearer = createBearerRequiredGuard();
+
   let transport: SSEServerTransport | null = null;
   // This transport serves a single connection at a time, so the marker captured
   // when the stream is opened plays the role the per-session map plays in
@@ -45,7 +51,7 @@ export function setupSSETransport(server: Server, config: SSETransportConfig): E
   });
 
   // SSE endpoint for establishing connection
-  app.get(sseEndpoint, (req, res) => {
+  app.get(sseEndpoint, requireBearer, (req, res) => {
     console.error('[SSE] Client connected');
     connectionIntegration =
       readIntegrationMarker(req.headers['x-qase-integration']) ??
@@ -55,7 +61,7 @@ export function setupSSETransport(server: Server, config: SSETransportConfig): E
   });
 
   // Messages endpoint for receiving client messages
-  app.post(messagesEndpoint, (req, res) => {
+  app.post(messagesEndpoint, requireBearer, (req, res) => {
     if (!transport) {
       res.status(503).json({ error: 'No SSE connection established' });
       return;

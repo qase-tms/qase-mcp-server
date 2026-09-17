@@ -56,6 +56,21 @@ function parseArgs(): { transport: string; port: number; host: string } {
 }
 
 /**
+ * On a network transport the caller's Bearer token is the only one used —
+ * `QASE_API_TOKEN` no longer backs an unauthenticated request. Say so at
+ * startup: an operator upgrading from 2.4.x sees this before the first 401.
+ */
+function warnAboutOperatorToken(transport: string): void {
+  if (!process.env.QASE_API_TOKEN) return;
+  console.error(
+    `⚠ QASE_API_TOKEN is set but is not used by the ${transport} transport. Clients must send ` +
+      'their own token as "Authorization: Bearer <token>" — the same operator token works if ' +
+      'you put it in the client config. The variable still applies to stdio.',
+  );
+  console.error('');
+}
+
+/**
  * Main function - Start the MCP server
  */
 async function main() {
@@ -93,6 +108,7 @@ async function main() {
 
       case 'sse': {
         console.error(`✓ Starting server with SSE transport on http://${host}:${port}/sse`);
+        warnAboutOperatorToken('SSE');
         setupSSETransport(createServer, {
           port,
           host,
@@ -110,6 +126,7 @@ async function main() {
         console.error(
           `✓ Starting server with Streamable HTTP transport on http://${host}:${port}/mcp`,
         );
+        warnAboutOperatorToken('Streamable HTTP');
         setupStreamableHttpTransport(createServer, {
           port,
           host,

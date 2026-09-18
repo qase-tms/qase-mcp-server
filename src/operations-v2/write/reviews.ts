@@ -429,6 +429,7 @@ async function bulkCreate(args: z.infer<typeof BulkCreateSchema>) {
 
 toolRegistry.register({
   name: 'qase_review_create',
+  title: 'Create case review',
   description:
     'Open a test case review — the pull-request flow for test cases. Pass `case_id` to propose ' +
     'changes to an existing case (an "edit" review; send only the fields that change), or omit ' +
@@ -446,6 +447,7 @@ toolRegistry.register({
 
 toolRegistry.register({
   name: 'qase_review_update',
+  title: 'Update case review',
   description:
     'Update an open review: change the proposed case fields, reassign reviewers, or both. ' +
     'Addressed by review ID; case fields follow the same naming and enum handling as ' +
@@ -461,6 +463,7 @@ toolRegistry.register({
 
 toolRegistry.register({
   name: 'qase_review_list',
+  title: 'List case reviews',
   description:
     'List the reviews in a project, with their current state, so you can see what is waiting on a ' +
     'human. Filter by status to find what is still open. Use this rather than guessing whether a ' +
@@ -477,6 +480,7 @@ toolRegistry.register({
 
 toolRegistry.register({
   name: 'qase_review_delete',
+  title: 'Delete case review',
   description:
     'Delete a review by ID. This removes the proposal entirely — it does not decline it, and ' +
     'declining is UI-only, so deleting is not a way to reject a change while keeping the record ' +
@@ -491,6 +495,7 @@ toolRegistry.register({
 
 toolRegistry.register({
   name: 'qase_review_bulk_create',
+  title: 'Bulk create case reviews',
   description:
     'Open several test case reviews in one request — the batch form of qase_review_create, and ' +
     'the right tool when proposing more than one change. The batch is validated as a whole, so ' +

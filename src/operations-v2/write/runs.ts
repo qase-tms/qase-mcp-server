@@ -11,16 +11,32 @@ import { ProjectCodeSchema, IdSchema } from '../../utils/validation.js';
 
 const RunFieldsSchema = z.object({
   title: z.string().min(1).max(255).describe('Run title'),
-  description: z.string().optional(),
-  environment_id: z.number().int().positive().optional(),
-  milestone_id: z.number().int().positive().optional(),
+  description: z.string().optional().describe('What this run covers'),
+  environment_id: z
+    .number()
+    .int()
+    .positive()
+    .optional()
+    .describe('ID of the environment the run executes against'),
+  milestone_id: z
+    .number()
+    .int()
+    .positive()
+    .optional()
+    .describe('ID of the milestone the run belongs to'),
   plan_id: z.number().int().positive().optional().describe('Test plan to base run on'),
   cases: z.array(z.number().int().positive()).optional().describe('Case IDs to include'),
-  tags: z.array(z.string()).optional(),
-  is_autotest: z.boolean().optional(),
+  tags: z.array(z.string()).optional().describe('Tag names, e.g. ["nightly", "smoke"]'),
+  is_autotest: z
+    .boolean()
+    .optional()
+    .describe('True when the run is produced by automation rather than a person'),
   start_time: z.string().optional().describe('RFC3339 start time'),
   end_time: z.string().optional().describe('RFC3339 end time'),
-  custom_field: z.record(z.any()).optional(),
+  custom_field: z
+    .record(z.any())
+    .optional()
+    .describe('Custom field values keyed by field ID, e.g. { "12": "value" }'),
 });
 
 const UpsertSchema = z.object({
@@ -89,6 +105,7 @@ async function del(args: z.infer<typeof DeleteSchema>) {
 
 toolRegistry.register({
   name: 'qase_run_upsert',
+  title: 'Create or update test run',
   description:
     'Create or update a test run. Without `id` it opens a new run; with `id` it updates that one. ' +
     'A run is the container results are recorded into, so open it before calling ' +
@@ -104,6 +121,7 @@ toolRegistry.register({
 
 toolRegistry.register({
   name: 'qase_run_complete',
+  title: 'Complete test run',
   description:
     'Mark a test run as complete so it reports as finished rather than in progress. Call it once ' +
     'the results are in; a run left open keeps showing as running and skews dashboards and any ' +
@@ -120,6 +138,7 @@ toolRegistry.register({
 
 toolRegistry.register({
   name: 'qase_run_delete',
+  title: 'Delete test run',
   description:
     'Delete a test run by project code and run ID. This removes the run together with every ' +
     'result recorded into it, and cannot be undone — the execution history for those cases goes ' +

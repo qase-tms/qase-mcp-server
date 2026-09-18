@@ -60,6 +60,7 @@ async function handler(rawArgs: unknown) {
 
 toolRegistry.register({
   name: 'qase_case_bulk_create',
+  title: 'Bulk create test cases',
   description:
     `Create up to ${MAX_CASES} test cases in one request — the batch form of qase_case_upsert, ` +
     'and the right tool whenever more than one case is being written. Takes a list of cases ' +

@@ -10,6 +10,8 @@
 
 interface PromptDef {
   name: string;
+  /** Human-readable name clients show in prompt pickers */
+  title: string;
   description: string;
   arguments: Array<{ name: string; description: string; required: boolean }>;
   build: (
@@ -20,6 +22,7 @@ interface PromptDef {
 const prompts: PromptDef[] = [
   {
     name: 'triage_failed_run',
+    title: 'Triage a failed run',
     description:
       'Analyze a failed test run: show all failed results grouped by error pattern, ' +
       'suggest defects to create for unique failures.',
@@ -51,6 +54,7 @@ const prompts: PromptDef[] = [
 
   {
     name: 'release_readiness',
+    title: 'Check release readiness',
     description:
       'Check release readiness for a milestone: test coverage, pass rate, open defects, blocking issues.',
     arguments: [
@@ -89,6 +93,7 @@ const prompts: PromptDef[] = [
 
   {
     name: 'regression_workflow',
+    title: 'Run a regression cycle',
     description:
       'Create and manage a full regression test cycle: set up a run from a plan or suites, ' +
       'track progress, report results.',
@@ -146,6 +151,7 @@ const prompts: PromptDef[] = [
 
   {
     name: 'onboard_project',
+    title: 'Onboard onto a project',
     description:
       'Get a comprehensive overview of a Qase project for a new team member: ' +
       'structure, recent activity, key metrics.',
@@ -182,6 +188,7 @@ const prompts: PromptDef[] = [
 
   {
     name: 'ci_integration',
+    title: 'Report CI results',
     description:
       'Report CI/CD test results to Qase: create a run, record results, and get a summary.',
     arguments: [
@@ -227,6 +234,7 @@ export function listPrompts() {
     .sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0))
     .map((p) => ({
       name: p.name,
+      title: p.title,
       description: p.description,
       arguments: p.arguments,
     }));

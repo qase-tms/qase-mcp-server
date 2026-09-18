@@ -34,7 +34,12 @@ const CaseResultSchema = z.object({
 const Schema = z.object({
   code: ProjectCodeSchema,
   title: z.string().min(1).max(255).describe('Run title (e.g., "CI Build #1234")'),
-  environment_id: z.number().int().positive().optional(),
+  environment_id: z
+    .number()
+    .int()
+    .positive()
+    .optional()
+    .describe('ID of the environment the build ran against'),
   results: z
     .array(CaseResultSchema)
     .min(1)
@@ -176,6 +181,7 @@ async function handler(rawArgs: unknown) {
 
 toolRegistry.register({
   name: 'qase_ci_report',
+  title: 'Report CI results',
   description:
     'Report a whole CI run in one call: creates the run, records every result, and completes it. ' +
     'This is the tool for a pipeline that has just finished — it replaces qase_run_upsert, then ' +

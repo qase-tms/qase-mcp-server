@@ -21,6 +21,7 @@ beforeEach(() => {
   toolRegistry.unregister('probe_secondary_tool');
   toolRegistry.register({
     name: 'probe_secondary_tool',
+    title: 'Probe secondary tool',
     description: 'A probe tool used to verify discovery activation.',
     schema: z.object({}),
     handler: async () => ({}),

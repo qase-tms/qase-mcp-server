@@ -112,6 +112,7 @@ async function handler(rawArgs: unknown) {
 
 toolRegistry.register({
   name: 'qase_external_issue_link',
+  title: 'Link external issue',
   description:
     'Link or unlink test cases and test runs to issues in an external tracker — Jira Cloud or ' +
     'Jira Server, the only two supported. Use `entity` to choose between cases and runs and ' +

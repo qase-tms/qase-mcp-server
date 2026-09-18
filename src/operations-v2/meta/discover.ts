@@ -80,6 +80,7 @@ async function handler(args: z.infer<typeof Schema>) {
 
 toolRegistry.register({
   name: 'qase_discover_tools',
+  title: 'Discover more tools',
   description:
     'Find and switch on tools that are hidden by default. Only core tools appear in the tool ' +
     'list; deletes, shared steps and parameters, attachments, external issue links, case reviews, ' +

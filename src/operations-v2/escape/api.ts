@@ -40,6 +40,7 @@ async function handler(args: z.infer<typeof Schema>) {
 
 toolRegistry.register({
   name: 'qase_api',
+  title: 'Call Qase API',
   description:
     'Call any Qase REST endpoint directly, for the few things no dedicated tool covers. Pass the ' +
     'HTTP method, a path starting with /v1/, and an optional body or query. See ' +

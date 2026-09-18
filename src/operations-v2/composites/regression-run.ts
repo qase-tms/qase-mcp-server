@@ -9,9 +9,19 @@ import { richResult, summaryBlock, dataBlock } from '../../utils/rich-response.j
 const Schema = z.object({
   code: ProjectCodeSchema,
   title: z.string().min(1).max(255).describe('Run title'),
-  description: z.string().optional(),
-  environment_id: z.number().int().positive().optional(),
-  milestone_id: z.number().int().positive().optional(),
+  description: z.string().optional().describe('What this regression run covers'),
+  environment_id: z
+    .number()
+    .int()
+    .positive()
+    .optional()
+    .describe('ID of the environment the run executes against'),
+  milestone_id: z
+    .number()
+    .int()
+    .positive()
+    .optional()
+    .describe('ID of the milestone the run belongs to'),
   plan_id: z.number().int().positive().optional().describe('Create run from an existing test plan'),
   suite_ids: z
     .array(z.number().int().positive())
@@ -106,6 +116,7 @@ async function handler(args: z.infer<typeof Schema>) {
 
 toolRegistry.register({
   name: 'qase_regression_run',
+  title: 'Build regression run',
   description:
     'Build and start a test run from a suite, a test plan, or an explicit list of case IDs, in ' +
     'one step. Use it to launch a regression cycle without first querying for cases and then ' +

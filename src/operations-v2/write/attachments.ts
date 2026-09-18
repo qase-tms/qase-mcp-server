@@ -125,6 +125,7 @@ async function del(args: z.infer<typeof DeleteSchema>) {
 
 toolRegistry.register({
   name: 'qase_attachment_upload',
+  title: 'Upload attachment',
   description:
     'Upload a file and get back the hash that other tools reference it by — screenshots, logs, ' +
     'HAR files, videos. Pass `file_base64` with the base64-encoded bytes, or `file_path` with an ' +
@@ -148,6 +149,7 @@ toolRegistry.register({
 
 toolRegistry.register({
   name: 'qase_attachment_delete',
+  title: 'Delete attachment',
   description:
     'Delete an attachment by its hash. Anything referencing it — a case, a result, a defect — ' +
     'keeps the reference but the file is gone, so screenshots and logs attached to a failure ' +

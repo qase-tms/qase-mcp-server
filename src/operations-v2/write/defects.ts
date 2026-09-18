@@ -15,20 +15,27 @@ const DEFECT_ENUM_FIELDS = ['severity'] as const;
 
 const DefectFieldsSchema = z.object({
   title: z.string().min(1).max(255).describe('Defect title'),
-  actual_result: z.string().optional(),
+  actual_result: z
+    .string()
+    .optional()
+    .describe('What actually happened — required when creating a defect'),
   severity: z
     .enum(['undefined', 'blocker', 'critical', 'major', 'normal', 'minor', 'trivial'])
-    .optional(),
+    .optional()
+    .describe('How bad the defect is — required when creating a defect'),
   status: z
     .enum(['open', 'in_progress', 'resolved', 'invalid'])
     .optional()
     .describe('Set to "resolved" to resolve the defect'),
-  tags: z.array(z.string()).optional(),
+  tags: z.array(z.string()).optional().describe('Tag names, e.g. ["regression", "payments"]'),
   attachments: z
     .array(z.string())
     .optional()
     .describe('Attachment hashes from qase_attachment_upload'),
-  custom_field: z.record(z.any()).optional(),
+  custom_field: z
+    .record(z.any())
+    .optional()
+    .describe('Custom field values keyed by field ID, e.g. { "12": "value" }'),
 });
 
 const UpsertSchema = z.object({
@@ -102,6 +109,7 @@ async function del(args: z.infer<typeof DeleteSchema>) {
 
 toolRegistry.register({
   name: 'qase_defect_upsert',
+  title: 'Create or update defect',
   description:
     'Create or update a defect — a tracked problem found by testing. Without `id` it creates, ' +
     'with `id` it updates. Creating one requires `title`, `actual_result` and `severity`; the ' +
@@ -121,6 +129,7 @@ toolRegistry.register({
 
 toolRegistry.register({
   name: 'qase_defect_delete',
+  title: 'Delete defect',
   description:
     'Delete a defect by project code and defect ID. The defect and its links to results ' +
     'disappear, and the failure history stops pointing anywhere. This cannot be undone. Usually ' +

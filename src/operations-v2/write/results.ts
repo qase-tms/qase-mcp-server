@@ -112,6 +112,7 @@ async function del(args: z.infer<typeof DeleteSchema>) {
 
 toolRegistry.register({
   name: 'qase_result_record',
+  title: 'Record test results',
   description:
     `Record up to ${MAX_RESULTS} results into an existing run. A case says what should be tested; ` +
     'a result says what happened when it ran — status, duration, comment, stacktrace, ' +
@@ -132,6 +133,7 @@ toolRegistry.register({
 
 toolRegistry.register({
   name: 'qase_result_delete',
+  title: 'Delete test result',
   description:
     'Delete a single result from a run, addressed by run ID and result hash. Use it to remove one ' +
     'wrong or duplicated execution record; the case itself and the rest of the run are untouched. ' +

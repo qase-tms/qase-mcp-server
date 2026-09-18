@@ -252,6 +252,7 @@ async function del(args: z.infer<typeof DeleteSchema>) {
 
 toolRegistry.register({
   name: 'qase_custom_field_upsert',
+  title: 'Create or update custom field',
   description:
     'Create or update a custom field. With `id` it updates that field, without `id` it creates ' +
     'one, and `entity` ("case", "run" or "defect") and `type` ("number", "string", "text", ' +
@@ -272,6 +273,7 @@ toolRegistry.register({
 
 toolRegistry.register({
   name: 'qase_custom_field_delete',
+  title: 'Delete custom field',
   description:
     'Delete a custom field by ID. The field disappears from every project it applies to, and the ' +
     'values entered for it on cases, runs or defects go with it — the reach is workspace-wide, ' +

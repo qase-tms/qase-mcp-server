@@ -47,9 +47,9 @@ export const TestStepSchema = z.object({
 
 export const CaseFieldsSchema = z.object({
   title: z.string().min(1).max(255).describe('Test case title'),
-  description: z.string().optional(),
-  preconditions: z.string().optional(),
-  postconditions: z.string().optional(),
+  description: z.string().optional().describe('Free-form description of what the case covers'),
+  preconditions: z.string().optional().describe('State the system must be in before the steps run'),
+  postconditions: z.string().optional().describe('State to restore or verify after the steps run'),
   severity: z.string().optional().describe('Severity label or numeric ID'),
   priority: z
     .string()
@@ -74,16 +74,30 @@ export const CaseFieldsSchema = z.object({
       .optional()
       .describe('Is flaky label or numeric ID (0=No, 1=Yes). A boolean is accepted too.'),
   ),
-  suite_id: z.number().int().positive().optional(),
-  milestone_id: z.number().int().positive().optional(),
-  steps: z.array(TestStepSchema).optional(),
-  steps_type: z.enum(['classic', 'gherkin']).optional(),
-  tags: z.array(z.string()).optional(),
+  suite_id: z.number().int().positive().optional().describe('ID of the suite that holds the case'),
+  milestone_id: z
+    .number()
+    .int()
+    .positive()
+    .optional()
+    .describe('ID of the milestone the case belongs to'),
+  steps: z
+    .array(TestStepSchema)
+    .optional()
+    .describe('Ordered test steps; omit for a case without steps'),
+  steps_type: z
+    .enum(['classic', 'gherkin'])
+    .optional()
+    .describe('How steps are written: "classic" action/expected pairs, or "gherkin" scenario text'),
+  tags: z.array(z.string()).optional().describe('Tag names, e.g. ["smoke", "billing"]'),
   attachments: z
     .array(z.string())
     .optional()
     .describe('Attachment hashes from qase_attachment_upload'),
-  custom_field: z.record(z.any()).optional(),
+  custom_field: z
+    .record(z.any())
+    .optional()
+    .describe('Custom field values keyed by field ID, e.g. { "12": "value" }'),
 });
 
 /**

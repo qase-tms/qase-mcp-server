@@ -25,6 +25,7 @@ describe('ToolRegistry', () => {
 
     registry.register({
       name: 'test_tool',
+      title: 'Test tool',
       description: 'A test tool',
       schema,
       handler,
@@ -39,6 +40,7 @@ describe('ToolRegistry', () => {
 
     registry.register({
       name: 'tool1',
+      title: 'Tool1',
       description: 'Tool 1',
       schema,
       handler,
@@ -46,6 +48,7 @@ describe('ToolRegistry', () => {
 
     registry.register({
       name: 'tool2',
+      title: 'Tool2',
       description: 'Tool 2',
       schema,
       handler,
@@ -62,6 +65,7 @@ describe('ToolRegistry', () => {
 
     registry.register({
       name: 'test_tool',
+      title: 'Test tool',
       description: 'A test tool',
       schema,
       handler,
@@ -83,6 +87,7 @@ describe('ToolRegistry', () => {
 
     registry.register({
       name: 'tool1',
+      title: 'Tool1',
       description: 'Tool 1',
       schema,
       handler,
@@ -92,6 +97,7 @@ describe('ToolRegistry', () => {
 
     registry.register({
       name: 'tool2',
+      title: 'Tool2',
       description: 'Tool 2',
       schema,
       handler,
@@ -109,6 +115,7 @@ describe('ToolRegistry', () => {
 
     registry.register({
       name: 'test_tool',
+      title: 'Test tool',
       description: 'A test tool',
       schema,
       handler,
@@ -130,6 +137,7 @@ describe('ToolRegistry', () => {
 
     registry.register({
       name: 'complex_tool',
+      title: 'Complex tool',
       description: 'A complex tool',
       schema,
       handler,
@@ -148,6 +156,7 @@ describe('ToolRegistry', () => {
 
     registry.register({
       name: 'duplicate_tool',
+      title: 'Duplicate tool',
       description: 'First',
       schema,
       handler: handler1,
@@ -155,6 +164,7 @@ describe('ToolRegistry', () => {
 
     registry.register({
       name: 'duplicate_tool',
+      title: 'Duplicate tool',
       description: 'Second',
       schema,
       handler: handler2,
@@ -168,7 +178,7 @@ describe('ToolRegistry', () => {
   describe('getTool', () => {
     it('returns the tool definition by name', () => {
       const schema = z.object({});
-      registry.register({ name: 'my_tool', description: 'desc', schema, handler: jest.fn() });
+      registry.register({ name: 'my_tool', title: 'My tool', description: 'desc', schema, handler: jest.fn() });
 
       const tool = registry.getTool('my_tool');
       expect(tool).toBeDefined();
@@ -186,7 +196,7 @@ describe('ToolRegistry', () => {
     const handler = jest.fn();
 
     it('core tools (default) are active and in getTools()', () => {
-      registry.register({ name: 'core_tool', description: 'core', schema, handler });
+      registry.register({ name: 'core_tool', title: 'Core tool', description: 'core', schema, handler });
 
       expect(registry.getTools().map((t) => t.name)).toContain('core_tool');
     });
@@ -194,6 +204,7 @@ describe('ToolRegistry', () => {
     it('explicit core visibility is active', () => {
       registry.register({
         name: 'explicit_core',
+        title: 'Explicit core',
         description: 'core',
         schema,
         handler,
@@ -206,6 +217,7 @@ describe('ToolRegistry', () => {
     it('discoverable tools are NOT in getTools() by default', () => {
       registry.register({
         name: 'hidden_tool',
+        title: 'Hidden tool',
         description: 'hidden',
         schema,
         handler,
@@ -218,6 +230,7 @@ describe('ToolRegistry', () => {
     it('discoverable tools ARE in getAllTools()', () => {
       registry.register({
         name: 'hidden_tool',
+        title: 'Hidden tool',
         description: 'hidden',
         schema,
         handler,
@@ -230,6 +243,7 @@ describe('ToolRegistry', () => {
     it('discoverable tools have a handler even when inactive', () => {
       registry.register({
         name: 'hidden_tool',
+        title: 'Hidden tool',
         description: 'hidden',
         schema,
         handler,
@@ -240,15 +254,16 @@ describe('ToolRegistry', () => {
     });
 
     it('mixed core and discoverable tools', () => {
-      registry.register({ name: 'core_a', description: 'a', schema, handler });
+      registry.register({ name: 'core_a', title: 'Core a', description: 'a', schema, handler });
       registry.register({
         name: 'disc_b',
+        title: 'Disc b',
         description: 'b',
         schema,
         handler,
         visibility: 'discoverable',
       });
-      registry.register({ name: 'core_c', description: 'c', schema, handler });
+      registry.register({ name: 'core_c', title: 'Core c', description: 'c', schema, handler });
 
       const active = registry.getTools().map((t) => t.name);
       expect(active).toEqual(['core_a', 'core_c']);
@@ -265,6 +280,7 @@ describe('ToolRegistry', () => {
     it('activates discoverable tools and returns newly activated names', () => {
       registry.register({
         name: 'hidden',
+        title: 'Hidden',
         description: 'h',
         schema,
         handler,
@@ -277,7 +293,7 @@ describe('ToolRegistry', () => {
     });
 
     it('returns empty array for already-active tools', () => {
-      registry.register({ name: 'core_tool', description: 'c', schema, handler });
+      registry.register({ name: 'core_tool', title: 'Core tool', description: 'c', schema, handler });
 
       const activated = registry.activateTools(['core_tool']);
       expect(activated).toEqual([]);
@@ -291,6 +307,7 @@ describe('ToolRegistry', () => {
     it('triggers onToolsChanged callback when tools are activated', () => {
       registry.register({
         name: 'hidden',
+        title: 'Hidden',
         description: 'h',
         schema,
         handler,
@@ -305,7 +322,7 @@ describe('ToolRegistry', () => {
     });
 
     it('does NOT trigger onToolsChanged when no new tools activated', () => {
-      registry.register({ name: 'core_tool', description: 'c', schema, handler });
+      registry.register({ name: 'core_tool', title: 'Core tool', description: 'c', schema, handler });
       const callback = jest.fn();
       registry.onToolsChanged = callback;
 
@@ -317,6 +334,7 @@ describe('ToolRegistry', () => {
     it('does NOT trigger onToolsChanged when callback is not set', () => {
       registry.register({
         name: 'hidden',
+        title: 'Hidden',
         description: 'h',
         schema,
         handler,
@@ -333,10 +351,10 @@ describe('ToolRegistry', () => {
     const handler = jest.fn();
 
     beforeEach(() => {
-      registry.register({ name: 'qase_case_delete', description: 'Delete a test case', schema, handler, visibility: 'discoverable' });
-      registry.register({ name: 'qase_case_upsert', description: 'Create or update a test case', schema, handler });
-      registry.register({ name: 'qase_run_delete', description: 'Delete a test run', schema, handler, visibility: 'discoverable' });
-      registry.register({ name: 'qql_search', description: 'Search entities using QQL', schema, handler });
+      registry.register({ name: 'qase_case_delete', title: 'Qase case delete', description: 'Delete a test case', schema, handler, visibility: 'discoverable' });
+      registry.register({ name: 'qase_case_upsert', title: 'Qase case upsert', description: 'Create or update a test case', schema, handler });
+      registry.register({ name: 'qase_run_delete', title: 'Qase run delete', description: 'Delete a test run', schema, handler, visibility: 'discoverable' });
+      registry.register({ name: 'qql_search', title: 'Qql search', description: 'Search entities using QQL', schema, handler });
     });
 
     it('searches by tool name (case-insensitive)', () => {
@@ -409,6 +427,7 @@ describe('ToolRegistry', () => {
       const schema = z.object({});
       registry.register({
         name: 'to_remove',
+        title: 'To remove',
         description: 'x',
         schema,
         handler: jest.fn(),
@@ -429,8 +448,8 @@ describe('ToolRegistry', () => {
     it('clears all tools and activation state', () => {
       const schema = z.object({});
       const handler = jest.fn();
-      registry.register({ name: 'a', description: 'a', schema, handler });
-      registry.register({ name: 'b', description: 'b', schema, handler, visibility: 'discoverable' });
+      registry.register({ name: 'a', title: 'A', description: 'a', schema, handler });
+      registry.register({ name: 'b', title: 'B', description: 'b', schema, handler, visibility: 'discoverable' });
       registry.activateTools(['b']);
 
       registry.clear();

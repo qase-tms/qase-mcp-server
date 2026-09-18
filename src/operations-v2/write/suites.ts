@@ -63,6 +63,7 @@ async function del(args: z.infer<typeof DeleteSchema>) {
 
 toolRegistry.register({
   name: 'qase_suite_upsert',
+  title: 'Create or update suite',
   description:
     'Create or update a test suite — the folder cases live in. Without `id` it creates, with `id` ' +
     'it updates. Nest a suite by passing `parent_id`; the whole existing tree comes back from ' +
@@ -77,6 +78,7 @@ toolRegistry.register({
 
 toolRegistry.register({
   name: 'qase_suite_delete',
+  title: 'Delete suite',
   description:
     'Delete a test suite by project code and suite ID. WARNING: the cases inside are deleted with ' +
     'it, along with their history, and this cannot be undone. Deleting a suite with children ' +

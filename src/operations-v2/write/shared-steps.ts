@@ -66,6 +66,7 @@ async function del(args: z.infer<typeof DeleteSchema>) {
 
 toolRegistry.register({
   name: 'qase_shared_step_upsert',
+  title: 'Create or update shared step',
   description:
     'Create or update a shared step — a block of steps written once and reused across many cases, ' +
     'so a change to a login flow is made in one place. Without `hash` it creates, with `hash` it ' +
@@ -80,6 +81,7 @@ toolRegistry.register({
 
 toolRegistry.register({
   name: 'qase_shared_step_delete',
+  title: 'Delete shared step',
   description:
     'Delete a shared step by project code and hash. Every case that referenced it loses those ' +
     'steps, so the deletion reaches much further than the one record named here — check what ' +

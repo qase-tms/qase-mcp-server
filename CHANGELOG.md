@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.5.1]
+
+### Security
+
+- **An unparsable request body leaked a stack trace on network transports.** `express.json()` is mounted before the auth guard, so a POST with malformed JSON never reached the guard: it fell through to express's default error handler, which answered with an HTML page whose `<pre>` block carried the `SyntaxError` stack — absolute `node_modules` paths and dependency internals — to a caller with no token at all. The hosted server was unaffected (it runs with `NODE_ENV=production`, where express omits the stack), but the published Docker image set no `NODE_ENV`, so every self-hosted deployment built from it was exposed. Both transports now answer an unparsable body with JSON-RPC `-32700` (`Parse error`) and nothing else, and the image sets `NODE_ENV=production` as a second line of defence.
+
+### Fixed
+
+- **`tools/list` and `prompts/list` accepted any pagination cursor.** Both catalogs are served whole and no `nextCursor` is ever issued, so every cursor a client can send is one the server never handed out — and both handlers ignored the parameter and returned the first page again. A client that paginates on its own would loop over that page forever instead of being told to stop. Both now answer JSON-RPC `-32602` (`Invalid params`) for any cursor.
+
+### Changed
+
+- **The server introduces itself properly.** `initialize` now carries `title` ("Qase Test Management"), `websiteUrl` and an `icons` entry alongside the machine name, so clients list the server under a readable name and icon instead of `qase-mcp-server`. The three values match `server.json`, the registry manifest that already carried them.
+
+- **Every tool and prompt has a display title.** All 41 tools and 5 prompts now ship a `title` — what a client shows in a tool picker or a call confirmation, where it previously printed the raw `qase_case_upsert`. `title` is required on tool registration, so a new tool cannot be added without one.
+
+- **Every tool input property is documented.** 26 properties across `qase_case_upsert`, `qase_run_upsert`, `qase_defect_upsert`, `qase_triage_defect`, `qase_regression_run` and `qase_ci_report` had no description, leaving the model to guess the shape of `custom_field`, `steps_type` or `tags` and to send arguments the API then rejected. All of them now describe their field.
+
 ## [2.5.0]
 
 ### Security

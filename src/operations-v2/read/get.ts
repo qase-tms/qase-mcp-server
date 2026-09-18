@@ -127,6 +127,7 @@ async function handler(args: z.infer<typeof Schema>) {
 
 toolRegistry.register({
   name: 'qase_get',
+  title: 'Get record',
   description:
     'Fetch one known record by type and ID: case, suite, run, result, plan, defect, milestone, ' +
     'environment, shared_step, shared_parameter, configuration, attachment, author, user, review, ' +

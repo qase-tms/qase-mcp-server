@@ -83,13 +83,17 @@ toolRegistry.register({
   title: 'Discover more tools',
   description:
     'Find and switch on tools that are hidden by default. Only core tools appear in the tool ' +
-    'list; deletes, shared steps and parameters, attachments, external issue links, case reviews, ' +
-    'defect triage, and project and custom-field management all exist but stay hidden until ' +
-    'discovered. Search by what you are trying to do — "delete", "milestone", "attachment", ' +
-    '"review", "custom field" — and matching tools are activated and become callable. Every word ' +
-    "in the query must appear in a tool's name or description, so prefer two or three words over " +
-    'a sentence. Never conclude a capability is missing without searching here first. Cost: no ' +
-    'API call, matching happens in memory, about 3ms. Free to call as often as needed.',
+    'list; deletes, test plans, milestones, environments, shared steps and parameters, external ' +
+    'issue links, case reviews, and project and custom-field management all exist but stay ' +
+    'hidden until discovered. Search by what you are trying to do — "delete", "milestone", ' +
+    '"plan", "review", "custom field" — and matching tools are activated and become callable. ' +
+    "Every word in the query must appear in a tool's name or description, so prefer two or three " +
+    'words over a sentence. Activation is announced to your client with ' +
+    'notifications/tools/list_changed: if a tool listed as activated here is still absent from ' +
+    'your tool list, your client did not act on that notification — call the same endpoint ' +
+    'through qase_api rather than reporting the capability as missing. Never conclude a ' +
+    'capability is missing without searching here first. Cost: no API call, matching happens in ' +
+    'memory, about 3ms. Free to call as often as needed.',
   schema: Schema,
   handler,
   annotations: ReadAnnotation,

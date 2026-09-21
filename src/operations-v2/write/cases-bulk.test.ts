@@ -45,9 +45,12 @@ beforeEach(() => {
 });
 
 describe('qase_case_bulk_create — registration', () => {
-  it('is registered as a discoverable tool', () => {
+  // Core, not discoverable: qase_case_upsert tells the agent to come here for
+  // more than one case, and a client that never re-reads tools/list after
+  // discovery cannot dispatch a tool it was not given up front.
+  it('is registered as a core tool, listed without discovery', () => {
     expect(toolRegistry.hasTool('qase_case_bulk_create')).toBe(true);
-    expect(toolRegistry.getTools().map((t) => t.name)).not.toContain('qase_case_bulk_create');
+    expect(toolRegistry.getTools().map((t) => t.name)).toContain('qase_case_bulk_create');
   });
 
   it('is findable by searching for "bulk"', () => {

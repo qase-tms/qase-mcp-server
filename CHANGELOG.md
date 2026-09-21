@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.6.0]
+
+### Fixed
+
+- **A discovered tool stayed uncallable in the client.** `qase_discover_tools` reported `qase_case_bulk_create` as found and activated, and the server was ready to run it, but the call died inside the client with `TypeError: tools.mcp__qase__qase_case_bulk_create is not a function` ([#93](https://github.com/qase-tms/qase-mcp-server/issues/93)). Activation only changes server-side state; the client learns about it from `notifications/tools/list_changed`, and a client that builds its tool table once at connect time never rebuilds it, so the tool is missing from its own dispatch table no matter how often discovery runs. Two changes: the tools the always-visible text recommends are no longer hidden (below), and the notification now reaches the sessions that need it (below).
+
+- **Only the newest session was told that tools had been activated.** The tool registry is a process-wide singleton, but a `Server` is created per session on the SSE and Streamable HTTP transports, and the change notification was wired into a single callback slot that each new session silently overwrote. With two clients on one server process, discovery run by the first notified only the second: the first kept serving the `tools/list` it had cached at connect time, which is the reported symptom on a fully conformant client. Sessions now subscribe individually and unsubscribe when they close, and one dead transport no longer swallows the notification for the sessions behind it.
+
+- **`qase_suite_upsert`'s `description` and `preconditions` had no documentation.** Both are now described, like every other listed tool input.
+
+### Changed
+
+- **Three tools moved from discoverable to core.** `qase_case_bulk_create`, `qase_suite_upsert` and `qase_run_complete` are listed from the start and no longer need discovery. Each was named in text the model always reads — the server instructions, or a core tool's own description — which pointed it at a tool its client had never been given: `qase_case_upsert` recommends the bulk form for more than one case, `qase_ci_report` names `qase_run_complete`, and a case needs a suite to live in. A test now enforces the rule in both directions: nothing in the server instructions or a core description may name a hidden tool unless the same sentence sends the agent to `qase_discover_tools` first. Core goes from 14 tools to 17; the catalog is unchanged at 41.
+
+- **The server instructions no longer advertise tools the agent cannot call.** Test plans, milestones, environments, shared steps, projects and custom fields are now introduced as things `qase_discover_tools` activates on demand, instead of being named as if they were listed. The paragraph on hidden tools was also stale — it still described attachments and defect triage as hidden, though both became core in 2.2.0 — and it now tells the agent what to do when an activated tool is still missing from its list: reach the endpoint through `qase_api` rather than conclude the capability is absent.
+
 ## [2.5.1]
 
 ### Security

@@ -88,3 +88,42 @@ describe('the server itself', () => {
     expect(SERVER_INSTRUCTIONS).toContain('qase_discover_tools');
   });
 });
+
+// A discoverable tool is missing from the client's tool list until discovery
+// activates it, and some clients build their dispatch table once at connect
+// time and never rebuild it on notifications/tools/list_changed. Naming a
+// hidden tool in text the model always reads therefore points it at something
+// its own client cannot call — issue #93, where core `qase_case_upsert`
+// recommended the hidden `qase_case_bulk_create` and the call died client-side
+// with "is not a function". Anything named in always-visible text must be core,
+// or the same sentence must say to run qase_discover_tools first.
+describe('always-visible text only names callable tools', () => {
+  let hidden: string[];
+
+  beforeAll(() => {
+    const core = new Set(toolRegistry.getTools().map((t) => t.name));
+    hidden = tools.map((t) => t.name).filter((name) => !core.has(name));
+  });
+
+  function unreachableMentions(text: string): string[] {
+    return text
+      .split(/(?<=\.)\s+/)
+      .filter((sentence) => !sentence.includes('qase_discover_tools'))
+      .flatMap((sentence) => hidden.filter((name) => sentence.includes(name)));
+  }
+
+  it('the server instructions name no hidden tool without sending the agent to discovery', async () => {
+    const { SERVER_INSTRUCTIONS } = await import('../server-instructions.js');
+
+    expect(unreachableMentions(SERVER_INSTRUCTIONS)).toEqual([]);
+  });
+
+  it('no core description names a hidden tool without sending the agent to discovery', () => {
+    const core = toolRegistry.getTools();
+    const offenders = core.flatMap((t) =>
+      unreachableMentions(t.description ?? '').map((name) => `${t.name} -> ${name}`),
+    );
+
+    expect(offenders).toEqual([]);
+  });
+});

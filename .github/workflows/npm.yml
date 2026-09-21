@@ -10,6 +10,15 @@ on:
   pull_request:
     branches:
       - main
+  # Registering a version with the MCP Registry is the one release step that can
+  # fail on its own, and it cannot be retried by re-running the release job:
+  # that job starts with `npm publish`, which refuses a version already on npm.
+  # Dispatching with a version registers it without republishing anything.
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to register with the MCP Registry, e.g. 2.6.0. It must already be published to npm and have a matching v<version> tag.'
+        required: true
 
 permissions:
   id-token: write
@@ -18,6 +27,7 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
+    if: github.event_name != 'workflow_dispatch'
     strategy:
       matrix:
         node-version: ['22', '24']
@@ -47,7 +57,7 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     needs: test
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: github.event_name != 'workflow_dispatch' && startsWith(github.ref, 'refs/tags/v')
     name: Publish to NPM
     steps:
       - uses: actions/checkout@v6
@@ -95,6 +105,72 @@ jobs:
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  registry:
+    runs-on: ubuntu-latest
+    needs: publish
+    # On a tag push this follows the npm publish it depends on. On a manual
+    # dispatch `publish` is skipped and this runs alone, which is how a version
+    # whose registration failed is retried without touching npm again.
+    if: always() && (github.event_name == 'workflow_dispatch' || needs.publish.result == 'success')
+    name: Publish to MCP Registry
+    steps:
+      - name: Resolve version
+        id: version
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION="${INPUT_VERSION#v}"
+          else
+            VERSION="${GITHUB_REF#refs/tags/v}"
+          fi
+          if [ -z "$VERSION" ]; then
+            echo "::error::Could not determine which version to register"
+            exit 1
+          fi
+          echo "VERSION=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "TAG=v$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Registering $VERSION (tag v$VERSION)"
+
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ steps.version.outputs.TAG }}
+
+      - name: Verify server.json matches the version
+        env:
+          VERSION: ${{ steps.version.outputs.VERSION }}
+        run: |
+          MANIFEST_VERSION=$(node -p "require('./server.json').version")
+          if [ "$MANIFEST_VERSION" != "$VERSION" ]; then
+            echo "::error::server.json version ($MANIFEST_VERSION) does not match $VERSION"
+            exit 1
+          fi
+
+      # The MCP Registry validates a submission by fetching the package from
+      # npm, and npm needs a moment after `npm publish` before it serves the new
+      # version — it says so itself ("your package is being processed"). Calling
+      # mcp-publisher immediately got a 404 back from npm and failed the release
+      # for 2.5.0, 2.5.1 and 2.6.0, leaving the registry three versions behind.
+      - name: Wait for npm to serve the version
+        env:
+          VERSION: ${{ steps.version.outputs.VERSION }}
+        run: |
+          URL="https://registry.npmjs.org/@qase%2Fmcp-server/${VERSION}"
+          for attempt in $(seq 1 30); do
+            STATUS=$(curl -sS -o /dev/null -w '%{http_code}' "$URL" || echo 000)
+            if [ "$STATUS" = "200" ]; then
+              echo "npm is serving ${VERSION} (attempt ${attempt})"
+              # npm is read through a CDN, so let the slower edges catch up
+              # before the registry fetches it from somewhere else.
+              sleep 15
+              exit 0
+            fi
+            echo "attempt ${attempt}: npm answered ${STATUS} for ${VERSION}, retrying in 10s"
+            sleep 10
+          done
+          echo "::error::npm did not serve @qase/mcp-server@${VERSION} within 5 minutes"
+          exit 1
 
       - name: Install mcp-publisher
         run: |

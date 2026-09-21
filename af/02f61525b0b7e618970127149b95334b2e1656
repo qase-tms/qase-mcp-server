@@ -1,0 +1,60 @@
+src/utils/registry.ts
+  s_76d6a62dd7fd1f::t_7b7a5a87fca73f 59-68,184-190,199,209-218,282
+  s_76d6a62dd7fd1f::t_f78d107e9aab78 191-193
+  s_76d6a62dd7fd1f::t_90a138342eeea8 194-195
+src/operations-v2/descriptions.test.ts
+  s_76d6a62dd7fd1f::t_0f2c663e3cdafd 91-129
+README.md
+  s_76d6a62dd7fd1f::t_3d5eeef4c0a180 31,97,103
+src/operations-v2/write/cases-bulk.test.ts
+  s_76d6a62dd7fd1f::t_cd5702264cdad4 48-51,53
+server.json
+  s_76d6a62dd7fd1f::t_11b482435d12a7 11,16
+src/smoke.test.ts
+  s_76d6a62dd7fd1f::t_cd5702264cdad4 383-388,420,422,426
+src/operations-v2/write/suites.ts
+  s_76d6a62dd7fd1f::t_3a32d64f87f699 11-18
+  s_76d6a62dd7fd1f::t_752e06fb6dfcb0 82-83
+src/operations-v2/write/runs.ts
+  s_76d6a62dd7fd1f::t_752e06fb6dfcb0 136-137
+src/operations-v2/meta/discover.ts
+  s_76d6a62dd7fd1f::t_fa69dd3941495b 86-96
+src/operations-v2/write/cases-bulk.ts
+  s_76d6a62dd7fd1f::t_752e06fb6dfcb0 77-79
+src/server.ts
+  s_76d6a62dd7fd1f::t_80c0cbbaee1fc7 232-239,243-247
+docs/tools.md
+  s_76d6a62dd7fd1f::t_6a67e55e82d667 105
+  s_76d6a62dd7fd1f::t_9c294acc2ffecd 3
+  s_76d6a62dd7fd1f::t_3397a3f0d366ae 9-10,12-14,40,45,49
+src/utils/registry.test.ts
+  s_76d6a62dd7fd1f::t_dc83971cfbbf3b 307,317,324-393,396,403
+package.json
+  s_76d6a62dd7fd1f::t_11b482435d12a7 3
+CHANGELOG.md
+  s_76d6a62dd7fd1f::t_0b5e1061481785 8-23
+docs/troubleshooting.md
+  s_76d6a62dd7fd1f::t_568485ec1161a0 180-191
+src/server-instructions.ts
+  s_76d6a62dd7fd1f::t_5e4e8a0ce473a6 14,16,18
+src/server.tool-list-changed.test.ts
+  s_76d6a62dd7fd1f::t_7a37dadb895295 1-100
+package-lock.json
+  s_76d6a62dd7fd1f::t_a6ef9a9b1772b1 3,9
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "af02f61525b0b7e618970127149b95334b2e1656",
+  "prompts": {},
+  "sessions": {
+    "s_76d6a62dd7fd1f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "e5a561fd-0208-4beb-a629-7b3fa7334fc4",
+        "model": "claude-opus-5"
+      },
+      "human_author": "Dmitrii Gridnev <dgridnev@qase.io>"
+    }
+  }
+}

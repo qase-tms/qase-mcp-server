@@ -8,8 +8,14 @@ const UpsertSchema = z.object({
   code: ProjectCodeSchema,
   id: IdSchema.optional().describe('Suite ID — if provided, updates; if omitted, creates'),
   title: z.string().min(1).max(255).describe('Suite title'),
-  description: z.string().optional(),
-  preconditions: z.string().optional(),
+  description: z
+    .string()
+    .optional()
+    .describe('What this suite groups — shown under the suite title in the tree'),
+  preconditions: z
+    .string()
+    .optional()
+    .describe('Setup every case in this suite assumes, inherited by its child suites'),
   parent_id: z.number().int().positive().optional().describe('Parent suite ID for nesting'),
 });
 
@@ -73,7 +79,8 @@ toolRegistry.register({
   schema: UpsertSchema,
   handler: upsert,
   annotations: CreateAnnotation,
-  visibility: 'discoverable',
+  // Core: a case needs a suite to live in, so this is part of the first write
+  // any project needs, not a secondary operation.
 });
 
 toolRegistry.register({

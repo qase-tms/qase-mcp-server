@@ -304,7 +304,7 @@ describe('ToolRegistry', () => {
       expect(activated).toEqual([]);
     });
 
-    it('triggers onToolsChanged callback when tools are activated', () => {
+    it('notifies a subscriber when tools are activated', () => {
       registry.register({
         name: 'hidden',
         title: 'Hidden',
@@ -314,24 +314,93 @@ describe('ToolRegistry', () => {
         visibility: 'discoverable',
       });
       const callback = jest.fn();
-      registry.onToolsChanged = callback;
+      registry.subscribeToolsChanged(callback);
 
       registry.activateTools(['hidden']);
 
       expect(callback).toHaveBeenCalledTimes(1);
     });
 
-    it('does NOT trigger onToolsChanged when no new tools activated', () => {
+    // The registry is a process-wide singleton but every HTTP session gets its
+    // own Server instance. A single callback slot meant each new session
+    // overwrote the previous one's, so only the newest session was ever told
+    // that a tool had been activated — every older session kept serving a stale
+    // tools/list and its client could not call what discovery had just switched
+    // on.
+    it('notifies every subscriber, not just the most recent one', () => {
+      registry.register({
+        name: 'hidden',
+        title: 'Hidden',
+        description: 'h',
+        schema,
+        handler,
+        visibility: 'discoverable',
+      });
+      const sessionA = jest.fn();
+      const sessionB = jest.fn();
+      registry.subscribeToolsChanged(sessionA);
+      registry.subscribeToolsChanged(sessionB);
+
+      registry.activateTools(['hidden']);
+
+      expect(sessionA).toHaveBeenCalledTimes(1);
+      expect(sessionB).toHaveBeenCalledTimes(1);
+    });
+
+    it('stops notifying a subscriber that unsubscribed', () => {
+      registry.register({
+        name: 'hidden',
+        title: 'Hidden',
+        description: 'h',
+        schema,
+        handler,
+        visibility: 'discoverable',
+      });
+      const closed = jest.fn();
+      const open = jest.fn();
+      const unsubscribe = registry.subscribeToolsChanged(closed);
+      registry.subscribeToolsChanged(open);
+
+      unsubscribe();
+      registry.activateTools(['hidden']);
+
+      expect(closed).not.toHaveBeenCalled();
+      expect(open).toHaveBeenCalledTimes(1);
+    });
+
+    // One dead session's transport throwing must not swallow the notification
+    // for every other session subscribed after it.
+    it('keeps notifying the remaining subscribers when one throws', () => {
+      registry.register({
+        name: 'hidden',
+        title: 'Hidden',
+        description: 'h',
+        schema,
+        handler,
+        visibility: 'discoverable',
+      });
+      const broken = jest.fn(() => {
+        throw new Error('transport closed');
+      });
+      const healthy = jest.fn();
+      registry.subscribeToolsChanged(broken);
+      registry.subscribeToolsChanged(healthy);
+
+      expect(() => registry.activateTools(['hidden'])).not.toThrow();
+      expect(healthy).toHaveBeenCalledTimes(1);
+    });
+
+    it('does NOT notify when no new tools activated', () => {
       registry.register({ name: 'core_tool', title: 'Core tool', description: 'c', schema, handler });
       const callback = jest.fn();
-      registry.onToolsChanged = callback;
+      registry.subscribeToolsChanged(callback);
 
       registry.activateTools(['core_tool']);
 
       expect(callback).not.toHaveBeenCalled();
     });
 
-    it('does NOT trigger onToolsChanged when callback is not set', () => {
+    it('does NOT throw when nobody is subscribed', () => {
       registry.register({
         name: 'hidden',
         title: 'Hidden',

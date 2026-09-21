@@ -133,7 +133,8 @@ toolRegistry.register({
   schema: CompleteSchema,
   handler: complete,
   annotations: UpdateAnnotation,
-  visibility: 'discoverable',
+  // Core: it closes the run loop whose other two steps — qase_run_upsert and
+  // qase_result_record — are core, and qase_ci_report's description names it.
 });
 
 toolRegistry.register({

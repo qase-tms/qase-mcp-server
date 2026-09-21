@@ -74,5 +74,7 @@ toolRegistry.register({
   schema: Schema,
   handler,
   annotations: CreateAnnotation,
-  visibility: 'discoverable',
+  // Core, not discoverable: qase_case_upsert's own description sends the agent
+  // here for anything past a single case, and a tool the always-visible text
+  // recommends has to be in the tool list the client already holds.
 });

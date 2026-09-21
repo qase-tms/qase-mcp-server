@@ -56,8 +56,16 @@ export class ToolRegistry {
   private activeTools: Set<string> = new Set();
   private toolVisibility: Map<string, 'core' | 'discoverable'> = new Map();
 
-  /** Callback invoked when the active tool set changes (wired to server.sendToolListChanged) */
-  onToolsChanged?: () => void;
+  /**
+   * Listeners invoked when the active tool set changes (each wired to one
+   * Server's sendToolListChanged).
+   *
+   * A set rather than a single slot because the registry is a process-wide
+   * singleton while every HTTP session gets its own Server: with one slot each
+   * new session overwrote the previous one's callback, so only the newest
+   * session ever heard that discovery had activated a tool.
+   */
+  private toolsChangedListeners: Set<() => void> = new Set();
 
   /**
    * Register a new tool with the registry
@@ -174,9 +182,21 @@ export class ToolRegistry {
   }
 
   /**
+   * Subscribe to active-tool-set changes. Returns an unsubscribe function the
+   * caller must invoke when its session ends, or the listener — and the Server
+   * it closes over — outlives the connection.
+   */
+  subscribeToolsChanged(listener: () => void): () => void {
+    this.toolsChangedListeners.add(listener);
+    return () => {
+      this.toolsChangedListeners.delete(listener);
+    };
+  }
+
+  /**
    * Activate tools by name, making them visible in getTools().
    * Returns the list of newly activated tool names.
-   * Triggers onToolsChanged callback if any tools were activated.
+   * Notifies every subscriber if any tools were activated.
    */
   activateTools(names: string[]): string[] {
     const newlyActivated: string[] = [];
@@ -186,8 +206,16 @@ export class ToolRegistry {
         newlyActivated.push(name);
       }
     }
-    if (newlyActivated.length > 0 && this.onToolsChanged) {
-      this.onToolsChanged();
+    if (newlyActivated.length > 0) {
+      for (const listener of this.toolsChangedListeners) {
+        // One dead session's transport must not swallow the notification for
+        // every session subscribed after it.
+        try {
+          listener();
+        } catch (err) {
+          console.error('[Registry] Tool-list-changed listener failed:', err);
+        }
+      }
     }
     return newlyActivated;
   }
@@ -251,6 +279,7 @@ export class ToolRegistry {
     this.handlers.clear();
     this.activeTools.clear();
     this.toolVisibility.clear();
+    this.toolsChangedListeners.clear();
   }
 }
 

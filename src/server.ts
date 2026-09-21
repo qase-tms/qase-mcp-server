@@ -229,11 +229,22 @@ export function createServer(): Server {
   });
 
   // Wire tool discovery notifications: when tools are activated via qase_discover_tools,
-  // notify the client so it re-queries the tool list
-  toolRegistry.onToolsChanged = () => {
+  // notify the client so it re-queries the tool list.
+  //
+  // Subscribe rather than assign: the registry is a process-wide singleton but
+  // createServer runs once per session on the HTTP transports, and a single
+  // callback slot meant each new session silently replaced the previous one's
+  // — every older session then went unnotified and its client kept calling a
+  // tools/list it had cached before discovery ran.
+  const unsubscribe = toolRegistry.subscribeToolsChanged(() => {
     server.sendToolListChanged().catch((err) => {
       console.error('[Server] Failed to send tool list changed notification:', err);
     });
+  });
+  const closePrevious = server.onclose?.bind(server);
+  server.onclose = () => {
+    unsubscribe();
+    closePrevious?.();
   };
 
   return server;

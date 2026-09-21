@@ -1,15 +1,17 @@
 # Tool Reference
 
-The Qase MCP Server exposes **37 tools** across 6 groups: Read (2), QQL (2), Write (28, including 5 review tools), Composite (3), Escape hatch (1), and Meta (1).
+The Qase MCP Server exposes **41 tools** across 6 groups: Read (2), QQL (2), Write (32, including 5 review tools), Composite (3), Escape hatch (1), and Meta (1).
 
 ## Discovery model
 
 To keep context-token usage low, tools are split into two visibility tiers:
 
-- **`core`** — always listed to the MCP client, no activation needed (14 tools).
-- **`discoverable`** — hidden by default; the LLM finds and activates them on demand via `qase_discover_tools`, which searches tool names/descriptions and activates matches for the rest of the session (23 tools, mostly deletes, review operations, and secondary write operations).
+- **`core`** — always listed to the MCP client, no activation needed (17 tools).
+- **`discoverable`** — hidden by default; the LLM finds and activates them on demand via `qase_discover_tools`, which searches tool names/descriptions and activates matches for the rest of the session (24 tools, mostly deletes, review operations, and secondary write operations).
 
-If a tool you need isn't showing up in your client's tool list, call `qase_discover_tools` with a query (e.g. `"delete"`, `"milestone"`, `"attachment"`) to activate it first.
+If a tool you need isn't showing up in your client's tool list, call `qase_discover_tools` with a query (e.g. `"delete"`, `"milestone"`, `"plan"`) to activate it first.
+
+Activation makes the tool callable on the server immediately and the server announces it with `notifications/tools/list_changed`. A client that does not re-read `tools/list` on that notification will not offer the tool no matter how often discovery runs — it typically fails with something like `tools.<name> is not a function`. Nothing on the server side is broken there: use [`qase_api`](#escape-hatch) to reach the same endpoint, or ask for a client that supports the notification. Tools a core tool's own description recommends are never hidden, so this never blocks the main workflows.
 
 Every tool's schema uses "label or numeric ID" strings for Qase's configurable enum fields (`priority`, `severity`, `type`, `layer`, `behavior`, `status`, `automation` on cases); the server resolves labels against the workspace's actual system-field configuration at call time. See [Case enum values](#case-enum-values) below.
 
@@ -35,16 +37,16 @@ Every tool's schema uses "label or numeric ID" strings for Qase's configurable e
 | Tool | Description | Key params | Visibility |
 | --- | --- | --- | --- |
 | `qase_case_upsert` | Create or update a test case. If `id` is provided, updates the existing case; if omitted, creates a new one. Enum fields (priority, severity, type, etc.) accept both labels ("high", "blocker") and numeric IDs — the server normalizes automatically. | `code`, `id` (optional), `title` (1-255 chars), `description`, `preconditions`, `postconditions`, `severity`, `priority`, `type`, `layer`, `behavior`, `automation`, `status`, `is_flaky` (all label-or-ID strings; `is_flaky` is 0=No / 1=Yes and also accepts a boolean), `suite_id`, `milestone_id`, `steps` (array, supports nesting; a step may reference a shared step via `shared` — the shared step hash — instead of `action`), `steps_type` (enum: classic, gherkin), `tags`, `attachments`, `custom_field` | core |
-| `qase_case_bulk_create` | Create up to 100 test cases in a single request. Use instead of calling `qase_case_upsert` repeatedly when importing or generating several cases at once. Enum fields accept labels or numeric IDs. Creates only — use `qase_case_upsert` with an `id` to update. Returns the IDs of the created cases in submission order. | `code`, `cases` (array, 1-100 — same fields as `qase_case_upsert` without `id`, including `shared` step references) | discoverable |
+| `qase_case_bulk_create` | Create up to 100 test cases in a single request. Use instead of calling `qase_case_upsert` repeatedly when importing or generating several cases at once. Enum fields accept labels or numeric IDs. Creates only — use `qase_case_upsert` with an `id` to update. Returns the IDs of the created cases in submission order. | `code`, `cases` (array, 1-100 — same fields as `qase_case_upsert` without `id`, including `shared` step references) | core |
 | `qase_case_delete` | Delete a test case by project code and case ID. | `code`, `id` | discoverable |
 | `qase_defect_upsert` | Create or update a defect. If `id` is provided, updates (including status changes and resolve). If omitted, creates a new defect. Set `status: "resolved"` to resolve an existing defect. | `code`, `id` (optional), `title` (1-255 chars), `actual_result`, `severity` (enum, see [below](#case-enum-values)), `status` (enum: open, in_progress, resolved, invalid), `tags`, `attachments`, `custom_field` | core |
 | `qase_defect_delete` | Delete a defect by project code and defect ID. | `code`, `id` | discoverable |
 | `qase_run_upsert` | Create or update a test run. If `id` is provided, updates; if omitted, creates. | `code`, `id` (optional), `title` (1-255 chars), `description`, `environment_id`, `milestone_id`, `plan_id`, `cases` (case ID array), `tags`, `is_autotest`, `start_time`/`end_time` (RFC3339), `custom_field` | core |
-| `qase_run_complete` | Mark a test run as complete. | `code`, `id` | discoverable |
+| `qase_run_complete` | Mark a test run as complete. | `code`, `id` | core |
 | `qase_run_delete` | Delete a test run. | `code`, `id` | discoverable |
 | `qase_result_record` | Record one or more test results into a run. A single entry uses the single-result API, multiple entries use bulk. Each result must include a status; `case_id` is recommended. **The bulk endpoint takes at most 200 results per request**, so a longer list is refused before anything is written — split it across consecutive calls. It is refused rather than split automatically because results are append-only: a batch that failed half way could not be unwound, and the natural retry would record the first 200 a second time and leave the run with a wrong pass rate. Use `qase_ci_report` for a finished run, which does split for you. | `code`, `run_id`, `results` (array, 1-200) — each result: `case_id` (optional), `status` (enum: passed, failed, blocked, skipped, invalid), `comment`, `stacktrace`, `time_ms`, `defect` (bool), `steps` (array with `position`, `status`, `comment`, `attachments`), `attachments`, `custom_field` | core |
 | `qase_result_delete` | Delete a test result by run ID and result hash. | `code`, `run_id`, `hash` | discoverable |
-| `qase_suite_upsert` | Create or update a test suite. If `id` is provided, updates the existing suite; if omitted, creates a new one. | `code`, `id` (optional), `title` (1-255 chars), `description`, `preconditions`, `parent_id` (for nesting) | discoverable |
+| `qase_suite_upsert` | Create or update a test suite. If `id` is provided, updates the existing suite; if omitted, creates a new one. | `code`, `id` (optional), `title` (1-255 chars), `description`, `preconditions`, `parent_id` (for nesting) | core |
 | `qase_suite_delete` | Delete a test suite. If `delete_cases` is true, removes all cases in the suite; if false or omitted, cases are moved to the parent suite. | `code`, `id`, `delete_cases` (optional bool) | discoverable |
 | `qase_milestone_upsert` | Create or update a milestone. If `id` is provided, updates the existing milestone; if omitted, creates a new one. | `code`, `id` (optional), `title` (1-255 chars), `description`, `status` (enum: active, completed), `due_date` (Unix timestamp) | discoverable |
 | `qase_milestone_delete` | Delete a milestone by project code and milestone ID. | `code`, `id` | discoverable |
@@ -100,7 +102,7 @@ Composite tools chain several underlying operations into one call, so an agent a
 
 | Tool | Description | Key params | Visibility |
 | --- | --- | --- | --- |
-| `qase_discover_tools` | Search for and activate additional Qase tools. By default, only core tools are visible. Use this to find tools for specific needs: deletions, milestone management, attachments, etc. Found tools are automatically activated and become available for use. | `query` (optional, matches tool name/description), `category` (optional enum: read, write, delete, composite, all), `activate` (optional bool, default true) | core |
+| `qase_discover_tools` | Search for and activate additional Qase tools. By default, only core tools are visible. Use this to find tools for specific needs: deletions, test plans, milestone management, case reviews, etc. Found tools are automatically activated and become available for use — the server announces the change with `notifications/tools/list_changed`, and clients that ignore that notification will not offer the tool until the session is reconnected. | `query` (optional, matches tool name/description), `category` (optional enum: read, write, delete, composite, all), `activate` (optional bool, default true) | core |
 
 ## Case enum values
 

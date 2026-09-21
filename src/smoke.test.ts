@@ -380,6 +380,12 @@ describe('Tool Smoke Tests', () => {
       // Core because the `attachments` field on the tools above is unusable
       // without it, and no other tool can send multipart/form-data.
       'qase_attachment_upload',
+      // Core because the always-visible text — the server instructions and the
+      // core descriptions — sends the agent to each of these by name, and a
+      // tool a client has not listed is a tool it cannot dispatch.
+      'qase_case_bulk_create',
+      'qase_suite_upsert',
+      'qase_run_complete',
     ];
     for (const name of expectedCore) {
       expect(coreTools).toContain(name);
@@ -389,9 +395,7 @@ describe('Tool Smoke Tests', () => {
   it('discoverable tools are NOT in getTools() by default', () => {
     const coreTools = toolRegistry.getTools().map((t) => t.name);
     const discoverableTools = [
-      'qase_case_bulk_create',
       'qase_case_delete',
-      'qase_suite_upsert',
       'qase_suite_delete',
       'qase_milestone_upsert',
       'qase_milestone_delete',
@@ -401,7 +405,6 @@ describe('Tool Smoke Tests', () => {
       'qase_shared_step_delete',
       'qase_environment_upsert',
       'qase_environment_delete',
-      'qase_run_complete',
       'qase_run_delete',
       'qase_result_delete',
       'qase_defect_delete',
@@ -414,13 +417,13 @@ describe('Tool Smoke Tests', () => {
   });
 
   it('discoverable tools become visible after activation', () => {
-    const activated = toolRegistry.activateTools(['qase_case_delete', 'qase_suite_upsert']);
+    const activated = toolRegistry.activateTools(['qase_case_delete', 'qase_milestone_upsert']);
     expect(activated).toContain('qase_case_delete');
-    expect(activated).toContain('qase_suite_upsert');
+    expect(activated).toContain('qase_milestone_upsert');
 
     const coreTools = toolRegistry.getTools().map((t) => t.name);
     expect(coreTools).toContain('qase_case_delete');
-    expect(coreTools).toContain('qase_suite_upsert');
+    expect(coreTools).toContain('qase_milestone_upsert');
   });
 
   it('no v1 tool names are present', () => {

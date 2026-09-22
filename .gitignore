@@ -46,7 +46,8 @@ auth.json
 src/version.ts
 
 # Local scripts (smoke tests, etc.)
-scripts/
+scripts/*
+!scripts/protocol-dump.mjs
 
 # Internal planning artifacts (not for public repo)
 docs/adr/

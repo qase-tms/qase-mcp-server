@@ -1,0 +1,25 @@
+package.json
+  s_fef725799cacdb::t_11c86f9e0a38d7 84-85
+.npmignore
+  s_fef725799cacdb::t_2933a4e6051ccf 26-29
+CHANGELOG.md
+  s_fef725799cacdb::t_6ff78be89e86ce 18-19
+package-lock.json
+  s_fef725799cacdb::t_27ff4d06873ee6 29-30,1319,1338,2968,3536,3549,4572,6150,6805,6818,7571
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "4cc23e8beba63f21cebeb79649db3c137e147bd7",
+  "prompts": {},
+  "sessions": {
+    "s_fef725799cacdb": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b943b4b3-61be-47d6-8bb1-ad338faf9ede",
+        "model": "claude-opus-5"
+      },
+      "human_author": "Dmitrii Gridnev <dgridnev@qase.io>"
+    }
+  }
+}

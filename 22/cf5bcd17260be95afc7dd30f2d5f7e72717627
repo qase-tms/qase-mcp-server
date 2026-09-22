@@ -1,0 +1,65 @@
+src/spec-compliance.test.ts
+  s_fef725799cacdb::t_14016cf6966494 11
+src/transports/sse.ts
+  s_fef725799cacdb::t_48ab1f2cc87ff9 4-5
+src/operations-v2/descriptions.test.ts
+  s_fef725799cacdb::t_14016cf6966494 17
+src/transports/sse.test.ts
+  s_fef725799cacdb::t_14016cf6966494 19,61
+src/server.ts
+  s_fef725799cacdb::t_48ab1f2cc87ff9 9
+  s_fef725799cacdb::t_14016cf6966494 38,80,90,100,112,138
+package.json
+  s_fef725799cacdb::t_8ad067686c6cfc 71-73
+  s_fef725799cacdb::t_e1c6363d5b78a8 70
+src/transports/streamableHttp.auth.test.ts
+  s_fef725799cacdb::t_14016cf6966494 12
+src/index.ts
+  s_fef725799cacdb::t_48ab1f2cc87ff9 15
+src/client/integration-headers.test.ts
+  s_fef725799cacdb::t_14016cf6966494 15
+src/transports/streamableHttp.integration-marker.test.ts
+  s_fef725799cacdb::t_14016cf6966494 17,26,29
+src/transports/streamableHttp.malformed-json.test.ts
+  s_fef725799cacdb::t_14016cf6966494 12
+src/auth/proxy-provider.ts
+  s_fef725799cacdb::t_14016cf6966494 3
+  s_fef725799cacdb::t_48ab1f2cc87ff9 1-2
+src/utils/registry.ts
+  s_fef725799cacdb::t_48ab1f2cc87ff9 11
+src/transports/streamableHttp.ts
+  s_fef725799cacdb::t_14016cf6966494 188,295,310
+  s_fef725799cacdb::t_48ab1f2cc87ff9 2-4
+src/auth/proxy-provider.test.ts
+  s_fef725799cacdb::t_14016cf6966494 2-3
+src/client/client-metrics.test.ts
+  s_fef725799cacdb::t_14016cf6966494 4
+src/transports/streamableHttp.elicitation.test.ts
+  s_fef725799cacdb::t_14016cf6966494 16,54
+src/types/index.ts
+  s_fef725799cacdb::t_48ab1f2cc87ff9 9
+src/utils/server-context.ts
+  s_fef725799cacdb::t_48ab1f2cc87ff9 12
+src/transports/streamableHttp.oauth.test.ts
+  s_fef725799cacdb::t_14016cf6966494 5
+src/auth/jwks-verifier.ts
+  s_fef725799cacdb::t_48ab1f2cc87ff9 2
+package-lock.json
+  s_fef725799cacdb::t_5e68dd4154f63f 12-15,771-773,776,1314-1317,1320,1326,1329-1371,1374-1375,1378,1383-1386,1389-1415,1417-1427,1429,1432-1439,3541-3543,3643-3645,3690,4222-4224,4226,4414-4416
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "22cf5bcd17260be95afc7dd30f2d5f7e72717627",
+  "prompts": {},
+  "sessions": {
+    "s_fef725799cacdb": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b943b4b3-61be-47d6-8bb1-ad338faf9ede",
+        "model": "claude-opus-5"
+      },
+      "human_author": "Dmitrii Gridnev <dgridnev@qase.io>"
+    }
+  }
+}

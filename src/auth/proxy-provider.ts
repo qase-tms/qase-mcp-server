@@ -1,7 +1,7 @@
+// src/auth/proxy-provider.ts
 import type { OAuthClientInformationFull, FetchLike } from '@modelcontextprotocol/server';
 import { ProxyOAuthServerProvider } from '@modelcontextprotocol/server-legacy/auth';
 
-// src/auth/proxy-provider.ts
 import type { OAuthConfig } from './oauth-config.js';
 import type { JwksVerifier } from './jwks-verifier.js';
 import { authorizeRedirectUriStorage } from './client-context.js';

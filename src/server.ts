@@ -107,7 +107,6 @@ export function createServer(): Server {
    * Handler: Execute a tool
    *
    * Executes the specified tool with provided arguments.
-   * Arguments are validated against the tool's schema before execution.
    */
   server.setRequestHandler('tools/call', async (request, ctx) => {
     return serverStorage.run(server, async () => {
@@ -127,7 +126,7 @@ export function createServer(): Server {
         }
 
         // Elicitation: confirm destructive actions before execution. The gate is
-        // fail-closed — an unconfirmed deletion does not happen. extra.requestId
+        // fail-closed — an unconfirmed deletion does not happen. ctx.mcpReq.id
         // is what puts the prompt on the stream of this call, where the client
         // is listening.
         const toolDef = toolRegistry.getTool(name);
@@ -168,7 +167,7 @@ export function createServer(): Server {
           return {
             content: [
               {
-                type: 'text',
+                type: 'text' as const,
                 text: JSON.stringify(compacted),
               },
             ],
@@ -183,7 +182,7 @@ export function createServer(): Server {
             return {
               content: [
                 {
-                  type: 'text',
+                  type: 'text' as const,
                   text: error.toUserMessage(),
                 },
               ],
@@ -200,7 +199,7 @@ export function createServer(): Server {
           return {
             content: [
               {
-                type: 'text',
+                type: 'text' as const,
                 text: errorMessage,
               },
             ],

@@ -1,7 +1,7 @@
 import express, { Express } from 'express';
-import { Server } from '@modelcontextprotocol/sdk/server/index.js';
-import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
-import { mcpAuthRouter } from '@modelcontextprotocol/sdk/server/auth/router.js';
+import { mcpAuthRouter } from '@modelcontextprotocol/server-legacy/auth';
+import { NodeStreamableHTTPServerTransport } from '@modelcontextprotocol/node';
+import { Server } from '@modelcontextprotocol/server';
 import { randomUUID } from 'crypto';
 import { requestTokenStorage } from '../utils/auth-context.js';
 import { integrationStorage } from '../utils/integration-context.js';
@@ -185,7 +185,7 @@ export function setupStreamableHttpTransport(
       ? Number(ttlMinutesRaw)
       : 1440; // 24 hours
   const SESSION_TTL_MS = ttlMinutes * 60 * 1000;
-  const sessions = new Map<string, StreamableHTTPServerTransport>();
+  const sessions = new Map<string, NodeStreamableHTTPServerTransport>();
   const sessionLastSeen = new Map<string, number>();
   // Integration marker captured at session creation (header or ?integration=),
   // so later requests on the session need not repeat it. Evicted with the session.
@@ -292,7 +292,7 @@ export function setupStreamableHttpTransport(
     });
 
     const sessionId = req.headers['mcp-session-id'] as string | undefined;
-    let transport: StreamableHTTPServerTransport;
+    let transport: NodeStreamableHTTPServerTransport;
 
     // Integration marker on this request, if it carried one.
     const headerIntegration = readIntegrationMarker(req.headers['x-qase-integration']);
@@ -307,7 +307,7 @@ export function setupStreamableHttpTransport(
     } else if (isInitializeRequest(req.body)) {
       // This is an initialize request - create new session
       const newSessionId = randomUUID();
-      transport = new StreamableHTTPServerTransport({
+      transport = new NodeStreamableHTTPServerTransport({
         sessionIdGenerator: () => newSessionId,
         // Responses stream as SSE (the spec default). In JSON mode the pending
         // HTTP response cannot carry a server→client request, so a destructive

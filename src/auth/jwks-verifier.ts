@@ -1,6 +1,6 @@
 // src/auth/jwks-verifier.ts
+import type { AuthInfo } from '@modelcontextprotocol/server';
 import { createRemoteJWKSet, jwtVerify, type JWTVerifyGetKey } from 'jose';
-import type { AuthInfo } from '@modelcontextprotocol/sdk/server/auth/types.js';
 import type { OAuthConfig } from './oauth-config.js';
 
 export interface JwksVerifier {

@@ -9,8 +9,7 @@
  */
 
 import { AsyncLocalStorage } from 'async_hooks';
-import type { Server } from '@modelcontextprotocol/sdk/server/index.js';
-import type { RequestId } from '@modelcontextprotocol/sdk/types.js';
+import type { Server, RequestId } from '@modelcontextprotocol/server';
 
 /**
  * Per-request server storage.

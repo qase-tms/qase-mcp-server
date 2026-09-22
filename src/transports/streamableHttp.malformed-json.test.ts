@@ -9,7 +9,7 @@
 
 import { describe, it, expect, beforeAll, afterAll } from '@jest/globals';
 import request from 'supertest';
-import { Server } from '@modelcontextprotocol/sdk/server/index.js';
+import { Server } from "@modelcontextprotocol/server";
 import { setupStreamableHttpTransport } from './streamableHttp.js';
 import { setTestEnv } from '../utils/test-helpers.js';
 

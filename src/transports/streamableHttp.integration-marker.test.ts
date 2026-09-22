@@ -14,8 +14,7 @@
 import { describe, it, expect, beforeAll, afterAll, afterEach } from '@jest/globals';
 import type http from 'node:http';
 import request from 'supertest';
-import { Server } from '@modelcontextprotocol/sdk/server/index.js';
-import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
+import { Server } from "@modelcontextprotocol/server";
 import { getIntegration } from '../utils/integration-context.js';
 
 process.env.QASE_OAUTH_ENABLED = 'false';
@@ -24,10 +23,10 @@ let app: ReturnType<typeof import('./streamableHttp.js').setupStreamableHttpTran
 
 function makeServer(): Server {
   const server = new Server({ name: 'test', version: '0.0.0' }, { capabilities: { tools: {} } });
-  server.setRequestHandler(ListToolsRequestSchema, async () => ({
+  server.setRequestHandler('tools/list', async () => ({
     tools: [{ name: 'whoami', description: 'reports the integration marker', inputSchema: { type: 'object' } }],
   }));
-  server.setRequestHandler(CallToolRequestSchema, async () => ({
+  server.setRequestHandler('tools/call', async () => ({
     content: [{ type: 'text', text: getIntegration() ?? 'none' }],
   }));
   return server;

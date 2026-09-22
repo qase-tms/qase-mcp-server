@@ -8,8 +8,7 @@
  */
 
 import { describe, it, expect, beforeAll, afterAll } from '@jest/globals';
-import { Client } from '@modelcontextprotocol/sdk/client/index.js';
-import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
+import { Client, InMemoryTransport } from "@modelcontextprotocol/client";
 import { setTestEnv } from './utils/test-helpers.js';
 
 setTestEnv();

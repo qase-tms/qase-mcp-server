@@ -6,15 +6,7 @@
  * transport on import.
  */
 
-import { Server } from '@modelcontextprotocol/sdk/server/index.js';
-import {
-  CallToolRequestSchema,
-  ListToolsRequestSchema,
-  ListPromptsRequestSchema,
-  GetPromptRequestSchema,
-  ErrorCode,
-  McpError,
-} from '@modelcontextprotocol/sdk/types.js';
+import { Server, ProtocolError, ProtocolErrorCode } from '@modelcontextprotocol/server';
 import { toolRegistry } from './utils/registry.js';
 import { formatApiError, ToolExecutionError } from './utils/errors.js';
 import { compactResponse } from './utils/response-shape.js';
@@ -43,7 +35,7 @@ import './operations-v2/index.js';
  */
 function rejectUnknownCursor(cursor: unknown): void {
   if (cursor === undefined) return;
-  throw new McpError(ErrorCode.InvalidParams, 'Unknown pagination cursor');
+  throw new ProtocolError(ProtocolErrorCode.InvalidParams, 'Unknown pagination cursor');
 }
 
 /**
@@ -85,7 +77,7 @@ export function createServer(): Server {
    * Returns all tools registered in the tool registry.
    * Called when the MCP client wants to discover available tools.
    */
-  server.setRequestHandler(ListToolsRequestSchema, async (request) => {
+  server.setRequestHandler('tools/list', async (request) => {
     rejectUnknownCursor(request.params?.cursor);
     const tools = toolRegistry.getTools();
     console.error(`[Server] Listing ${tools.length} tools`);
@@ -95,7 +87,7 @@ export function createServer(): Server {
   /**
    * Handler: List available prompts (workflow templates)
    */
-  server.setRequestHandler(ListPromptsRequestSchema, async (request) => {
+  server.setRequestHandler('prompts/list', async (request) => {
     rejectUnknownCursor(request.params?.cursor);
     const prompts = listPrompts();
     console.error(`[Server] Listing ${prompts.length} prompts`);
@@ -105,7 +97,7 @@ export function createServer(): Server {
   /**
    * Handler: Get a specific prompt with arguments
    */
-  server.setRequestHandler(GetPromptRequestSchema, async (request) => {
+  server.setRequestHandler('prompts/get', async (request) => {
     const { name, arguments: args } = request.params;
     console.error(`[Server] Getting prompt: ${name}`);
     return getPrompt(name, args);
@@ -117,7 +109,7 @@ export function createServer(): Server {
    * Executes the specified tool with provided arguments.
    * Arguments are validated against the tool's schema before execution.
    */
-  server.setRequestHandler(CallToolRequestSchema, async (request, extra) => {
+  server.setRequestHandler('tools/call', async (request, ctx) => {
     return serverStorage.run(server, async () => {
       const { name, arguments: rawArgs } = request.params;
       // The two hidden attribution arguments never reach a tool handler — see
@@ -143,7 +135,7 @@ export function createServer(): Server {
           const confirmation = await confirmDestructiveAction(
             name,
             (args as Record<string, unknown>) || {},
-            extra.requestId,
+            ctx.mcpReq.id,
           );
           if (!confirmation.allowed) {
             console.error(`[Server] Refused destructive tool '${name}': ${confirmation.reason}`);

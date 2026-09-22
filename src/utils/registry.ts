@@ -8,8 +8,7 @@
  * - Manage tool lifecycle
  * - Support tool discovery with core/discoverable visibility
  */
-
-import { Tool, ToolAnnotations } from '@modelcontextprotocol/sdk/types.js';
+import { Tool, ToolAnnotations } from '@modelcontextprotocol/server';
 import { z } from 'zod';
 import { zodToJsonSchema } from 'zod-to-json-schema';
 

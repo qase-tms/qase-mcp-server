@@ -6,8 +6,7 @@
  * - API response types
  * - Re-exports from external libraries
  */
-
-import { Tool } from '@modelcontextprotocol/sdk/types.js';
+import { Tool } from '@modelcontextprotocol/server';
 import { z } from 'zod';
 
 /**

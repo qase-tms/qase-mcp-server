@@ -13,9 +13,7 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach, jest } from '@jest/globals';
 import type http from 'node:http';
 import type { AddressInfo } from 'node:net';
-import { Client } from '@modelcontextprotocol/sdk/client/index.js';
-import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
-import { ElicitRequestSchema } from '@modelcontextprotocol/sdk/types.js';
+import { Client, StreamableHTTPClientTransport } from "@modelcontextprotocol/client";
 import { setTestEnv } from '../utils/test-helpers.js';
 
 setTestEnv();
@@ -53,7 +51,7 @@ async function connect(
   );
 
   if (onElicit) {
-    client.setRequestHandler(ElicitRequestSchema, async (request) => {
+    client.setRequestHandler('elicitation/create', async (request) => {
       const answer = onElicit(
         request.params.message,
         ((request.params as { requestedSchema?: { properties?: Record<string, unknown> } })

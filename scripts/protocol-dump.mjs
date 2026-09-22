@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-// Снимает стабильный снимок того, что сервер показывает клиенту: JSON-RPC
-// поверхности и OAuth-документов. Используется до и после переезда на SDK v2 —
-// дифф двух прогонов и есть критерий приёмки.
+// Captures a stable snapshot of everything the server shows a client: the JSON-RPC
+// surfaces and the OAuth documents. Run it before and after an SDK migration — the
+// diff between the two runs is the acceptance criterion.
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -20,7 +20,7 @@ const ACCEPT = 'application/json, text/event-stream';
 const TOKEN = process.env.DUMP_TOKEN || 'dummy';
 const AUTH = { authorization: `Bearer ${TOKEN}` };
 
-/** Ответ транспорта приходит либо JSON, либо SSE — вынимаем полезную нагрузку из обоих. */
+/** The transport answers with either JSON or SSE; pull the payload out of both. */
 async function readBody(res) {
   const text = await res.text();
   const ct = res.headers.get('content-type') || '';
@@ -46,7 +46,7 @@ async function readBody(res) {
   return payloads.length === 1 ? payloads[0] : payloads;
 }
 
-/** Заголовки, которые должны совпасть; изменчивые (дата, длина, id сессии) выброшены. */
+/** Headers that must match; the variable ones (date, length, session id) are dropped. */
 function stableHeaders(res) {
   const keep = ['content-type', 'www-authenticate', 'access-control-allow-origin', 'mcp-protocol-version'];
   const out = {};
@@ -109,7 +109,7 @@ const INIT = (version) => ({
 });
 
 async function dumpProtocol() {
-  // 1. initialize на текущей версии — и id сессии для последующих вызовов.
+  // 1. initialize on the current version — and the session id the later calls need.
   const initRes = await fetch(MCP, {
     method: 'POST',
     headers: { 'content-type': 'application/json', accept: ACCEPT, ...AUTH },
@@ -122,10 +122,10 @@ async function dumpProtocol() {
     body: await readBody(initRes),
   });
 
-  // 2. initialize с новой спекой — фиксируем, чем отвечает сервер на 2026-07-28.
+  // 2. initialize on the newer spec — records what the server answers to 2026-07-28.
   save('initialize-2026-07-28', await rpc(INIT('2026-07-28')));
 
-  // 3. Каталоги. tools/list — до и после активации скрытых инструментов.
+  // 3. Catalogs. tools/list before and after the hidden tools are activated.
   save('tools-list-before-discover', await rpc({ jsonrpc: '2.0', id: 2, method: 'tools/list' }, { sessionId }));
   save(
     'discover-call',
@@ -142,7 +142,7 @@ async function dumpProtocol() {
   save('tools-list-after-discover', await rpc({ jsonrpc: '2.0', id: 4, method: 'tools/list' }, { sessionId }));
   save('prompts-list', await rpc({ jsonrpc: '2.0', id: 5, method: 'prompts/list' }, { sessionId }));
 
-  // 4. Ошибки — форма отказа важна не меньше, чем форма успеха.
+  // 4. Errors — the shape of a refusal is as much a contract as the shape of a result.
   save(
     'error-unknown-cursor',
     await rpc({ jsonrpc: '2.0', id: 6, method: 'tools/list', params: { cursor: 'nope' } }, { sessionId }),
@@ -169,8 +169,8 @@ async function dumpOAuth() {
     save(name, { status: res.status, headers: stableHeaders(res), body: await readBody(res) });
   }
 
-  // 401-челлендж: заголовок WWW-Authenticate — то, по чему клиент находит AS.
-  // Здесь токен НЕ шлётся намеренно: проверяется именно отказ.
+  // The 401 challenge: its WWW-Authenticate header is how a client discovers the AS.
+  // No token is sent here on purpose — the refusal itself is what is under test.
   const unauth = await fetch(MCP, {
     method: 'POST',
     headers: { 'content-type': 'application/json', accept: ACCEPT },
@@ -182,7 +182,7 @@ async function dumpOAuth() {
     body: await readBody(unauth),
   });
 
-  // DCR: санитайзер обязан переписать client_secret_post в none.
+  // DCR: the sanitiser must rewrite client_secret_post to none.
   const reg = await fetch(`${baseUrl}/register`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },

@@ -57,6 +57,26 @@ function stableHeaders(res) {
   return out;
 }
 
+// DCR responses carry per-registration values (fresh client_id, timestamps, secrets)
+// that differ on every successful run even though nothing observable changed. Mask
+// them so the dump stays diffable while still showing whether each field is present.
+function stableDcrBody(body) {
+  if (typeof body !== 'object' || body === null || Array.isArray(body)) return body;
+  const volatile = [
+    'client_id',
+    'client_id_issued_at',
+    'client_secret',
+    'client_secret_expires_at',
+    'registration_access_token',
+    'registration_client_uri',
+  ];
+  const out = { ...body };
+  for (const k of volatile) {
+    if (k in out) out[k] = '<volatile>';
+  }
+  return out;
+}
+
 function save(name, data) {
   writeFileSync(join(outDir, `${name}.json`), JSON.stringify(data, null, 2) + '\n');
   console.log(`wrote ${name}.json`);
@@ -174,7 +194,7 @@ async function dumpOAuth() {
       response_types: ['code'],
     }),
   });
-  save('dcr-register', { status: reg.status, headers: stableHeaders(reg), body: await readBody(reg) });
+  save('dcr-register', { status: reg.status, headers: stableHeaders(reg), body: stableDcrBody(await readBody(reg)) });
 }
 
 const mode = process.env.DUMP_MODE || 'protocol';

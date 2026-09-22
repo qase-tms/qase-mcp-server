@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **The authorization server metadata document gained one field.** `/.well-known/oauth-authorization-server` now advertises `authorization_response_iss_parameter_supported: false`. The SDK adds this claim in v2 and the OAuth proxy sets it to `false` on purpose: the proxy forwards the browser to Qase's own authorization server, which issues the callback, so the proxy cannot add an `iss` of its own and does not claim to. Clients that follow RFC 9207 read this as "expect no `iss`", which is what actually happens.
 
+- **`npm install` now prints a deprecation warning for `@modelcontextprotocol/server-legacy`.** That package is where the SSE transport and the OAuth proxy live, and upstream ships it flagged as deprecated on purpose: it is a frozen copy meant only to ease migration, and upstream's stated intent is that new deployments use Streamable HTTP from `@modelcontextprotocol/server` and a dedicated authorization server instead. The warning is upstream signaling that intent, not a sign that this release is broken — the SSE transport and the OAuth proxy both keep working exactly as before, and no removal date or migration timeline has been set.
+
 ## [2.6.0]
 
 ### Fixed

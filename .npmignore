@@ -23,6 +23,10 @@ EXECUTION_GUIDE.md
 examples/
 CLAUDE.md
 CONTRIBUTING.md
+scripts/
+docs/superpowers/
+.planning/
+.superpowers/
 
 # Git and CI/CD
 .git/

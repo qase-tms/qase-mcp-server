@@ -1,0 +1,20 @@
+scripts/protocol-dump.mjs
+  s_fef725799cacdb::t_9a185d9d80d443 197
+  s_fef725799cacdb::t_a0bce5b2a1a263 60-79
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "553957bfe8fd140b6a1cde5fe1233ec3a544e6d5",
+  "prompts": {},
+  "sessions": {
+    "s_fef725799cacdb": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b943b4b3-61be-47d6-8bb1-ad338faf9ede",
+        "model": "claude-opus-5"
+      },
+      "human_author": "Dmitrii Gridnev <dgridnev@qase.io>"
+    }
+  }
+}

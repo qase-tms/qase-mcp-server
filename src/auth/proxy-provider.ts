@@ -1,7 +1,7 @@
 // src/auth/proxy-provider.ts
-import { ProxyOAuthServerProvider } from '@modelcontextprotocol/sdk/server/auth/providers/proxyProvider.js';
-import type { OAuthClientInformationFull } from '@modelcontextprotocol/sdk/shared/auth.js';
-import type { FetchLike } from '@modelcontextprotocol/sdk/shared/transport.js';
+import type { OAuthClientInformationFull, FetchLike } from '@modelcontextprotocol/server';
+import { ProxyOAuthServerProvider } from '@modelcontextprotocol/server-legacy/auth';
+
 import type { OAuthConfig } from './oauth-config.js';
 import type { JwksVerifier } from './jwks-verifier.js';
 import { authorizeRedirectUriStorage } from './client-context.js';

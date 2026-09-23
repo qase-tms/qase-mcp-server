@@ -1,7 +1,7 @@
 import { describe, it, expect } from '@jest/globals';
 import axios from 'axios';
 import MockAdapter from 'axios-mock-adapter';
-import type { Server } from '@modelcontextprotocol/sdk/server/index.js';
+import type { Server } from "@modelcontextprotocol/server";
 import { QaseApiClient } from './index.js';
 import { serverStorage } from '../utils/server-context.js';
 

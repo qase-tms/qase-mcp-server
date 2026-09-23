@@ -1,7 +1,7 @@
 // src/auth/proxy-provider.test.ts
+import { OAuthClientInformationFullSchema } from "@modelcontextprotocol/core";
+import { ProxyOAuthServerProvider } from "@modelcontextprotocol/server-legacy/auth";
 import { describe, it, expect } from '@jest/globals';
-import { ProxyOAuthServerProvider } from '@modelcontextprotocol/sdk/server/auth/providers/proxyProvider.js';
-import { OAuthClientInformationFullSchema } from '@modelcontextprotocol/sdk/shared/auth.js';
 import { createProxyProvider, createRegistrationSanitizingFetch } from './proxy-provider.js';
 import type { JwksVerifier } from './jwks-verifier.js';
 import { getOAuthConfig } from './oauth-config.js';

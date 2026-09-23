@@ -1,8 +1,8 @@
 import express, { Express } from 'express';
 import { createJsonParseErrorHandler } from './json-parse-error.js';
 import type http from 'node:http';
-import { Server } from '@modelcontextprotocol/sdk/server/index.js';
-import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
+import { SSEServerTransport } from '@modelcontextprotocol/server-legacy/sse';
+import { Server } from '@modelcontextprotocol/server';
 import { requestTokenStorage } from '../utils/auth-context.js';
 import { integrationStorage } from '../utils/integration-context.js';
 import { normalizeIntegrationMarker } from '../utils/integration-marker.js';

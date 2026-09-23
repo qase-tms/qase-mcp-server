@@ -16,9 +16,7 @@ import { describe, it, expect, beforeAll, afterAll, beforeEach, jest } from '@je
 import type http from 'node:http';
 import type { AddressInfo } from 'node:net';
 import request from 'supertest';
-import { Client } from '@modelcontextprotocol/sdk/client/index.js';
-import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js';
-import { ElicitRequestSchema } from '@modelcontextprotocol/sdk/types.js';
+import { Client, SSEClientTransport } from "@modelcontextprotocol/client";
 import { setTestEnv } from '../utils/test-helpers.js';
 
 setTestEnv();
@@ -60,7 +58,7 @@ beforeAll(async () => {
     { name: 'sse-test-client', version: '1.0.0' },
     { capabilities: { elicitation: {} } },
   );
-  client.setRequestHandler(ElicitRequestSchema, async () => {
+  client.setRequestHandler('elicitation/create', async () => {
     prompts += 1;
     return answer.action === 'accept' ? { action: 'accept', content: {} } : { action: 'decline' };
   });

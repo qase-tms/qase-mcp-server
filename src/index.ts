@@ -12,8 +12,7 @@
  * - Operation modules self-register their tools on import
  * - All API errors are handled gracefully with user-friendly messages
  */
-
-import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import { StdioServerTransport } from '@modelcontextprotocol/server/stdio';
 import { createServer } from './server.js';
 import { toolRegistry } from './utils/registry.js';
 import { VERSION } from './version.js';

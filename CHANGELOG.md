@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.7.0]
+
+### Changed
+
+- **The server now runs on the v2 line of the MCP TypeScript SDK.** The monolithic `@modelcontextprotocol/sdk` package was replaced by `@modelcontextprotocol/server`, `@modelcontextprotocol/node`, `@modelcontextprotocol/server-legacy` and `@modelcontextprotocol/client`. Nothing changes on the wire: the protocol version served is still `2025-11-25`, every tool schema is byte-for-byte what it was, and all three transports behave as before. The v1 line stopped receiving releases when v2 shipped, so this is a move onto the line that is still maintained — and the prerequisite for adopting the 2026-07-28 revision later.
+
+- **One error message lost a redundant prefix.** A request carrying an unknown pagination cursor is still refused with JSON-RPC code `-32602`, but its `message` is now `Unknown pagination cursor` where it used to read `MCP error -32602: Unknown pagination cursor`. The v1 SDK's error class pasted the numeric code into the human-readable text; v2's does not, and neither MCP nor JSON-RPC prescribes that text. The `code` field — the part a client is supposed to branch on — is unchanged. This is the only error in the server whose message came from that class.
+
+- **The authorization server metadata document gained one field.** `/.well-known/oauth-authorization-server` now advertises `authorization_response_iss_parameter_supported: false`. The SDK adds this claim in v2 and the OAuth proxy sets it to `false` on purpose: the proxy forwards the browser to Qase's own authorization server, which issues the callback, so the proxy cannot add an `iss` of its own and does not claim to. Clients that follow RFC 9207 read this as "expect no `iss`", which is what actually happens.
+
+- **`npm install` now prints a deprecation warning for `@modelcontextprotocol/server-legacy`.** That package is where the SSE transport and the OAuth proxy live, and upstream ships it flagged as deprecated on purpose: it is a frozen copy meant only to ease migration, and upstream's stated intent is that new deployments use Streamable HTTP from `@modelcontextprotocol/server` and a dedicated authorization server instead. The warning is upstream signaling that intent, not a sign that this release is broken — the SSE transport and the OAuth proxy both keep working exactly as before, and no removal date or migration timeline has been set.
+
 ## [2.6.0]
 
 ### Fixed

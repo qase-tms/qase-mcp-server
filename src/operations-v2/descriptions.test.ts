@@ -14,9 +14,8 @@ import { setTestEnv } from '../utils/test-helpers.js';
 setTestEnv();
 
 import './index.js';
+import type { Tool } from "@modelcontextprotocol/server";
 import { toolRegistry } from '../utils/registry.js';
-import type { Tool } from '@modelcontextprotocol/sdk/types.js';
-
 const MIN = 250;
 const MAX = 2000; // what Claude reads; past this the tail is wasted
 

@@ -12,7 +12,7 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from '@jest/globals';
 import http from 'node:http';
 import type { AddressInfo } from 'node:net';
-import type { Server } from '@modelcontextprotocol/sdk/server/index.js';
+import type { Server } from "@modelcontextprotocol/server";
 import { QaseApiClient } from './index.js';
 import { VERSION } from '../version.js';
 import { serverStorage } from '../utils/server-context.js';

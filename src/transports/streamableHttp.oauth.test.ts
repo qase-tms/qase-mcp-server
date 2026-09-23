@@ -2,8 +2,8 @@
 import { describe, it, expect, beforeAll } from '@jest/globals';
 import request from 'supertest';
 import { generateKeyPair, exportJWK, SignJWT, createLocalJWKSet } from 'jose';
+import { Server } from "@modelcontextprotocol/server";
 import type { JWTVerifyGetKey } from 'jose';
-import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { setupStreamableHttpTransport } from './streamableHttp.js';
 import { createJwksVerifier } from '../auth/jwks-verifier.js';
 import { getOAuthConfig } from '../auth/oauth-config.js';

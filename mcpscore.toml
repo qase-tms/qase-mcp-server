@@ -1,0 +1,29 @@
+# mcpscore rule configuration — https://docs.mcpscore.dev
+#
+# The gate lives here rather than in the workflow so a local run
+# (`mcpscore --config mcpscore.toml --env QASE_API_TOKEN --stdio node build/index.js`)
+# judges the server by exactly the rules CI judges it by.
+
+[gate]
+# Fail on any failed rule at HIGH or above. A percentage alone cannot tell a
+# lost security rule from a lost cosmetic one; this can.
+fail_on = "high"
+
+[rules]
+# The prompt catalogue is static — defined at build time, never changing while
+# the server runs — so there is nothing to notify about and we do not declare
+# prompts.listChanged. Left on, it would put a permanently red line in every
+# report, which is how real findings start getting skipped.
+capability_prompts_list_changed = "off"
+
+# The three rules below check conformance to MCP 2026-07-28. We are deliberately
+# on the legacy era: the server answers 2025-11-25, and adopting the new era is
+# a separate, planned piece of work (it needs `createMcpHandler` with stateless
+# serving, which in turn needs the tool registry to stop being per-process).
+# They are demoted rather than switched off, so they keep counting toward the
+# score and the gap stays visible — but they do not fail a build for a decision
+# already made. Delete these three lines when the new era lands: the gate should
+# start demanding them the moment we claim to support it.
+readiness_2026_server_discover = "low"
+readiness_2026_meta_validation = "low"
+readiness_2026_cache_metadata = "low"

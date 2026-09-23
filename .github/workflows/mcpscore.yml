@@ -1,0 +1,58 @@
+# Audits the server against the MCP specification with mcpscore
+# (https://docs.mcpscore.dev) and gates the pull request on the result.
+#
+# The audit runs over stdio, not HTTP, on purpose. An HTTP run on a CI runner
+# reaches a plaintext 127.0.0.1 endpoint with OAuth switched off, so the TLS and
+# authorization rules fail on the shape of the test rather than on the code —
+# a gate that reports the harness is worse than no gate. Auditing the hosted
+# deployment, which does have TLS and OAuth, is a separate job for a separate
+# workflow.
+#
+# Which rules count, and which failures stop the build, live in mcpscore.toml
+# at the repository root; the action picks it up on its own. Keeping them there
+# rather than here means a local run judges the server by the same rules.
+name: MCP quality
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    name: mcpscore
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Audit against the MCP specification
+        uses: mcp-box/mcpscore-action@v1
+        with:
+          # The action launches the built server itself and speaks stdio to it.
+          target: ./build/index.js
+          # 91.6% at the time of writing (98/107). The floor leaves room for a
+          # rule or two to move without a red build, while still catching the
+          # slow erosion a severity gate alone would miss.
+          min-score: 90
+          # Pinned: a new mcpscore release can add rules, and an audit tool that
+          # fails the build on a day nobody touched the server teaches people to
+          # ignore it.
+          version: '1.20.0'
+          # No QASE_API_TOKEN is set: the audit speaks protocol to the server
+          # over stdio and never calls a tool, so nothing reaches the Qase API.
+          # Adding --smoke here would change that and need a real token.

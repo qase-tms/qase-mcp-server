@@ -53,9 +53,6 @@ jobs:
           # fails the build on a day nobody touched the server teaches people to
           # ignore it.
           version: '1.20.0'
-          # The server refuses to start without a token; mcpscore copies this one
-          # into the child process. Its value is never used — no request in the
-          # audit reaches the Qase API.
-          args: --env QASE_API_TOKEN
-        env:
-          QASE_API_TOKEN: dummy
+          # No QASE_API_TOKEN is set: the audit speaks protocol to the server
+          # over stdio and never calls a tool, so nothing reaches the Qase API.
+          # Adding --smoke here would change that and need a real token.

@@ -87,6 +87,14 @@ describe('paths that stay on the configured host', () => {
     expect(mock.history.get[0].url).toBe(`${HOST}/v1/project`);
   });
 
+  it('does not care which API version the path names', async () => {
+    const { client, mock } = makeClient();
+
+    await client.request('/v2/DEMO/result');
+
+    expect(mock.history.get[0].url).toBe(`${HOST}/v2/DEMO/result`);
+  });
+
   it('keeps a query string intact, brackets and all', async () => {
     const { client, mock } = makeClient();
 

@@ -92,6 +92,28 @@ describe('paths that could leave the Qase host', () => {
 
     expect(mockRequest).toHaveBeenCalled();
   });
+
+  // The prefix rule is about the shape of the path, not about which API version
+  // the endpoint belongs to: this tool is the way to reach endpoints no dedicated
+  // tool covers, so pinning it to v1 would refuse a later version for no security
+  // gain. A version segment is still required, because that is what stops a path
+  // from opening an authority component.
+  it.each([['v2', '/v2/DEMO/result'], ['v3', '/v3/project']] satisfies Array<[string, string]>)(
+    'accepts an endpoint on API %s',
+    async (_label, path) => {
+      await invoke({ method: 'GET', path });
+
+      expect(mockRequest).toHaveBeenCalledWith(path, expect.anything());
+    },
+  );
+
+  it('still refuses a versioned-looking path that names another host', async () => {
+    await expect(invoke({ method: 'GET', path: '//evil.example/v2/x' })).rejects.toBeInstanceOf(
+      ToolExecutionError,
+    );
+
+    expect(mockRequest).not.toHaveBeenCalled();
+  });
 });
 
 describe('DELETE', () => {

@@ -11,24 +11,32 @@ import { ToolExecutionError } from '../../utils/errors.js';
  * linked issue. A path that names another host — `@evil.example/v1/x`,
  * `//evil.example/v1/x`, a full URL — would send the Qase credential there.
  *
- * Requiring the prefix rules all of those out, because a path that must begin
- * `/v1/` cannot open an authority component. It is kept separate from the object
- * schema so the handler can parse it on its own: tools/call passes the client's
- * arguments to a handler as they arrived, without parsing them against the
- * advertised schema, so a rule stated only in the schema binds the client and
- * not this server.
+ * Requiring a `/v<n>/` prefix rules all of those out: a path whose second
+ * character must be `v` cannot open an authority component, which is what every
+ * one of those forms needs. The version is matched as a number rather than
+ * pinned to `v1` — this tool exists to reach endpoints no dedicated tool covers,
+ * and the API version is not the security property, so pinning it would only
+ * refuse future endpoints for no gain. The request layer checks the resolved
+ * origin regardless, and that is the check that decides where a request may go.
+ *
+ * Kept separate from the object schema so the handler can parse it on its own:
+ * tools/call passes the client's arguments to a handler as they arrived, without
+ * parsing them against the advertised schema, so a rule stated only in the
+ * schema binds the client and not this server.
  */
 const PathSchema = z
   .string()
   .regex(
-    /^\/v1\/\S*$/,
-    'path must start with /v1/ and stay on the Qase API host: pass an endpoint path, ' +
-      'not a full URL and not a prefix that names another host',
+    /^\/v\d+\/\S*$/,
+    'path must start with a version segment such as /v1/ and stay on the Qase API host: ' +
+      'pass an endpoint path, not a full URL and not a prefix that names another host',
   );
 
 const Schema = z.object({
   method: z.enum(['GET', 'POST', 'PUT', 'PATCH', 'DELETE']).default('GET').describe('HTTP method'),
-  path: PathSchema.describe('API path starting with /v1/ (e.g., "/v1/project/DEMO/run")'),
+  path: PathSchema.describe(
+    'API path starting with a version segment (e.g., "/v1/project/DEMO/run")',
+  ),
   body: z.record(z.any()).optional().describe('Request body for POST/PUT/PATCH'),
   query: z.record(z.string()).optional().describe('Query parameters'),
 });
@@ -76,7 +84,8 @@ toolRegistry.register({
   title: 'Call Qase API',
   description:
     'Call any Qase REST endpoint directly, for the few things no dedicated tool covers. Pass the ' +
-    'HTTP method, a path starting with /v1/, and an optional body or query. The path must be an ' +
+    'HTTP method, a path starting with a version segment such as /v1/, and an optional body or ' +
+    'query. The path must be an ' +
     'endpoint path on the configured Qase host; a full URL, or one that resolves to another host, ' +
     'is refused. See ' +
     'developers.qase.io for the reference. Prefer a dedicated tool wherever one exists: they ' +

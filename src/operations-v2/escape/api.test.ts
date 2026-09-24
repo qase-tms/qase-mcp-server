@@ -58,6 +58,64 @@ describe('reads and writes that are not deletions', () => {
   });
 });
 
+describe('paths that could leave the Qase host', () => {
+  // tools/call hands a handler the client's arguments without parsing them
+  // against the advertised schema, so these have to be refused by the handler
+  // itself — a client that skips validation would otherwise pass them straight
+  // through, and every request carries the Qase credential.
+  const hostile = [
+    ['userinfo prefix', '@evil.example/v1/project'],
+    ['protocol-relative', '//evil.example/v1/project'],
+    ['protocol-relative, backslashes', '\\\\evil.example/v1/project'],
+    ['absolute URL', 'https://evil.example/v1/project'],
+    ['no leading slash', 'v1/project'],
+    ['outside the v1 API', '/internal/admin'],
+  ] satisfies Array<[string, string]>;
+
+  it.each(hostile)('refuses a %s without calling the API', async (_label, path) => {
+    await expect(invoke({ method: 'GET', path })).rejects.toBeInstanceOf(ToolExecutionError);
+
+    expect(mockRequest).not.toHaveBeenCalled();
+  });
+
+  it('refuses a bad path before asking for confirmation on a DELETE', async () => {
+    await expect(
+      invoke({ method: 'DELETE', path: '@evil.example/v1/project/DEMO' }),
+    ).rejects.toBeInstanceOf(ToolExecutionError);
+
+    expect(mockConfirm).not.toHaveBeenCalled();
+    expect(mockRequest).not.toHaveBeenCalled();
+  });
+
+  it('still accepts an endpoint path with a query string', async () => {
+    await invoke({ method: 'GET', path: '/v1/result/DEMO?filters[run]=1' });
+
+    expect(mockRequest).toHaveBeenCalled();
+  });
+
+  // The prefix rule is about the shape of the path, not about which API version
+  // the endpoint belongs to: this tool is the way to reach endpoints no dedicated
+  // tool covers, so pinning it to v1 would refuse a later version for no security
+  // gain. A version segment is still required, because that is what stops a path
+  // from opening an authority component.
+  it.each([['v2', '/v2/DEMO/result'], ['v3', '/v3/project']] satisfies Array<[string, string]>)(
+    'accepts an endpoint on API %s',
+    async (_label, path) => {
+      await invoke({ method: 'GET', path });
+
+      expect(mockRequest).toHaveBeenCalledWith(path, expect.anything());
+    },
+  );
+
+  it('still refuses a versioned-looking path that names another host', async () => {
+    await expect(invoke({ method: 'GET', path: '//evil.example/v2/x' })).rejects.toBeInstanceOf(
+      ToolExecutionError,
+    );
+
+    expect(mockRequest).not.toHaveBeenCalled();
+  });
+});
+
 describe('DELETE', () => {
   it('asks for confirmation before deleting, naming the path', async () => {
     await invoke({ method: 'DELETE', path: '/v1/project/DEMO' });

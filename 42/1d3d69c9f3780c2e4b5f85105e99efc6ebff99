@@ -1,0 +1,23 @@
+src/operations-v2/escape/api.ts
+  s_06d573a18464ad::t_2cf6836ad3f143 14-25,30-32,37-39,87-88
+src/client/url-resolution.test.ts
+  s_06d573a18464ad::t_dbc1cb25062c41 90-97
+src/operations-v2/escape/api.test.ts
+  s_06d573a18464ad::t_3a62f5997666f8 95-116
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "421d3d69c9f3780c2e4b5f85105e99efc6ebff99",
+  "prompts": {},
+  "sessions": {
+    "s_06d573a18464ad": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "f173e732-a04b-4325-ab40-88db489e71cc",
+        "model": "claude-opus-5"
+      },
+      "human_author": "Dmitrii Gridnev <dgridnev@qase.io>"
+    }
+  }
+}

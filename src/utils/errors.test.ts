@@ -45,6 +45,115 @@ describe('Error Utilities', () => {
       expect(formatted).toContain('Access forbidden');
     });
 
+    it('should keep permission wording for a plain forbidden error (403)', () => {
+      const error = {
+        response: {
+          status: 403,
+          data: { message: 'Access denied' },
+        },
+        message: 'Request failed',
+        isAxiosError: true,
+      } as AxiosError;
+
+      const formatted = formatApiError(error);
+      expect(formatted).toContain("You don't have permission");
+      expect(formatted).not.toContain('Plan restriction');
+    });
+
+    it('should format a plan restriction (403) as a plan problem, not a permission problem', () => {
+      const error = {
+        response: {
+          status: 403,
+          data: {
+            status: false,
+            errorMessage:
+              'This feature isn\u2019t available on your current plan. Please upgrade to access it.',
+          },
+        },
+        message: 'Request failed',
+        isAxiosError: true,
+      } as AxiosError;
+
+      const formatted = formatApiError(error);
+      expect(formatted).toContain('Plan restriction');
+      expect(formatted).toContain('available on your current plan');
+      expect(formatted).not.toMatch(/permission/i);
+    });
+
+    it('should name the self-run remedy in a plan restriction (403)', () => {
+      const error = {
+        response: {
+          status: 403,
+          data: { message: 'Upgrade your plan to use this feature.' },
+        },
+        message: 'Request failed',
+        isAxiosError: true,
+      } as AxiosError;
+
+      const formatted = formatApiError(error);
+      expect(formatted).toContain('QASE_API_TOKEN');
+      expect(formatted).toMatch(/run the server yourself/i);
+    });
+
+    it('should treat code "plan_required" as a plan restriction (403)', () => {
+      const error = {
+        response: {
+          status: 403,
+          data: { code: 'plan_required', message: 'Forbidden' },
+        },
+        message: 'Request failed',
+        isAxiosError: true,
+      } as AxiosError;
+
+      const formatted = formatApiError(error);
+      expect(formatted).toContain('Plan restriction');
+      expect(formatted).not.toMatch(/permission/i);
+    });
+
+    it('should treat errorCode "plan_required" as a plan restriction (403)', () => {
+      const error = {
+        response: {
+          status: 403,
+          data: { status: false, errorMessage: 'Forbidden', errorCode: 'plan_required' },
+        },
+        message: 'Request failed',
+        isAxiosError: true,
+      } as AxiosError;
+
+      const formatted = formatApiError(error);
+      expect(formatted).toContain('Plan restriction');
+    });
+
+    it('should keep permission wording for a 403 carrying an unrelated code', () => {
+      const error = {
+        response: {
+          status: 403,
+          data: { code: 'access_denied', message: 'Forbidden' },
+        },
+        message: 'Request failed',
+        isAxiosError: true,
+      } as AxiosError;
+
+      const formatted = formatApiError(error);
+      expect(formatted).toContain('Access forbidden');
+      expect(formatted).not.toContain('Plan restriction');
+    });
+
+    it('should not mistake a forbidden test plan for a plan restriction (403)', () => {
+      const error = {
+        response: {
+          status: 403,
+          data: { message: 'You do not have access to this test plan' },
+        },
+        message: 'Request failed',
+        isAxiosError: true,
+      } as AxiosError;
+
+      const formatted = formatApiError(error);
+      expect(formatted).toContain('Access forbidden');
+      expect(formatted).not.toContain('Plan restriction');
+    });
+
     it('should format not found error (404)', () => {
       const error = {
         response: {
@@ -257,6 +366,15 @@ describe('Error Utilities', () => {
     it('should create error with permission suggestion for 403', () => {
       const error = createToolError('Access forbidden: No access to project');
       expect(error.suggestion).toContain('permission');
+    });
+
+    it('should suggest self-run instead of permissions for a plan restriction', () => {
+      const error = createToolError(
+        "Plan restriction: This feature isn't available on your current plan.",
+      );
+      expect(error.suggestion).toMatch(/run the server yourself/i);
+      expect(error.suggestion).toContain('QASE_API_TOKEN');
+      expect(error.suggestion).not.toMatch(/permission/i);
     });
 
     it('should create error with not found suggestion', () => {

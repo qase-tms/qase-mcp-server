@@ -1,0 +1,32 @@
+src/utils/errors.test.ts
+  s_b88cc4ade3fc16::t_7ab05fda5130b3 48-207,422-441
+  s_b88cc4ade3fc16::t_9008bc9667a0af 442
+src/utils/errors.ts
+  s_b88cc4ade3fc16::t_7ab05fda5130b3 60-96,115-116,118-120,253-259
+  s_b88cc4ade3fc16::t_7fdb526103cbb9 260
+package.json
+  s_b88cc4ade3fc16::t_7ab05fda5130b3 3
+CHANGELOG.md
+  s_b88cc4ade3fc16::t_7ab05fda5130b3 18-28
+  s_b88cc4ade3fc16::t_696c5ad74d4f52 29
+server.json
+  s_b88cc4ade3fc16::t_7ab05fda5130b3 11,16
+package-lock.json
+  s_b88cc4ade3fc16::t_55ea233ce3a2ac 3,9
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "de8e60fcc57eff2b41c043624979e7fd5503274c",
+  "prompts": {},
+  "sessions": {
+    "s_b88cc4ade3fc16": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "196a315d-ed93-4090-a224-908226541c73",
+        "model": "claude-opus-5"
+      },
+      "human_author": "Dmitrii Gridnev <dgridnev@qase.io>"
+    }
+  }
+}

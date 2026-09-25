@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.7.1]
+## [2.7.3]
 
 ### Fixed
 
@@ -13,7 +13,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
   A 403 that is a plan restriction is now rendered as a plan restriction — `Plan restriction: <message>` — with no permissions language anywhere in it, and it names the remedy the reader can actually act on: run the server yourself with your own `QASE_API_TOKEN`, which works on every plan. The accompanying suggestion links [docs/self-run.md](docs/self-run.md) instead of pointing at permissions. A 403 that really is a permissions problem is unchanged, wording and suggestion alike.
 
-  The two are told apart by the message text — `current plan`, `your plan`, `upgrade`, `plan tier` — and, ahead of the API growing one, by a machine-readable `errorCode` of `plan_required` on the response body. Today every such refusal is recognized by its text; once the code ships it takes precedence and the wording is free to change without breaking the classification. The text pattern is deliberately narrow: a 403 on a *test* plan ("you do not have access to this test plan") is still a permissions error, and a test holds that line.
+  The two are told apart by the message text — `current plan`, `your plan`, `upgrade`, `plan tier` — and by a machine-readable `errorCode` of `plan_required` on the response body, which takes precedence when it is present. Today every such refusal is recognized by its text; the code is read so that a future API release can make the classification independent of the wording. The text pattern is deliberately narrow: a 403 on a *test* plan ("you do not have access to this test plan") is still a permissions error, and a test holds that line.
+
+## [2.7.2]
+
+### Added
+
+- **The MCP endpoint is now rate-limited.** Requests to `/mcp` are capped per client IP, and a caller over the budget gets HTTP `429` carrying a JSON-RPC error (`code: -32000`, `Too many requests`) rather than express's plain-text default, so an MCP client can parse the rejection like any other response. The limiter runs ahead of the auth guard, so a flood is rejected before the server spends a JWT signature verify on it. The default budget is 600 requests per minute — generous on purpose, since an office behind NAT shares one address and an MCP session sends one request per tool call. Tune it with `QASE_MCP_RATE_LIMIT_PER_MINUTE`, or set it to `0` to turn the limiter off; a value that is not a non-negative integer falls back to the default rather than failing startup. This affects the `streamable-http` transport only. Deployments that already cap inbound traffic at a proxy can leave the limiter on — the budget is a ceiling on abuse, not a fair-use quota.
+
+### Fixed
+
+- **Request logging could garble its own output.** The streamable HTTP transport logged each request by interpolating the method and path into the first argument of `console.error`, which Node treats as a format string when further arguments follow. A request path containing `%s` or `%d` consumed the query object that was meant to be logged beside it, so the log line lost data the operator was supposed to see. The method and path are now passed as format arguments instead. Reported by CodeQL (`js/tainted-format-string`).
+
+## [2.7.1]
+
+### Fixed
+
+- **Security fixes.** This release fixes security issues reported privately against 2.7.0. Upgrading is recommended. Report security issues to security@qase.io — see [SECURITY.md](SECURITY.md).
 
 ## [2.7.0]
 

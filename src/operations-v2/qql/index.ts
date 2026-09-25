@@ -293,9 +293,9 @@ async function getQqlHelp(args: z.infer<typeof GetQqlHelpSchema>) {
   // enforced at runtime — reject a missing or unknown topic with the list of
   // valid ones rather than returning undefined content.
   if (!topic || !(topic in help)) {
+    const named = topic ? ` "${topic}"` : '';
     throw new ToolExecutionError(
-      `Unknown help topic${topic ? ` "${topic}"` : ''}. ` +
-        `Pass one of: ${HELP_TOPICS.join(', ')}.`,
+      `Unknown help topic${named}. Pass one of: ${HELP_TOPICS.join(', ')}.`,
     );
   }
 

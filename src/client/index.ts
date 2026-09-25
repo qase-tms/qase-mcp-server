@@ -38,6 +38,7 @@ import { requestTokenStorage, getEffectiveToken } from '../utils/auth-context.js
 import { getServer } from '../utils/server-context.js';
 import { getIntegration } from '../utils/integration-context.js';
 import { getProducer } from '../utils/producer-context.js';
+import { ToolExecutionError } from '../utils/errors.js';
 import { buildIntegrationHeaders } from './producer-headers.js';
 import { parseIntegrationMarker } from '../utils/integration-marker.js';
 import { VERSION } from '../version.js';
@@ -199,7 +200,7 @@ class QaseApiClient {
 
     const response = await this.axiosInstance.request({
       method: options.method || 'GET',
-      url: `${this.host}${path}`,
+      url: resolveApiUrl(this.host, path),
       headers: {
         ...authHeaders,
         'Content-Type': 'application/json',
@@ -210,6 +211,59 @@ class QaseApiClient {
 
     return response.data;
   }
+}
+
+/**
+ * Resolve a caller-supplied API path against the configured host.
+ *
+ * `path` reaches here from the qase_api escape hatch, so it is model-controlled
+ * and anything the model reads — a case description, a defect, a linked issue —
+ * can put text in it. Every request out of this client carries the Token or
+ * Bearer header, so a path that reaches another host hands the credential to
+ * whoever runs it.
+ *
+ * Neither obvious way to build the URL is a boundary on its own, and the two
+ * fail on opposite inputs. Concatenation lets a path opening with `@` turn the
+ * host into URL userinfo: `https://api.qase.io` + `@evil.example/v1/x` resolves
+ * to host `evil.example`. WHATWG resolution closes that one — the `@` becomes an
+ * ordinary path segment — but accepts `//evil.example/x`, `\\evil.example/x` and
+ * `/\\evil.example/x` as authorities, and lets an absolute `https://evil.example/x`
+ * discard the base outright.
+ *
+ * So two checks, each covering what the other misses. Requiring a leading `/`
+ * rejects the relative references outright rather than silently rewriting them
+ * into a path on the Qase host; comparing the resolved origin catches the rest,
+ * including the slash forms that survive the first check. URL is what makes the
+ * second comparison possible at all: it yields a parsed origin, where
+ * concatenation yields a string with nothing to check.
+ */
+function resolveApiUrl(host: string, path: string): string {
+  if (!path.startsWith('/')) {
+    throw new ToolExecutionError(
+      `API path must start with "/", but got ${JSON.stringify(path)}`,
+      'Pass a path relative to the Qase API host, such as "/v1/project/DEMO/run", not a full URL.',
+    );
+  }
+
+  let resolved: URL;
+  try {
+    resolved = new URL(path, host);
+  } catch {
+    throw new ToolExecutionError(
+      `Invalid API path: ${JSON.stringify(path)}`,
+      'Pass a path such as "/v1/project/DEMO/run", not a full URL.',
+    );
+  }
+
+  if (resolved.origin !== new URL(host).origin) {
+    throw new ToolExecutionError(
+      `API path must stay on ${host}, but ${JSON.stringify(path)} resolves to ${resolved.origin}`,
+      'Pass a path relative to the Qase API host, starting with "/v1/". A path may not name ' +
+        'another host, directly or through a protocol-relative or userinfo prefix.',
+    );
+  }
+
+  return resolved.toString();
 }
 
 /**

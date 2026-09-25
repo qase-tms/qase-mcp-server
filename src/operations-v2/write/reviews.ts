@@ -263,11 +263,11 @@ async function create(args: z.infer<typeof CreateSchema>) {
     ...(reviewers && { reviewers: await resolveReviewers(reviewers) }),
   };
 
-  const result = await toResultAsync(client.reviews.createReview(code, payload as any));
+  const result = await toResultAsync(client.reviews.createReview(code, payload));
 
   return result.match(
     (r) => {
-      const id = (r.data.result as any)?.id;
+      const id = r.data.result?.id;
       return {
         review_id: id,
         type: case_id === undefined ? 'create' : 'edit',
@@ -328,7 +328,7 @@ async function list(args: z.infer<typeof ListSchema>) {
 
   return result.match(
     (r) => {
-      const res = r.data.result as any;
+      const res = r.data.result;
       const entities: any[] = res?.entities ?? [];
       const total = res?.total ?? entities.length;
 
@@ -396,7 +396,7 @@ async function bulkCreate(args: z.infer<typeof BulkCreateSchema>) {
       // The API nests the results as items[].review_id, while the single-create
       // tool returns review_id at the top level. Surface a flat list of IDs so a
       // caller does not have to know the difference to find what it just created.
-      const raw = r.data.result as any;
+      const raw = r.data.result;
       const items: any[] = raw?.items ?? [];
       const review_ids = items
         .map((item) => item?.review_id ?? item?.id)

@@ -15,6 +15,7 @@ import { createBearerRequiredGuard } from '../auth/bearer-guard.js';
 import { authorizeRedirectUriStorage } from '../auth/client-context.js';
 import type { RequestHandler } from 'express';
 import { createJsonParseErrorHandler } from './json-parse-error.js';
+import { createMcpRateLimiter } from './rate-limit.js';
 
 export interface StreamableHttpConfig {
   port: number;
@@ -91,8 +92,10 @@ export function setupStreamableHttpTransport(
       return;
     }
 
-    // Log request (omit headers to avoid exposing Authorization token in logs)
-    console.error(`[StreamableHTTP] ${req.method} ${req.path}`, { query: req.query });
+    // Log request (omit headers to avoid exposing Authorization token in logs).
+    // Method and path go in as format arguments, never inside the format string:
+    // a path carrying `%s`/`%d` would otherwise swallow the query object.
+    console.error('[StreamableHTTP] %s %s', req.method, req.path, { query: req.query });
     next();
   });
 
@@ -172,7 +175,13 @@ export function setupStreamableHttpTransport(
   // unauthenticated request ran under the operator's QASE_API_TOKEN. The
   // fallback guard keeps that door shut without pulling OAuth into a
   // deployment that deliberately turned it off.
-  const guards: RequestHandler[] = [mcpGuard ?? createBearerRequiredGuard()];
+  // The rate limiter comes first: it has to reject a flood before the guard
+  // spends a JWT signature verify on it. Our edge limit lives on api.qase.io,
+  // downstream of this process, so it never sees these requests.
+  const guards: RequestHandler[] = [
+    createMcpRateLimiter(),
+    mcpGuard ?? createBearerRequiredGuard(),
+  ];
 
   // Session management - store transport and last-seen timestamp per session.
   // Sessions are in-memory per pod; one idle longer than this window is evicted

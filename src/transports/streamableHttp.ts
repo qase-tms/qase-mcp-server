@@ -43,6 +43,19 @@ function readIntegrationMarker(value: unknown): string | undefined {
   return typeof value === 'string' ? normalizeIntegrationMarker(value) : undefined;
 }
 
+/**
+ * Interpret TRUST_PROXY for express's `trust proxy` setting: a hop count, the
+ * booleans, or anything else passed through verbatim (express also accepts a
+ * subnet or a comma-separated list). Unset means one proxy hop.
+ */
+function readTrustProxy(raw: string | undefined): number | boolean | string {
+  if (raw === undefined) return 1;
+  if (/^\d+$/.test(raw)) return Number(raw);
+  if (raw === 'false') return false;
+  if (raw === 'true') return true;
+  return raw;
+}
+
 export function setupStreamableHttpTransport(
   createServer: () => Server,
   config: StreamableHttpConfig,
@@ -56,19 +69,7 @@ export function setupStreamableHttpTransport(
   // Express `trust proxy` is configured — otherwise those endpoints return 500.
   // Default to trusting 1 proxy hop; override with TRUST_PROXY (a hop count, or
   // 'false' to disable when running with no proxy in front).
-  const trustProxyEnv = process.env.TRUST_PROXY;
-  app.set(
-    'trust proxy',
-    trustProxyEnv === undefined
-      ? 1
-      : /^\d+$/.test(trustProxyEnv)
-        ? Number(trustProxyEnv)
-        : trustProxyEnv === 'false'
-          ? false
-          : trustProxyEnv === 'true'
-            ? true
-            : trustProxyEnv,
-  );
+  app.set('trust proxy', readTrustProxy(process.env.TRUST_PROXY));
 
   // CORS middleware for inspector
   app.use((req, res, next) => {

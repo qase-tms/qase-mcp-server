@@ -228,16 +228,23 @@ const prompts: PromptDef[] = [
   },
 ];
 
+/**
+ * Sort by `name`, comparing code units rather than by locale: ListTools and
+ * ListPrompts must come back in the same order on every host.
+ */
+function byName(a: { name: string }, b: { name: string }): number {
+  if (a.name < b.name) return -1;
+  return a.name > b.name ? 1 : 0;
+}
+
 /** Get all prompt definitions for ListPrompts, in deterministic (name-sorted) order */
 export function listPrompts() {
-  return [...prompts]
-    .sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0))
-    .map((p) => ({
-      name: p.name,
-      title: p.title,
-      description: p.description,
-      arguments: p.arguments,
-    }));
+  return [...prompts].sort(byName).map((p) => ({
+    name: p.name,
+    title: p.title,
+    description: p.description,
+    arguments: p.arguments,
+  }));
 }
 
 /** Build prompt messages for GetPrompt */

@@ -65,7 +65,7 @@ async function handler(args: z.infer<typeof Schema>) {
       );
       casesRes.match(
         (r) => {
-          const entities = (r.data.result as any)?.entities ?? [];
+          const entities = r.data.result?.entities ?? [];
           caseIds.push(...entities.map((c: any) => c.id));
         },
         () => {}, // skip suites that fail to load

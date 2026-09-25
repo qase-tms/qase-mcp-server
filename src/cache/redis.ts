@@ -1,5 +1,5 @@
 import { CacheBackend } from './types.js';
-import { CircuitBreaker } from './circuit-breaker.js';
+import { CircuitBreaker, type CircuitState } from './circuit-breaker.js';
 import { getMetrics } from './metrics.js';
 
 export interface RedisLikeClient {
@@ -16,6 +16,13 @@ export interface RedisLikeClient {
   unlink(...keys: string[]): Promise<number>;
   quit(): Promise<'OK'>;
 }
+
+/** Numeric encoding of the breaker state for the Prometheus gauge. */
+const CIRCUIT_STATE_GAUGE: Record<CircuitState, number> = {
+  closed: 0,
+  half_open: 1,
+  open: 2,
+};
 
 export interface RedisCacheOptions {
   circuitBreaker?: CircuitBreaker;
@@ -46,7 +53,7 @@ export class RedisCache implements CacheBackend {
           getMetrics().setGauge(
             'qase_mcp_circuit_breaker_state',
             { name: 'redis' },
-            s === 'closed' ? 0 : s === 'half_open' ? 1 : 2,
+            CIRCUIT_STATE_GAUGE[s],
           ),
       });
   }

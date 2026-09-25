@@ -6,7 +6,8 @@
 export function formatLabels(labels: Record<string, string>): string {
   const keys = Object.keys(labels);
   if (keys.length === 0) return '';
-  const parts = keys.sort().map((k) => `${k}="${escapeLabelValue(labels[k])}"`);
+  keys.sort();
+  const parts = keys.map((k) => `${k}="${escapeLabelValue(labels[k])}"`);
   return `{${parts.join(',')}}`;
 }
 

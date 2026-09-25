@@ -131,11 +131,7 @@ export function createServer(): Server {
         // is listening.
         const toolDef = toolRegistry.getTool(name);
         if (toolDef?.annotations?.destructiveHint === true) {
-          const confirmation = await confirmDestructiveAction(
-            name,
-            (args as Record<string, unknown>) || {},
-            ctx.mcpReq.id,
-          );
+          const confirmation = await confirmDestructiveAction(name, args || {}, ctx.mcpReq.id);
           if (!confirmation.allowed) {
             console.error(`[Server] Refused destructive tool '${name}': ${confirmation.reason}`);
             return {

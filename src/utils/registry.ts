@@ -23,6 +23,15 @@ export type ToolHandler<T = any, R = any> = (args: T) => Promise<R>;
  * Tool definition for registration
  * Contains all information needed to register a tool with the MCP server
  */
+/**
+ * Sort by `name`, comparing code units rather than by locale: ListTools and
+ * ListPrompts must come back in the same order on every host.
+ */
+function byName(a: { name: string }, b: { name: string }): number {
+  if (a.name < b.name) return -1;
+  return a.name > b.name ? 1 : 0;
+}
+
 /** JSON Schema object type for outputSchema */
 export interface OutputSchema {
   type: 'object';
@@ -95,7 +104,7 @@ export class ToolRegistry {
     const jsonSchema = (zodToJsonSchema as any)(schema, {
       name: `${name}Input`,
       $refStrategy: 'none', // Inline all definitions
-    }) as any;
+    });
 
     // Extract the actual schema from definitions if present
     // zodToJsonSchema sometimes wraps the schema in a $ref even with $refStrategy: 'none'
@@ -149,7 +158,7 @@ export class ToolRegistry {
   getTools(): Tool[] {
     return Array.from(this.tools.values())
       .filter((t) => this.activeTools.has(t.name))
-      .sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
+      .sort(byName);
   }
 
   /**
@@ -157,9 +166,7 @@ export class ToolRegistry {
    * Used for discovery search and testing.
    */
   getAllTools(): Tool[] {
-    return Array.from(this.tools.values()).sort((a, b) =>
-      a.name < b.name ? -1 : a.name > b.name ? 1 : 0,
-    );
+    return Array.from(this.tools.values()).sort(byName);
   }
 
   /**

@@ -30,9 +30,7 @@ export class Metrics {
   }
 
   incCounter(name: string, labels: Labels, by = 1): void {
-    const series =
-      this.counters.get(name) ??
-      (this.counters.set(name, new Map()).get(name) as Map<string, number>);
+    const series = this.series(this.counters, name);
     const key = this.seriesKey(labels);
     series.set(key, (series.get(key) ?? 0) + by);
   }
@@ -42,9 +40,7 @@ export class Metrics {
   }
 
   setGauge(name: string, labels: Labels, value: number): void {
-    const series =
-      this.gauges.get(name) ?? (this.gauges.set(name, new Map()).get(name) as Map<string, number>);
-    series.set(this.seriesKey(labels), value);
+    this.series(this.gauges, name).set(this.seriesKey(labels), value);
   }
 
   getGauge(name: string, labels: Labels): number {
@@ -77,11 +73,22 @@ export class Metrics {
     return lines.join('\n') + '\n';
   }
 
+  /** Get the series map for a metric, creating it on first use. */
+  private series(metrics: Map<string, Map<string, number>>, name: string): Map<string, number> {
+    let series = metrics.get(name);
+    if (!series) {
+      series = new Map();
+      metrics.set(name, series);
+    }
+    return series;
+  }
+
   private seriesKey(labels: Labels): string {
     const keys = Object.keys(labels);
     if (keys.length === 0) return '';
+    keys.sort();
     const sorted: Labels = {};
-    for (const k of keys.sort()) sorted[k] = labels[k];
+    for (const k of keys) sorted[k] = labels[k];
     return JSON.stringify(sorted);
   }
 }

@@ -15,28 +15,35 @@
 export function compactResponse(value: unknown): unknown {
   if (value === null || value === undefined) return undefined;
   if (typeof value !== 'object') return value;
+  if (Array.isArray(value)) return compactArray(value);
+  return compactObject(value as Record<string, unknown>);
+}
 
-  if (Array.isArray(value)) {
-    const compactedItems: unknown[] = [];
-    for (const item of value) {
-      const c = compactResponse(item);
-      if (c !== undefined) compactedItems.push(c);
-    }
-    return compactedItems;
+/** Drop the entries that compacted away; an emptied array stays an array. */
+function compactArray(items: unknown[]): unknown[] {
+  const out: unknown[] = [];
+  for (const item of items) {
+    const c = compactResponse(item);
+    if (c !== undefined) out.push(c);
   }
+  return out;
+}
 
-  const record = value as Record<string, unknown>;
+/** Drop the keys that compacted away; an emptied object stays an object. */
+function compactObject(record: Record<string, unknown>): Record<string, unknown> {
   const out: Record<string, unknown> = {};
-  let kept = 0;
   for (const key of Object.keys(record)) {
     const c = compactResponse(record[key]);
-    if (c === undefined) continue;
-    if (Array.isArray(c) && c.length === 0) continue;
-    if (isPlainObject(c) && Object.keys(c).length === 0) continue;
-    out[key] = c;
-    kept += 1;
+    if (!carriesNoSignal(c)) out[key] = c;
   }
-  return kept === 0 ? {} : out;
+  return out;
+}
+
+/** Absent, or a container that compacted down to nothing. */
+function carriesNoSignal(value: unknown): boolean {
+  if (value === undefined) return true;
+  if (Array.isArray(value)) return value.length === 0;
+  return isPlainObject(value) && Object.keys(value).length === 0;
 }
 
 /**
@@ -55,7 +62,7 @@ export function projectFields<T>(value: T, fields: string[]): T {
 
 function projectSingle(obj: unknown, fields: string[]): unknown {
   if (!isPlainObject(obj)) return obj;
-  const src = obj as Record<string, unknown>;
+  const src = obj;
   const out: Record<string, unknown> = {};
   for (const f of fields) {
     if (f in src) out[f] = src[f];

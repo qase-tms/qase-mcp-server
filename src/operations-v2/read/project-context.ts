@@ -79,6 +79,91 @@ async function fetchAll(
   return { ...first, entities };
 }
 
+/** Per-collection coverage keyed by the name used in the summary. */
+type CoverageMap = Record<string, Coverage>;
+
+/** "100 of 2711 ⚠️ truncated" when partial, plain "42" when complete. */
+function countOf(c: Coverage): string {
+  return c.truncated ? `${c.loaded} of ${c.total} ⚠️ truncated` : `${c.loaded}`;
+}
+
+/** Name every collection the caller is seeing only part of. */
+function truncatedNames(coverage: CoverageMap): string[] {
+  return Object.entries(coverage)
+    .filter(([, c]) => c.truncated)
+    .map(([name]) => name);
+}
+
+/**
+ * A titled section holding at most ten entries, with a count of what was left
+ * out. Callers decide whether an empty section is worth printing at all.
+ */
+function listSection(title: string, items: string[]): string[] {
+  const lines = ['', title, ...items.slice(0, 10)];
+  if (items.length > 10) lines.push(`- _...and ${items.length - 10} more_`);
+  return lines;
+}
+
+/** Top-level suites only, with the denominator qualified when the set is partial. */
+function suiteSection(suites: any[], suitesCoverage: Coverage): string[] {
+  if (suites.length === 0) return [];
+  const topLevel = suites.filter((s: any) => !s.parent_id);
+  // Qualify the denominator as loaded, not total — with a truncated set the
+  // suites in hand are only a slice of the project.
+  const scope = suitesCoverage.truncated
+    ? `${topLevel.length} of ${suites.length} loaded, ${suitesCoverage.total} in project`
+    : `${topLevel.length} of ${suites.length} total`;
+  return listSection(
+    `**Top-level suites** (${scope}):`,
+    topLevel.map((s: any) => `- ${s.title}`),
+  );
+}
+
+/** The human-readable digest that rides alongside the raw context payload. */
+function renderSummary(code: string, context: Record<string, any>, coverage: CoverageMap): string {
+  const projectName = context.project?.title || code;
+  const suitesList: any[] = context.suites?.entities ?? [];
+  const milestonesList: any[] = context.milestones?.entities ?? [];
+  const envsList: any[] = context.environments?.entities ?? [];
+
+  const lines = [
+    `## Project: ${projectName} (${code})`,
+    '',
+    `- **Suites:** ${countOf(coverage.suites)}`,
+    `- **Milestones:** ${countOf(coverage.milestones)}`,
+    `- **Environments:** ${countOf(coverage.environments)}`,
+    `- **Custom fields:** ${countOf(coverage.custom_fields)}`,
+    `- **Team members:** ${countOf(coverage.users)}`,
+  ];
+
+  const truncated = truncatedNames(coverage);
+  if (truncated.length > 0) {
+    lines.push(
+      '',
+      `⚠️ **Partial data:** ${truncated.join(', ')} exceed ${PAGE_SIZE} entities and are ` +
+        'truncated above. Do not treat the lists below as complete. Call ' +
+        `\`qase_project_context({ code: "${code}", full: true })\` for the full set, or use ` +
+        'the targeted list tools / `qql_search` to query a subset.',
+    );
+  }
+
+  if (envsList.length > 0) {
+    lines.push('', '**Environments:** ' + envsList.map((e: any) => e.title).join(', '));
+  }
+
+  if (milestonesList.length > 0) {
+    lines.push(
+      ...listSection(
+        '**Milestones:**',
+        milestonesList.map((m: any) => `- ${m.title}${m.status ? ` \`${m.status}\`` : ''}`),
+      ),
+    );
+  }
+  lines.push(...suiteSection(suitesList, coverage.suites));
+
+  return lines.join('\n');
+}
+
 async function handler(args: z.infer<typeof Schema>) {
   const { code, full = false } = args;
   const cache = await getCache();
@@ -167,73 +252,9 @@ async function handler(args: z.infer<typeof Schema>) {
   const TTL = 5 * 60 * 1000; // 5 minutes
   await cache.set(key, context, TTL);
 
-  const project = context.project as any;
-  const projectName = project?.title || code;
-  const suitesList: any[] = (context.suites as any)?.entities ?? [];
-  const milestonesList: any[] = (context.milestones as any)?.entities ?? [];
-  const envsList: any[] = (context.environments as any)?.entities ?? [];
+  const summary = renderSummary(code, context, coverage);
 
-  /** "100 of 2711 ⚠️ truncated" when partial, plain "42" when complete. */
-  const countOf = (c: Coverage): string =>
-    c.truncated ? `${c.loaded} of ${c.total} ⚠️ truncated` : `${c.loaded}`;
-
-  const lines = [
-    `## Project: ${projectName} (${code})`,
-    '',
-    `- **Suites:** ${countOf(coverage.suites)}`,
-    `- **Milestones:** ${countOf(coverage.milestones)}`,
-    `- **Environments:** ${countOf(coverage.environments)}`,
-    `- **Custom fields:** ${countOf(coverage.custom_fields)}`,
-    `- **Team members:** ${countOf(coverage.users)}`,
-  ];
-
-  const truncated = Object.entries(coverage)
-    .filter(([, c]) => c.truncated)
-    .map(([name]) => name);
-
-  if (truncated.length > 0) {
-    lines.push(
-      '',
-      `⚠️ **Partial data:** ${truncated.join(', ')} exceed ${PAGE_SIZE} entities and are ` +
-        'truncated above. Do not treat the lists below as complete. Call ' +
-        `\`qase_project_context({ code: "${code}", full: true })\` for the full set, or use ` +
-        'the targeted list tools / `qql_search` to query a subset.',
-    );
-  }
-
-  if (envsList.length > 0) {
-    lines.push('', '**Environments:** ' + envsList.map((e: any) => e.title).join(', '));
-  }
-
-  if (milestonesList.length > 0) {
-    lines.push('', '**Milestones:**');
-    for (const m of milestonesList.slice(0, 10)) {
-      const status = m.status ? ` \`${m.status}\`` : '';
-      lines.push(`- ${m.title}${status}`);
-    }
-    if (milestonesList.length > 10) lines.push(`- _...and ${milestonesList.length - 10} more_`);
-  }
-
-  if (suitesList.length > 0) {
-    const topLevel = suitesList.filter((s: any) => !s.parent_id);
-    // Qualify the denominator as loaded, not total — with a truncated set the
-    // suites in hand are only a slice of the project.
-    const scope = coverage.suites.truncated
-      ? `${topLevel.length} of ${suitesList.length} loaded, ${coverage.suites.total} in project`
-      : `${topLevel.length} of ${suitesList.length} total`;
-    lines.push('', `**Top-level suites** (${scope}):`);
-    for (const s of topLevel.slice(0, 10)) {
-      lines.push(`- ${s.title}`);
-    }
-    if (topLevel.length > 10) lines.push(`- _...and ${topLevel.length - 10} more_`);
-  }
-
-  const summary = lines.join('\n');
-
-  return richResult(
-    [summaryBlock(summary), dataBlock(context)],
-    context as Record<string, unknown>,
-  );
+  return richResult([summaryBlock(summary), dataBlock(context)], context);
 }
 
 toolRegistry.register({

@@ -125,9 +125,26 @@ describe('Schema-API Contract Tests', () => {
       expect(required).toContain('code');
     });
 
-    it('filename should be required', () => {
-      const required = getSchemaRequired('qase_attachment_upload');
-      expect(required).toContain('filename');
+    // filename moved off the top-level `required` list when `files` arrived: a
+    // multi-file request names each file inside its own entry. The handler
+    // still refuses a single-file upload that carries no filename.
+    it('requires filename inside every files entry', () => {
+      const schema = toolRegistry.getTool('qase_attachment_upload')!.inputSchema as any;
+      const entry = schema.properties.files.items;
+
+      expect(entry.required).toContain('filename');
+      expect(Object.keys(entry.properties)).toEqual(
+        expect.arrayContaining(['filename', 'file_base64', 'file_path']),
+      );
+    });
+
+    it('accepts several files in one request, within the Qase limits', () => {
+      const schema = toolRegistry.getTool('qase_attachment_upload')!.inputSchema as any;
+
+      expect(schema.properties.files.type).toBe('array');
+      // Qase: up to 20 files, 32 Mb per file, 128 Mb per request.
+      expect(schema.properties.files.maxItems).toBe(20);
+      expect(schema.properties.files.minItems).toBe(1);
     });
 
     it('offers explicit base64 and path inputs, keeping `file` as a legacy alias', () => {

@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **`qase_attachment_upload` uploads several files in one request.** A new `files` argument takes one entry per file — each with its own `filename` and either `file_base64` or `file_path` — and sends them as a single `multipart/form-data` request, returning the hashes in the same order. Uploading the screenshot, the log and the HAR of one failure used to cost three round trips; it now costs one. The single-file arguments (`file_base64`, `file_path`, the deprecated `file`) keep working unchanged, so existing callers need no edit. `filename` is consequently no longer on the schema's top-level `required` list — it is required inside every `files` entry, and the handler still refuses a single-file upload that arrives without one.
+
+- **Qase's upload limits are enforced before anything is sent.** Qase accepts at most 20 files, 32 MB per file and 128 MB per request. A request breaking any of those is now refused locally, with the offending file named and its size given, instead of being read, base64-decoded, uploaded and rejected by the API. An oversized `file_base64` is measured from the string's length, so a 45 MB payload is turned away before it is decoded into memory.
+
+- **HTTP 507 is explained rather than passed through.** An upload that exhausts the team account's storage now comes back as `Insufficient storage: … The Qase team account has no free space left for attachments.` with the suggestion to free space or upgrade the plan, so an agent stops retrying a request that cannot succeed until someone acts.
+
 ## [2.7.2]
 
 ### Added

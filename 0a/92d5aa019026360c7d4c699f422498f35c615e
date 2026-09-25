@@ -1,0 +1,67 @@
+src/transports/rate-limit.test.ts
+  s_35c88c22e6eabb::t_49e51aa4865c1a 1-61
+src/client/index.ts
+  s_35c88c22e6eabb::t_49e51aa4865c1a 41,203,216-266
+  s_35c88c22e6eabb::t_da091de4ea11c6 267-268
+src/operations-v2/qql/index.ts
+  s_35c88c22e6eabb::t_49e51aa4865c1a 296,298
+src/server.ts
+  s_35c88c22e6eabb::t_49e51aa4865c1a 134
+src/utils/registry.ts
+  s_35c88c22e6eabb::t_49e51aa4865c1a 26-34,107,161,169
+src/client/url-resolution.test.ts
+  s_35c88c22e6eabb::t_49e51aa4865c1a 1-158
+src/operations-v2/composites/regression-run.ts
+  s_35c88c22e6eabb::t_49e51aa4865c1a 68
+src/operations-v2/escape/api.test.ts
+  s_35c88c22e6eabb::t_49e51aa4865c1a 61-118
+src/cache/prom-format.ts
+  s_35c88c22e6eabb::t_49e51aa4865c1a 9-10
+server.json
+  s_35c88c22e6eabb::t_5b87f2e6fbecab 11,16
+src/operations-v2/read/project-context.ts
+  s_35c88c22e6eabb::t_49e51aa4865c1a 82-166,255,257
+src/prompts/index.ts
+  s_35c88c22e6eabb::t_49e51aa4865c1a 231-239,242-247
+CHANGELOG.md
+  s_35c88c22e6eabb::t_8ec37d0ff09bd8 16
+  s_35c88c22e6eabb::t_49e51aa4865c1a 18-32
+  s_35c88c22e6eabb::t_d7b2f79f4548df 8,17
+src/cache/metrics.ts
+  s_35c88c22e6eabb::t_49e51aa4865c1a 33,43,76-85,89,91
+src/cache/redis.ts
+  s_35c88c22e6eabb::t_49e51aa4865c1a 2,20-26,56
+src/operations-v2/write/reviews.ts
+  s_35c88c22e6eabb::t_49e51aa4865c1a 266,270,331,399
+src/transports/streamableHttp.ts
+  s_35c88c22e6eabb::t_49e51aa4865c1a 18,46-58,72,96-99,179-185
+src/transports/rate-limit.ts
+  s_35c88c22e6eabb::t_49e51aa4865c1a 1-54
+src/utils/response-shape.ts
+  s_35c88c22e6eabb::t_49e51aa4865c1a 18-20,22-27,29-30,32-33,37,39-46,65
+package.json
+  s_35c88c22e6eabb::t_5b87f2e6fbecab 3
+  s_35c88c22e6eabb::t_49e51aa4865c1a 75
+src/operations-v2/escape/api.ts
+  s_35c88c22e6eabb::t_49e51aa4865c1a 7-34,37-39,46-57,87-90
+src/http/dedupe.ts
+  s_35c88c22e6eabb::t_49e51aa4865c1a 73-74
+package-lock.json
+  s_35c88c22e6eabb::t_a9b19f045ced67 3,9,17
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "0a92d5aa019026360c7d4c699f422498f35c615e",
+  "prompts": {},
+  "sessions": {
+    "s_35c88c22e6eabb": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "8fc9adc5-c1e7-41e6-a788-60ee505504f6",
+        "model": "claude-opus-5"
+      },
+      "human_author": "Dmitrii Gridnev <dgridnev@qase.io>"
+    }
+  }
+}

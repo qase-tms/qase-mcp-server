@@ -58,6 +58,43 @@ export class ToolExecutionError extends Error {
 }
 
 /**
+ * Docs for running the server yourself — the remedy for every plan restriction.
+ */
+const SELF_RUN_DOCS = 'https://github.com/qase-tms/qase-mcp-server/blob/main/docs/self-run.md';
+
+/**
+ * A 403 from Qase means one of two unrelated things: the workspace's plan does not
+ * include the feature (the hosted connector requires Enterprise), or the user really
+ * lacks permission. Only the first is a plan problem, and describing it as a missing
+ * permission sends people hunting for a role or license that is already correct.
+ */
+const PLAN_RESTRICTION_PATTERN = /\b(?:current|your)\s+plan\b|\bupgrade\b|\bplan\s+tier\b/i;
+
+/**
+ * Machine-readable codes the API sends for a plan restriction. Preferred over the
+ * message text, which is free to be reworded at any time.
+ */
+const PLAN_RESTRICTION_CODES = new Set(['plan_required']);
+
+function planRestrictionMessage(message: string): string {
+  return (
+    `Plan restriction: ${message} The hosted Qase MCP connector is available on the ` +
+    `Enterprise plan only — this is a workspace plan limit, not an account or role ` +
+    `misconfiguration. Run the server yourself with your own QASE_API_TOKEN instead: ` +
+    `Qase MCP works on every plan that way.`
+  );
+}
+
+function isPlanRestriction(data: unknown, message: string): boolean {
+  const body = data as { code?: unknown; errorCode?: unknown } | undefined;
+  const code = body?.code ?? body?.errorCode;
+  if (typeof code === 'string' && PLAN_RESTRICTION_CODES.has(code.toLowerCase())) {
+    return true;
+  }
+  return PLAN_RESTRICTION_PATTERN.test(message);
+}
+
+/**
  * Format API error into a user-friendly message
  *
  * @param error - The error to format
@@ -75,7 +112,12 @@ export function formatApiError(error: unknown): string {
     switch (status) {
       case 401:
         return `Authentication failed: ${message}. Please check your QASE_API_TOKEN environment variable.`;
+      case 402:
+        return planRestrictionMessage(String(message ?? ''));
       case 403:
+        if (isPlanRestriction(data, String(message ?? ''))) {
+          return planRestrictionMessage(String(message ?? ''));
+        }
         return `Access forbidden: ${message}. You don't have permission to perform this action.`;
       case 404:
         return `Resource not found: ${message}`;
@@ -204,6 +246,14 @@ function getSuggestionForError(error: string, context?: string): string | undefi
   // Authentication errors
   if (lowerError.includes('authentication failed') || lowerError.includes('401')) {
     return 'Check that QASE_API_TOKEN environment variable is set correctly.';
+  }
+
+  // Plan restrictions — a 403 no change of role or permission can fix
+  if (lowerError.includes('plan restriction')) {
+    return (
+      `Run the server yourself with your own QASE_API_TOKEN instead of the hosted connector — ` +
+      `it works on every plan. Setup: ${SELF_RUN_DOCS}`
+    );
   }
 
   // Permission errors

@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [2.7.4]
 
 ### Added
 
@@ -14,6 +14,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Qase's upload limits are enforced before anything is sent.** Qase accepts at most 20 files, 32 MB per file and 128 MB per request. A request breaking any of those is now refused locally, with the offending file named and its size given, instead of being read, base64-decoded, uploaded and rejected by the API. An oversized `file_base64` is measured from the string's length, so a 45 MB payload is turned away before it is decoded into memory.
 
 - **HTTP 507 is explained rather than passed through.** An upload that exhausts the team account's storage now comes back as `Insufficient storage: … The Qase team account has no free space left for attachments.` with the suggestion to free space or upgrade the plan, so an agent stops retrying a request that cannot succeed until someone acts.
+
+### Security
+
+- **`js-yaml` moves onto its patched releases.** GHSA-2883-xcg3-v3hh: `maxTotalMergeKeys` does not count empty mappings, so a document can merge a long sequence of them repeatedly and spend `O(N*K)` CPU without ever reaching the configured limit. `js-yaml` reaches this project through dev dependencies only — eslint on the 4.x line, ts-jest's coverage tooling on 3.x — and both were already pinned by an override, so the pins move to 4.3.2 and 3.15.2. No production dependency is affected, and nothing in the published package changes.
 
 ## [2.7.3]
 

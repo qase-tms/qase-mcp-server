@@ -127,6 +127,8 @@ export function formatApiError(error: unknown): string {
         return `Validation error: ${message}`;
       case 429:
         return `Rate limit exceeded: ${message}. Please try again later.`;
+      case 507:
+        return `Insufficient storage: ${message}. The Qase team account has no free space left for attachments.`;
       case 500:
       case 502:
       case 503:
@@ -259,6 +261,11 @@ function getSuggestionForError(error: string, context?: string): string | undefi
   // Permission errors
   if (lowerError.includes('forbidden') || lowerError.includes('403')) {
     return 'Verify you have the required permissions for this operation.';
+  }
+
+  // Storage exhausted (507) — retrying changes nothing until space is freed.
+  if (lowerError.includes('insufficient storage') || lowerError.includes('507')) {
+    return 'Free up space by deleting attachments you no longer need, or upgrade the plan, then retry.';
   }
 
   // Not found errors

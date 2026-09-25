@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.7.2]
+
+### Added
+
+- **The MCP endpoint is now rate-limited.** Requests to `/mcp` are capped per client IP, and a caller over the budget gets HTTP `429` carrying a JSON-RPC error (`code: -32000`, `Too many requests`) rather than express's plain-text default, so an MCP client can parse the rejection like any other response. The limiter runs ahead of the auth guard, so a flood is rejected before the server spends a JWT signature verify on it. The default budget is 600 requests per minute — generous on purpose, since an office behind NAT shares one address and an MCP session sends one request per tool call. Tune it with `QASE_MCP_RATE_LIMIT_PER_MINUTE`, or set it to `0` to turn the limiter off; a value that is not a non-negative integer falls back to the default rather than failing startup. This affects the `streamable-http` transport only. Deployments that already cap inbound traffic at a proxy can leave the limiter on — the budget is a ceiling on abuse, not a fair-use quota.
+
+### Fixed
+
+- **Request logging could garble its own output.** The streamable HTTP transport logged each request by interpolating the method and path into the first argument of `console.error`, which Node treats as a format string when further arguments follow. A request path containing `%s` or `%d` consumed the query object that was meant to be logged beside it, so the log line lost data the operator was supposed to see. The method and path are now passed as format arguments instead. Reported by CodeQL (`js/tainted-format-string`).
+
 ## [2.7.1]
 
 ### Fixed

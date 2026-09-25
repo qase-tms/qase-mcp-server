@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
   A 403 that is a plan restriction is now rendered as a plan restriction — `Plan restriction: <message>` — with no permissions language anywhere in it, and it names the remedy the reader can actually act on: run the server yourself with your own `QASE_API_TOKEN`, which works on every plan. The accompanying suggestion links [docs/self-run.md](docs/self-run.md) instead of pointing at permissions. A 403 that really is a permissions problem is unchanged, wording and suggestion alike.
 
+  **An HTTP `402 Payment Required` is now read as a plan refusal on its own**, without consulting the message at all. That is the status the Qase API already uses for plan gates elsewhere (`ApiCheckFeatureAccess` and the rest of that family), and the hosted connector's gate is moving onto it. Both paths — the 402 status and a 403 recognized by code or text — produce byte-identical wording, so the two cannot drift apart as the backend migrates. Until it does, the 403 path keeps carrying every refusal.
+
   The two are told apart by the message text — `current plan`, `your plan`, `upgrade`, `plan tier` — and by a machine-readable `errorCode` of `plan_required` on the response body, which takes precedence when it is present. Today every such refusal is recognized by its text; the code is read so that a future API release can make the classification independent of the wording. The text pattern is deliberately narrow: a 403 on a *test* plan ("you do not have access to this test plan") is still a permissions error, and a test holds that line.
 
 ## [2.7.2]

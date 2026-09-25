@@ -76,6 +76,15 @@ const PLAN_RESTRICTION_PATTERN = /\b(?:current|your)\s+plan\b|\bupgrade\b|\bplan
  */
 const PLAN_RESTRICTION_CODES = new Set(['plan_required']);
 
+function planRestrictionMessage(message: string): string {
+  return (
+    `Plan restriction: ${message} The hosted Qase MCP connector is available on the ` +
+    `Enterprise plan only — this is a workspace plan limit, not an account or role ` +
+    `misconfiguration. Run the server yourself with your own QASE_API_TOKEN instead: ` +
+    `Qase MCP works on every plan that way.`
+  );
+}
+
 function isPlanRestriction(data: unknown, message: string): boolean {
   const body = data as { code?: unknown; errorCode?: unknown } | undefined;
   const code = body?.code ?? body?.errorCode;
@@ -103,14 +112,11 @@ export function formatApiError(error: unknown): string {
     switch (status) {
       case 401:
         return `Authentication failed: ${message}. Please check your QASE_API_TOKEN environment variable.`;
+      case 402:
+        return planRestrictionMessage(String(message ?? ''));
       case 403:
         if (isPlanRestriction(data, String(message ?? ''))) {
-          return (
-            `Plan restriction: ${message} The hosted Qase MCP connector is available on the ` +
-            `Enterprise plan only — this is a workspace plan limit, not an account or role ` +
-            `misconfiguration. Run the server yourself with your own QASE_API_TOKEN instead: ` +
-            `Qase MCP works on every plan that way.`
-          );
+          return planRestrictionMessage(String(message ?? ''));
         }
         return `Access forbidden: ${message}. You don't have permission to perform this action.`;
       case 404:

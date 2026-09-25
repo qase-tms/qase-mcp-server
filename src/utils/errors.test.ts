@@ -95,6 +95,57 @@ describe('Error Utilities', () => {
       expect(formatted).toMatch(/run the server yourself/i);
     });
 
+    it('should format a plan refusal sent as 402', () => {
+      const error = {
+        response: {
+          status: 402,
+          data: {
+            status: false,
+            errorMessage:
+              'This feature isn\u2019t available on your current plan. Please upgrade to access it.',
+          },
+        },
+        message: 'Request failed',
+        isAxiosError: true,
+      } as AxiosError;
+
+      const formatted = formatApiError(error);
+      expect(formatted).toContain('Plan restriction');
+      expect(formatted).toContain('available on your current plan');
+      expect(formatted).not.toMatch(/permission/i);
+      expect(formatted).toContain('QASE_API_TOKEN');
+    });
+
+    it('should treat a 402 as a plan refusal whatever its message says', () => {
+      const error = {
+        response: {
+          status: 402,
+          data: { status: false, errorMessage: 'Forbidden' },
+        },
+        message: 'Request failed',
+        isAxiosError: true,
+      } as AxiosError;
+
+      const formatted = formatApiError(error);
+      expect(formatted).toContain('Plan restriction');
+      expect(formatted).not.toMatch(/permission/i);
+    });
+
+    it('should word a 402 and a 403 plan refusal identically', () => {
+      const body = {
+        status: false,
+        errorMessage: 'Please upgrade your plan to use this feature.',
+      };
+      const as = (status: number) =>
+        formatApiError({
+          response: { status, data: body },
+          message: 'Request failed',
+          isAxiosError: true,
+        } as AxiosError);
+
+      expect(as(402)).toBe(as(403));
+    });
+
     it('should treat code "plan_required" as a plan restriction (403)', () => {
       const error = {
         response: {
@@ -374,6 +425,18 @@ describe('Error Utilities', () => {
       );
       expect(error.suggestion).toMatch(/run the server yourself/i);
       expect(error.suggestion).toContain('QASE_API_TOKEN');
+      expect(error.suggestion).not.toMatch(/permission/i);
+    });
+
+    it('should suggest self-run for a 402-sourced plan restriction', () => {
+      const formatted = formatApiError({
+        response: { status: 402, data: { status: false, errorMessage: 'Upgrade required.' } },
+        message: 'Request failed',
+        isAxiosError: true,
+      } as AxiosError);
+
+      const error = createToolError(formatted, 'project context');
+      expect(error.suggestion).toMatch(/run the server yourself/i);
       expect(error.suggestion).not.toMatch(/permission/i);
     });
 

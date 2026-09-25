@@ -1,0 +1,52 @@
+src/operations-v2/qql/index.ts
+  s_41606f0acd7833::t_d11d1accfe7ad0 296,298
+src/prompts/index.ts
+  s_41606f0acd7833::t_4f739fb543d5c9 242-247
+  s_41606f0acd7833::t_172a0f9c0ecc86 231-239
+src/cache/prom-format.ts
+  s_41606f0acd7833::t_d11d1accfe7ad0 9-10
+src/http/dedupe.ts
+  s_41606f0acd7833::t_d11d1accfe7ad0 73-74
+src/utils/response-shape.ts
+  s_41606f0acd7833::t_588c97cfe3b5c5 65
+  s_41606f0acd7833::t_d4c9ba8707c1a1 18-20,22-27,29-30,32-33,37,39-46
+src/operations-v2/read/project-context.ts
+  s_41606f0acd7833::t_588c97cfe3b5c5 257
+  s_41606f0acd7833::t_df4bedb9158331 82-96,101-153,162-166,255
+  s_41606f0acd7833::t_934f60ac718cc8 97-100,154-161
+src/transports/streamableHttp.ts
+  s_41606f0acd7833::t_d11d1accfe7ad0 46-58,72
+src/cache/metrics.ts
+  s_41606f0acd7833::t_d11d1accfe7ad0 89,91
+  s_41606f0acd7833::t_1ee4e76057d53d 77
+  s_41606f0acd7833::t_ee532976821e9f 33,43,76,78-83
+  s_41606f0acd7833::t_b19bc18f699f34 84-85
+src/cache/redis.ts
+  s_41606f0acd7833::t_8cce008cf253d1 2,20-26,56
+src/operations-v2/composites/regression-run.ts
+  s_41606f0acd7833::t_588c97cfe3b5c5 68
+src/utils/registry.ts
+  s_41606f0acd7833::t_f665c76e373d50 161,169
+  s_41606f0acd7833::t_588c97cfe3b5c5 107
+  s_41606f0acd7833::t_172a0f9c0ecc86 26-34
+src/operations-v2/write/reviews.ts
+  s_41606f0acd7833::t_588c97cfe3b5c5 266,270,331,399
+src/server.ts
+  s_41606f0acd7833::t_c1dac14fb69961 134
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "1625d49b958760838f302e198da80abd2d0096df",
+  "prompts": {},
+  "sessions": {
+    "s_41606f0acd7833": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "d877f577-52d2-45dc-9a62-bcc167183bb5",
+        "model": "claude-opus-5"
+      },
+      "human_author": "Dmitrii Gridnev <dgridnev@qase.io>"
+    }
+  }
+}

@@ -7,7 +7,7 @@
  * `requestState` string the client echoes back.
  */
 
-import { randomBytes } from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
 import { createRequestStateCodec } from '@modelcontextprotocol/server';
 import type { RequestStateCodec, ServerContext } from '@modelcontextprotocol/server';
 
@@ -15,9 +15,59 @@ import type { RequestStateCodec, ServerContext } from '@modelcontextprotocol/ser
 export interface ConfirmationState {
   /** The tool the confirmation was issued for; an answer only counts for it. */
   tool: string;
+  /**
+   * Digest of the arguments the human was shown.
+   *
+   * The tool name alone does not say WHAT was confirmed. Without this, an
+   * accepted `qase_case_delete {code:'TEST', id:1}` could be echoed back
+   * unchanged against `{code:'PROD', id:999}` for the whole lifetime of the
+   * state — same caller, same tool, valid signature — and the second case
+   * would be deleted with nobody asked. The client here is the agent, and
+   * stopping exactly that is what this gate is for.
+   */
+  arguments: string;
 }
 
 const MIN_KEY_BYTES = 32;
+
+/**
+ * How long a confirmation stays answerable.
+ *
+ * This is a human's thinking time, not a protocol timeout: the prompt is in
+ * front of a person deciding whether to delete something. Ten minutes is long
+ * enough to read the arguments, check them elsewhere and come back, and short
+ * enough that an answer given before lunch is not still spendable after it.
+ * It is the SDK's own default, stated here because it is a policy decision
+ * rather than an implementation detail.
+ */
+export const CONFIRMATION_TTL_SECONDS = 600;
+
+/** Recursively sort object keys so two spellings of one value serialise alike. */
+function canonicalize(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(canonicalize);
+  if (value === null || typeof value !== 'object') return value;
+  const source = value as Record<string, unknown>;
+  return Object.fromEntries(
+    Object.keys(source)
+      .sort()
+      .map((key) => [key, canonicalize(source[key])]),
+  );
+}
+
+/**
+ * Digest of a call's arguments, for pinning a confirmation to the exact call
+ * the human saw.
+ *
+ * Canonical: keys are sorted at every depth, so `{a:1,b:2}` and `{b:2,a:1}`
+ * agree — the same call written two ways is the same call, and a client that
+ * re-serialises its arguments between rounds must not be told its answer no
+ * longer counts. Array order is preserved, because it is part of the value.
+ */
+export function digestArguments(args: Record<string, unknown>): string {
+  return createHash('sha256')
+    .update(JSON.stringify(canonicalize(args)))
+    .digest('hex');
+}
 
 /**
  * requestState round-trips through the client, so it comes back as
@@ -51,6 +101,7 @@ export function createRequestStateCodecFromEnv(
   }
   return createRequestStateCodec<ConfirmationState>({
     key: configured ?? randomBytes(MIN_KEY_BYTES),
+    ttlSeconds: CONFIRMATION_TTL_SECONDS,
     bind: (ctx: ServerContext) =>
       `${ctx.mcpReq.method}\0${
         (ctx as { http?: { authInfo?: { extra?: Record<string, unknown> } } }).http?.authInfo?.extra

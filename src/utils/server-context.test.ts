@@ -27,7 +27,7 @@ import {
   confirmDestructiveAction,
   describeRefusal,
 } from './server-context.js';
-import { getRequestStateCodec } from './request-state.js';
+import { digestArguments, getRequestStateCodec } from './request-state.js';
 
 /**
  * A request context shaped the way the seam hands one to a handler.
@@ -60,11 +60,19 @@ function fakeCtx(
   } as unknown as ServerContext;
 }
 
-/** A context carrying an elicitation answer for the `confirm` key. */
-function answered(action: 'accept' | 'decline' | 'cancel', tool: string | undefined) {
+/**
+ * A context carrying an elicitation answer for the `confirm` key, plus the
+ * state that answer belongs to: the tool it was issued for and a digest of the
+ * arguments the human was shown.
+ */
+function answered(
+  action: 'accept' | 'decline' | 'cancel',
+  tool: string | undefined,
+  args: Record<string, unknown> = { code: 'TEST', id: 1 },
+) {
   return fakeCtx({
     inputResponses: { confirm: { action, ...(action === 'accept' && { content: {} }) } },
-    requestState: tool === undefined ? undefined : { tool },
+    requestState: tool === undefined ? undefined : { tool, arguments: digestArguments(args) },
   });
 }
 
@@ -201,8 +209,10 @@ describe('Server Context', () => {
     });
 
     it('allows when the answer is accept and the state names this tool', async () => {
-      const result = await requestContextStorage.run(answered('accept', 'qase_case_delete'), () =>
-        confirmDestructiveAction('qase_case_delete', { code: 'TEST', id: 42 }),
+      const args = { code: 'TEST', id: 42 };
+      const result = await requestContextStorage.run(
+        answered('accept', 'qase_case_delete', args),
+        () => confirmDestructiveAction('qase_case_delete', args),
       );
 
       expect(result).toEqual({ allowed: true });
@@ -230,7 +240,10 @@ describe('Server Context', () => {
     it('allows on accept alone, whatever the form content is', async () => {
       const ctx = fakeCtx({
         inputResponses: { confirm: { action: 'accept' } },
-        requestState: { tool: 'qase_case_delete' },
+        requestState: {
+          tool: 'qase_case_delete',
+          arguments: digestArguments({ code: 'TEST', id: 1 }),
+        },
       });
 
       const result = await requestContextStorage.run(ctx, () =>
@@ -309,11 +322,80 @@ describe('Server Context', () => {
         expect(confirm.params.requestedSchema.required).toBeUndefined();
       });
 
+      // A confirmation is an answer about ONE call, and what the human saw was
+      // the arguments. Re-using an accepted confirmation against different
+      // arguments — same caller, same tool, same signed state, well inside its
+      // lifetime — must not delete anything. These go through the gate itself
+      // so mint and verify are both exercised, rather than a payload written
+      // by hand that could agree with a bug on both sides.
+      describe('replaying an accepted confirmation', () => {
+        /**
+         * Round one for `args`, then round two for `retryArgs`: the state the
+         * gate minted is verified the way the seam verifies it, and the
+         * verified payload is what the retry's context hands back.
+         */
+        async function roundTrip(
+          args: Record<string, unknown>,
+          retryArgs: Record<string, unknown>,
+        ) {
+          const first = fakeCtx();
+          let wire: string | undefined;
+          try {
+            await requestContextStorage.run(first, () =>
+              confirmDestructiveAction('qase_case_delete', args),
+            );
+          } catch (error) {
+            wire = (error as InputRequiredSignal).result.requestState;
+          }
+
+          const retry = fakeCtx({
+            inputResponses: { confirm: { action: 'accept', content: {} } },
+            requestState: await getRequestStateCodec().verify(wire!, first),
+          });
+          return requestContextStorage.run(retry, () =>
+            confirmDestructiveAction('qase_case_delete', retryArgs),
+          );
+        }
+
+        it('allows the retry that repeats the confirmed arguments', async () => {
+          await expect(
+            roundTrip({ code: 'TEST', id: 1 }, { code: 'TEST', id: 1 }),
+          ).resolves.toEqual({ allowed: true });
+        });
+
+        it('refuses a retry that names a different resource', async () => {
+          await expect(
+            roundTrip({ code: 'TEST', id: 1 }, { code: 'PROD', id: 999 }),
+          ).resolves.toEqual({ allowed: false, reason: 'undeliverable' });
+        });
+
+        it('refuses a retry that changes one argument', async () => {
+          await expect(
+            roundTrip({ code: 'TEST', id: 1 }, { code: 'TEST', id: 2 }),
+          ).resolves.toEqual({ allowed: false, reason: 'undeliverable' });
+        });
+
+        it('refuses a retry that drops an argument', async () => {
+          await expect(roundTrip({ code: 'TEST', id: 1 }, { code: 'TEST' })).resolves.toEqual({
+            allowed: false,
+            reason: 'undeliverable',
+          });
+        });
+
+        // Key order is not part of what the human confirmed, so it must not
+        // turn a legitimate retry into a refusal.
+        it('allows a retry that writes the same arguments in another order', async () => {
+          await expect(
+            roundTrip({ code: 'TEST', id: 1 }, { id: 1, code: 'TEST' }),
+          ).resolves.toEqual({ allowed: true });
+        });
+      });
+
       // This is what replaces `relatedRequestId`: correlation no longer rides
       // a stream id, it rides signed state the client echoes back. The state
-      // must verify under this process's own codec and name the tool asked
+      // must verify under this process's own codec and name the call asked
       // about — otherwise the answer could not be matched on the retry.
-      it('carries signed state naming the tool it asked about', async () => {
+      it('carries signed state naming the call it asked about', async () => {
         const ctx = fakeCtx();
         let signal: InputRequiredSignal | undefined;
         try {
@@ -328,6 +410,7 @@ describe('Server Context', () => {
         expect(typeof state).toBe('string');
         await expect(getRequestStateCodec().verify(state!, ctx)).resolves.toEqual({
           tool: 'qase_case_delete',
+          arguments: digestArguments({ code: 'TEST', id: 1 }),
         });
       });
     });

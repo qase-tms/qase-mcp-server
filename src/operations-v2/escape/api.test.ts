@@ -126,6 +126,24 @@ describe('DELETE', () => {
     expect(JSON.stringify(args)).toContain('/v1/project/DEMO');
   });
 
+  // The confirmation is pinned to the arguments it was shown, so everything
+  // that decides which records go has to be among them. On this tool a filter
+  // in `query` or a list of ids in `body` selects the records just as much as
+  // the path does — leaving them out would let one confirmed DELETE be
+  // replayed against a different set.
+  it('confirms the query and body too, not just the path', async () => {
+    await invoke({
+      method: 'DELETE',
+      path: '/v1/result/DEMO',
+      query: { 'filters[run]': '7' },
+      body: { ids: [1, 2] },
+    });
+
+    const [, args] = mockConfirm.mock.calls[0] as unknown as [string, Record<string, unknown>];
+    expect(args.query).toEqual({ 'filters[run]': '7' });
+    expect(args.body).toEqual({ ids: [1, 2] });
+  });
+
   it('makes the request once confirmed', async () => {
     await invoke({ method: 'DELETE', path: '/v1/project/DEMO' });
 

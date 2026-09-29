@@ -14,7 +14,7 @@
 import { AsyncLocalStorage } from 'async_hooks';
 import { inputRequired, inputResponse } from '@modelcontextprotocol/server';
 import type { InputRequiredResult, Server, ServerContext } from '@modelcontextprotocol/server';
-import { getRequestStateCodec, type ConfirmationState } from './request-state.js';
+import { digestArguments, getRequestStateCodec, type ConfirmationState } from './request-state.js';
 
 /**
  * Per-request server storage.
@@ -83,10 +83,10 @@ const REFUSED_UNSUPPORTED = { allowed: false, reason: 'unsupported' } as const;
  * read straight off the request.
  *
  * Fail-closed: the action proceeds only on an explicit accept whose signed
- * state names this very tool. No request context, a client on a protocol
- * revision this server cannot ask, a decline, a cancel, an answer belonging to
- * some other confirmation — all refuse, and name the reason so the caller can
- * say what happened.
+ * state names this very call — this tool, with these arguments. No request
+ * context, a client on a protocol revision this server cannot ask, a decline,
+ * a cancel, an answer belonging to some other confirmation — all refuse, and
+ * name the reason so the caller can say what happened.
  */
 export async function confirmDestructiveAction(
   toolName: string,
@@ -101,11 +101,25 @@ export async function confirmDestructiveAction(
   // the client's maxRounds.
   const answer = inputResponse(ctx.mcpReq.inputResponses, CONFIRM_KEY);
   if (answer.kind === 'elicit') {
-    // The state was already verified by the seam before this handler ran; all
-    // that is left is that the answer belongs to THIS tool, not another
-    // confirmation the same caller happens to have outstanding.
+    // The state was already verified by the seam before this handler ran — it
+    // is this process's own, for this caller, unexpired. What is left is that
+    // the answer belongs to THIS call: the same tool, and the same arguments
+    // the human was shown. Neither alone is enough. Without the tool, one
+    // confirmation would open every destructive tool; without the arguments,
+    // one confirmed deletion would authorise every other deletion by the same
+    // tool until the state expired.
+    //
+    // A plain string comparison, not `timingSafeEqual`: both operands are
+    // public values derived from arguments the caller itself sent, and the one
+    // from the wire is already integrity-proven, so there is no secret for a
+    // timing difference to leak. `timingSafeEqual` would also throw on a
+    // length mismatch, which is a shape this has to answer rather than crash.
     const state = ctx.mcpReq.requestState<ConfirmationState>();
-    if (state?.tool !== toolName) return { allowed: false, reason: 'undeliverable' };
+    if (state?.tool !== toolName || state.arguments !== digestArguments(args)) {
+      // Not a decline: the human never saw these arguments, so nobody said no
+      // — and nobody said yes either. Unconfirmed, nothing deleted.
+      return { allowed: false, reason: 'undeliverable' };
+    }
     return answer.action === 'accept' ? { allowed: true } : { allowed: false, reason: 'declined' };
   }
 
@@ -142,7 +156,10 @@ export async function confirmDestructiveAction(
           requestedSchema: { type: 'object', properties: {} },
         }),
       },
-      requestState: await getRequestStateCodec().mint({ tool: toolName }, ctx),
+      requestState: await getRequestStateCodec().mint(
+        { tool: toolName, arguments: digestArguments(args) },
+        ctx,
+      ),
     }),
   );
 }

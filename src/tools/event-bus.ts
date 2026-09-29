@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import type { ServerEvent, ServerEventBus } from '@modelcontextprotocol/server';
 
 /** Minimal surface this module needs from an ioredis-like publisher. */
@@ -12,6 +13,27 @@ export interface RedisLikeSub {
 }
 
 const DEFAULT_CHANNEL = 'mcp:server-events';
+
+/**
+ * Wire envelope this bus publishes: the event plus the id of the instance
+ * that published it. The `origin` field exists solely so `onRemoteMessage`
+ * can recognise — and drop — a message this same instance just published to
+ * itself (see the class doc comment below).
+ */
+interface WireMessage {
+  origin: string;
+  event: ServerEvent;
+}
+
+function isWireMessage(value: unknown): value is WireMessage {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'origin' in value &&
+    typeof (value as { origin: unknown }).origin === 'string' &&
+    'event' in value
+  );
+}
 
 /**
  * ServerEventBus over Redis Pub/Sub.
@@ -31,13 +53,34 @@ const DEFAULT_CHANNEL = 'mcp:server-events';
  * swallowed rather than thrown, since a dead cross-replica link must not take
  * down local delivery.
  *
- * Message format on the wire is the JSON-serialised `ServerEvent`. Malformed
- * messages are dropped silently in `onRemoteMessage` — same reasoning as
- * `RedisInvalidationBus`: one bad publisher must not poison the subscription
- * for every other listener.
+ * Redis delivers a published message to every subscriber of the channel,
+ * including the one belonging to the very process that published it (pub and
+ * sub are two client objects, but the same server-side channel). Without
+ * countermeasures that means a locally-published event gets delivered twice
+ * on the publishing replica: once synchronously in `publish()`, once more
+ * when the message round-trips back through `onRemoteMessage`. Each
+ * outgoing message is therefore stamped with a random `origin` id generated
+ * once per bus instance, and `onRemoteMessage` drops any message whose
+ * `origin` matches its own — the loop-back copy is discarded, every other
+ * replica still receives and delivers it normally. (This is unrelated to the
+ * SDK's re-entrancy rule that a bus must not echo an event back to the
+ * listener that is *currently* publishing it from inside `subscribe()` — the
+ * default `InMemoryServerEventBus` never has listeners publish, and neither
+ * does this one; the issue here is purely Redis fan-out delivering our own
+ * publish back to us on a different call stack.)
+ *
+ * Message format on the wire is the JSON-serialised `WireMessage`. A message
+ * that doesn't look like a `WireMessage` (no recognisable `origin`/`event`
+ * envelope — e.g. a bare event, or garbage from a differently-shaped
+ * publisher) is delivered as-is rather than dropped: `onRemoteMessage` only
+ * has enough information to de-duplicate our *own* echoes, not to validate
+ * the shape of an arbitrary remote payload. Genuinely malformed JSON is
+ * dropped silently — same reasoning as `RedisInvalidationBus`: one bad
+ * publisher must not poison the subscription for every other listener.
  */
 export class RedisServerEventBus implements ServerEventBus {
   private readonly listeners = new Set<(event: ServerEvent) => void>();
+  private readonly instanceId = randomUUID();
 
   constructor(
     private readonly pub: RedisLikePub,
@@ -47,7 +90,8 @@ export class RedisServerEventBus implements ServerEventBus {
   publish(event: ServerEvent): void {
     this.deliver(event);
 
-    void this.pub.publish(this.channel, JSON.stringify(event)).catch((err) => {
+    const wire: WireMessage = { origin: this.instanceId, event };
+    void this.pub.publish(this.channel, JSON.stringify(wire)).catch((err) => {
       console.error('[EventBus] Redis publish failed; other replicas will miss this event:', err);
     });
   }
@@ -65,17 +109,24 @@ export class RedisServerEventBus implements ServerEventBus {
   /**
    * Deliver a message that arrived on the Redis channel to local listeners.
    * Wired up by whoever owns the subscriber client (see
-   * `createServerEventBus` below); exposed here so it can be exercised
+   * `wireRemoteSubscription` below); exposed here so it can be exercised
    * directly without a real Redis connection.
    */
   onRemoteMessage(message: string): void {
-    let event: ServerEvent;
+    let parsed: unknown;
     try {
-      event = JSON.parse(message) as ServerEvent;
+      parsed = JSON.parse(message);
     } catch {
       return;
     }
-    this.deliver(event);
+
+    if (isWireMessage(parsed)) {
+      if (parsed.origin === this.instanceId) return; // our own publish, echoed back by Redis
+      this.deliver(parsed.event);
+      return;
+    }
+
+    this.deliver(parsed as ServerEvent);
   }
 
   private deliver(event: ServerEvent): void {
@@ -159,19 +210,36 @@ function createRedisServerEventBus(url: string): ServerEventBus {
 
   void ready.then((clients) => {
     if (!clients) return;
-    clients.sub.on('message', (msgChannel: string, message: string) => {
-      if (msgChannel !== channel) return;
-      bus.onRemoteMessage(message);
-    });
-    void clients.sub.subscribe(channel).catch((err) => {
-      console.error(
-        '[EventBus] Failed to subscribe to the Redis channel; remote events will not be delivered:',
-        err,
-      );
-    });
+    wireRemoteSubscription(clients.sub, bus, channel);
   });
 
   return bus;
+}
+
+/**
+ * Register the Redis message handler that feeds `bus.onRemoteMessage` and
+ * subscribe `sub` to `channel`.
+ *
+ * Exported as a seam: this is the piece that isn't otherwise reachable
+ * without exercising a real (or faked) dynamic `import('ioredis')`, so tests
+ * construct a fake `sub` directly instead of going through
+ * createServerEventBus.
+ */
+export function wireRemoteSubscription(
+  sub: RedisLikeSub,
+  bus: RedisServerEventBus,
+  channel: string = DEFAULT_CHANNEL,
+): void {
+  sub.on('message', (msgChannel: string, message: string) => {
+    if (msgChannel !== channel) return;
+    bus.onRemoteMessage(message);
+  });
+  void sub.subscribe(channel).catch((err) => {
+    console.error(
+      '[EventBus] Failed to subscribe to the Redis channel; remote events will not be delivered:',
+      err,
+    );
+  });
 }
 
 /**

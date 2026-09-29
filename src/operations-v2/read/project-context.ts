@@ -155,7 +155,10 @@ function renderSummary(code: string, context: Record<string, any>, coverage: Cov
     lines.push(
       ...listSection(
         '**Milestones:**',
-        milestonesList.map((m: any) => `- ${m.title}${m.status ? ` \`${m.status}\`` : ''}`),
+        milestonesList.map((m: any) => {
+          const status = m.status ? ` \`${m.status}\`` : '';
+          return `- ${m.title}${status}`;
+        }),
       ),
     );
   }

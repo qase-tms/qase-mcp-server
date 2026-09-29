@@ -70,7 +70,32 @@ Rules:
 - **The name must be on the allowlist** in [`src/utils/integration-marker.ts`](../src/utils/integration-marker.ts) (`ALLOWED_INTEGRATIONS`). This bounds the cardinality of the analytics dimension, so an unlisted name is ignored entirely and nothing is sent. To add your integration, open a PR adding it to that array.
 - A malformed or unlisted marker is dropped silently; the API call itself still succeeds.
 
-Over HTTP transports the marker can also travel per request instead of per process — send an `X-Qase-Integration: <name>/<version>` header, or add `?integration=<name>/<version>` to the MCP endpoint URL (read when the session is created, then remembered for that session). The query parameter is the fallback for clients that do not pass custom headers through. Precedence: request header → the value remembered for the session → `QASE_MCP_INTEGRATION`.
+Over HTTP transports the marker can also travel per request instead of per process — send an `X-Qase-Integration: <name>/<version>` header, or add `?integration=<name>/<version>` to the MCP endpoint URL. Each request is read on its own: a marker on one call is never attributed to the next. The query parameter is the fallback for clients that do not pass custom headers through. Precedence: request header → query parameter → `QASE_MCP_INTEGRATION`.
+
+### Running more than one replica
+
+Two pieces of state used to live inside a single process. From 3.0.0 both can be shared, and on a
+multi-replica deployment both **must** be, because there are no sessions any more — consecutive
+requests from the same client land on whichever replica the load balancer picks.
+
+```bash
+# Required when running more than one replica: the HMAC key that signs a pending
+# destructive-action confirmation. At least 32 bytes, identical on every replica.
+QASE_MCP_REQUEST_STATE_KEY=<a shared random string of 32+ bytes>
+
+# Optional: share tool activation and tool-list notifications across replicas.
+QASE_MCP_REDIS_URL=redis://host:6379
+```
+
+`QASE_MCP_REQUEST_STATE_KEY` is what makes a confirmation survive the trip through the client. The
+server asks, the client answers, and the answer comes back carrying server-minted state that is
+verified before anything is deleted. Without a shared key each replica generates its own at startup,
+so a confirmation minted by one replica fails verification on another and the deletion is refused —
+safe, but destructive tools stop working. A single replica needs nothing set.
+
+`QASE_MCP_REDIS_URL` is optional and affects convenience rather than correctness: without it, tools
+activated by `qase_discover_tools` are remembered only by the replica that activated them, so the
+same caller may see them appear and disappear between calls.
 
 ### Custom Domains (Enterprise)
 

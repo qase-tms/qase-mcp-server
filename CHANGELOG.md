@@ -5,6 +5,36 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.0]
+
+### Required deployment step
+
+- **Set `QASE_MCP_REQUEST_STATE_KEY` before deploying more than one replica.** It is the HMAC key that signs a pending destructive-action confirmation, it must be at least 32 bytes, and it must be identical on every replica. There are no sessions any more, so the request that asks for confirmation and the request that carries the answer can land on different replicas; without a shared key the second replica cannot verify what the first one minted, and the deletion is refused. Nothing is ever deleted unconfirmed as a result — but destructive tools stop working until the key is set. A single replica needs nothing: one is generated at startup.
+
+### Changed
+
+- **The server speaks the 2026-07-28 revision of MCP, and still serves clients on 2025-11-25.** The endpoint is now built by the SDK's `createMcpHandler`, which is per-request by construction: a client that negotiates the new revision is served it, and a client that has not moved is served the old one through the handler's stateless legacy path. Byte-for-byte dumps of both handshakes, both tool lists, the prompt list and every error surface were taken against the previous release and compared: every tool's input schema, output schema and annotations are identical, and the only differences are two pieces of text this release rewrote on purpose.
+
+- **Sessions are gone, and with them `mcp-session-id`.** The server no longer issues a session id, and `GET` and `DELETE` on the MCP endpoint — the two session operations of the old revision — answer `405`. `mcp-session-id` is still accepted as a request header, so a client that still sends one is not broken by a CORS preflight; it is simply ignored.
+
+- **Tool activation is per caller, and can be shared between replicas.** `qase_discover_tools` used to switch tools on for the whole process, so one user's discovery changed what every other user saw. Activation is now keyed by the authenticated subject and, when `QASE_MCP_REDIS_URL` is set, stored in Redis with a one-hour lifetime so every replica sees it. Without Redis it is remembered per process, which is correct for a single replica. Activation survives with no session at all: discover on one connection, list tools on a brand-new one, and the activated tools are there.
+
+- **The integration marker is read per request.** It used to be captured once when a session opened and remembered for that session's lifetime. `X-Qase-Integration` and `?integration=` are now read on the request that carries them, and never attributed to the next one.
+
+- **Destructive actions are confirmed through a multi-round-trip request.** The old flow called `elicitInput` and waited inside the call for an answer, which only a stateful connection can deliver. The handler now returns a request for input and reads the answer when the client retries. The state that travels through the client is HMAC-signed, bound to the caller and the method, and bound to the arguments it was shown for — so a confirmation for one deletion cannot be replayed against another. It expires after ten minutes, a human's pace rather than the protocol's minute.
+
+- **`tools/list` is marked uncacheable and `prompts/list` cacheable.** The tool list now depends on who is asking, so it is emitted as `private` with a zero lifetime. The prompt catalogue is the same for everyone and never changes while the server runs, so a shared cache may hold it for five minutes. Responses to 2025-era clients carry no cache metadata at all — that revision has no place to put it.
+
+### Added
+
+- **Two counters on `/metrics`:** `qase_mcp_tool_calls_total` by tool name, and `qase_mcp_tool_activations_total` by the tool that was switched on. Discovery was the least visible part of the server and is now the most measurable.
+
+- **`QASE_MCP_REDIS_URL` also carries tool-list notifications.** When several replicas share a Redis, an activation on one is announced to clients listening on the others.
+
+### Breaking
+
+- **A 2025-era client on a stateless HTTP connection can no longer confirm a deletion, and so cannot delete.** Confirmation on that revision needs the capabilities a client declares during `initialize`, and a stateless request never sent one. Such a call is refused with an explanation naming the reason and the two ways out: use a client that negotiates 2026-07-28, or delete in the Qase UI. This affects the HTTP transports only — over stdio and SSE the connection is long-lived, the client's capabilities are known, and confirmation works exactly as before.
+
 ## [2.7.5]
 
 ### Fixed

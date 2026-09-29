@@ -21,6 +21,8 @@ import { extractCallMarkers } from './utils/call-markers.js';
 import { parseProducerMarker } from './utils/producer-marker.js';
 import { producerStorage } from './utils/producer-context.js';
 import { callIntegrationStorage } from './utils/integration-context.js';
+import { requestSubjectStorage, LOCAL_SUBJECT } from './utils/auth-context.js';
+import { activationStore } from './tools/activation.js';
 import { VERSION } from './version.js';
 import { listPrompts, getPrompt } from './prompts/index.js';
 import { SERVER_INSTRUCTIONS } from './server-instructions.js';
@@ -37,6 +39,20 @@ import './operations-v2/index.js';
 function rejectUnknownCursor(cursor: unknown): void {
   if (cursor === undefined) return;
   throw new ProtocolError(ProtocolErrorCode.InvalidParams, 'Unknown pagination cursor');
+}
+
+/**
+ * Identify the caller for a request. `extra.sub` is what our JWKS verifier
+ * (src/auth/jwks-verifier.ts) writes onto `AuthInfo` when OAuth is on; with
+ * OAuth off — or no token on this request — there is no `authInfo` at all,
+ * and every caller shares the literal `'local'` key, matching today's
+ * single-process behaviour.
+ */
+function subjectFromContext(ctx: {
+  http?: { authInfo?: { extra?: Record<string, unknown> } };
+}): string {
+  const sub = ctx.http?.authInfo?.extra?.sub;
+  return typeof sub === 'string' ? sub : LOCAL_SUBJECT;
 }
 
 /**
@@ -78,9 +94,11 @@ export function createServer(): Server {
    * Returns all tools registered in the tool registry.
    * Called when the MCP client wants to discover available tools.
    */
-  server.setRequestHandler('tools/list', async (request) => {
+  server.setRequestHandler('tools/list', async (request, ctx) => {
     rejectUnknownCursor(request.params?.cursor);
-    const tools = toolRegistry.getTools();
+    const subject = subjectFromContext(ctx);
+    const active = await activationStore.get(subject);
+    const tools = toolRegistry.getTools(active);
     console.error(`[Server] Listing ${tools.length} tools`);
     return { tools };
   });
@@ -110,131 +128,126 @@ export function createServer(): Server {
    * Executes the specified tool with provided arguments.
    */
   server.setRequestHandler('tools/call', async (request, ctx) => {
-    return serverStorage.run(server, async () => {
-      const { name, arguments: rawArgs } = request.params;
-      // The two hidden attribution arguments never reach a tool handler — see
-      // call-markers.ts for why they travel as arguments rather than a header.
-      const markers = extractCallMarkers(rawArgs);
-      const args = markers.rest;
+    // The subject travels via AsyncLocalStorage rather than as a parameter:
+    // qase_discover_tools' handler is a plain ToolHandler (args) => Promise<R>
+    // several calls below, with no ctx of its own — see auth-context.ts.
+    const subject = subjectFromContext(ctx);
+    return requestSubjectStorage.run(subject, () =>
+      serverStorage.run(server, async () => {
+        const { name, arguments: rawArgs } = request.params;
+        // The two hidden attribution arguments never reach a tool handler — see
+        // call-markers.ts for why they travel as arguments rather than a header.
+        const markers = extractCallMarkers(rawArgs);
+        const args = markers.rest;
 
-      console.error(`[Server] Executing tool: ${name}`);
-      getMetrics().incCounter('qase_mcp_tool_calls_total', { tool: name });
+        console.error(`[Server] Executing tool: ${name}`);
+        getMetrics().incCounter('qase_mcp_tool_calls_total', { tool: name });
 
-      const runCall = async () => {
-        // Get tool handler from registry
-        const handler = toolRegistry.getHandler(name);
-        if (!handler) {
-          throw new Error(`Unknown tool: ${name}. Use list_tools to see available tools.`);
-        }
-
-        // Elicitation: confirm destructive actions before execution. The gate is
-        // fail-closed — an unconfirmed deletion does not happen. ctx.mcpReq.id
-        // is what puts the prompt on the stream of this call, where the client
-        // is listening.
-        const toolDef = toolRegistry.getTool(name);
-        if (toolDef?.annotations?.destructiveHint === true) {
-          const confirmation = await confirmDestructiveAction(name, args || {}, ctx.mcpReq.id);
-          if (!confirmation.allowed) {
-            console.error(`[Server] Refused destructive tool '${name}': ${confirmation.reason}`);
-            return {
-              content: [
-                { type: 'text' as const, text: describeRefusal(name, confirmation.reason) },
-              ],
-              // A decline is the user's decision, not a tool failure; the other
-              // reasons are something the caller has to act on.
-              ...(confirmation.reason !== 'declined' && { isError: true }),
-            };
-          }
-        }
-
-        try {
-          // Execute the tool handler with provided arguments
-          const result = await handler(args || {});
-
-          // Rich results: pass through pre-formatted content blocks directly
-          if (isRichResult(result)) {
-            return {
-              content: result.content,
-              ...(result.structuredContent && { structuredContent: result.structuredContent }),
-            };
+        const runCall = async () => {
+          // Get tool handler from registry
+          const handler = toolRegistry.getHandler(name);
+          if (!handler) {
+            throw new Error(`Unknown tool: ${name}. Use list_tools to see available tools.`);
           }
 
-          // Default: wrap in compact JSON text block
-          const compacted = compactResponse(result);
-          const hasOutputSchema = toolDef?.outputSchema !== undefined;
-          return {
-            content: [
-              {
-                type: 'text' as const,
-                text: JSON.stringify(compacted),
-              },
-            ],
-            // SDK requires structuredContent when outputSchema is defined
-            ...(hasOutputSchema && { structuredContent: compacted as Record<string, unknown> }),
-          };
-        } catch (error) {
-          // Handle tool execution errors (expected failures like validation, API errors)
-          // These are returned with isError: true so the LLM can understand and recover
-          if (error instanceof ToolExecutionError) {
-            console.error(`[Server] Tool '${name}' execution error:`, error.message);
+          // Elicitation: confirm destructive actions before execution. The gate is
+          // fail-closed — an unconfirmed deletion does not happen. ctx.mcpReq.id
+          // is what puts the prompt on the stream of this call, where the client
+          // is listening.
+          const toolDef = toolRegistry.getTool(name);
+          if (toolDef?.annotations?.destructiveHint === true) {
+            const confirmation = await confirmDestructiveAction(name, args || {}, ctx.mcpReq.id);
+            if (!confirmation.allowed) {
+              console.error(`[Server] Refused destructive tool '${name}': ${confirmation.reason}`);
+              return {
+                content: [
+                  { type: 'text' as const, text: describeRefusal(name, confirmation.reason) },
+                ],
+                // A decline is the user's decision, not a tool failure; the other
+                // reasons are something the caller has to act on.
+                ...(confirmation.reason !== 'declined' && { isError: true }),
+              };
+            }
+          }
+
+          try {
+            // Execute the tool handler with provided arguments
+            const result = await handler(args || {});
+
+            // Rich results: pass through pre-formatted content blocks directly
+            if (isRichResult(result)) {
+              return {
+                content: result.content,
+                ...(result.structuredContent && { structuredContent: result.structuredContent }),
+              };
+            }
+
+            // Default: wrap in compact JSON text block
+            const compacted = compactResponse(result);
+            const hasOutputSchema = toolDef?.outputSchema !== undefined;
             return {
               content: [
                 {
                   type: 'text' as const,
-                  text: error.toUserMessage(),
+                  text: JSON.stringify(compacted),
+                },
+              ],
+              // SDK requires structuredContent when outputSchema is defined
+              ...(hasOutputSchema && { structuredContent: compacted as Record<string, unknown> }),
+            };
+          } catch (error) {
+            // Handle tool execution errors (expected failures like validation, API errors)
+            // These are returned with isError: true so the LLM can understand and recover
+            if (error instanceof ToolExecutionError) {
+              console.error(`[Server] Tool '${name}' execution error:`, error.message);
+              return {
+                content: [
+                  {
+                    type: 'text' as const,
+                    text: error.toUserMessage(),
+                  },
+                ],
+                isError: true,
+              };
+            }
+
+            // Handle unexpected errors (protocol-level failures)
+            // Format error message using our error utilities
+            const errorMessage = formatApiError(error);
+            console.error(`[Server] Tool '${name}' unexpected error:`, errorMessage);
+
+            // Return as tool execution error with isError: true for better LLM recovery
+            return {
+              content: [
+                {
+                  type: 'text' as const,
+                  text: errorMessage,
                 },
               ],
               isError: true,
             };
           }
+        };
 
-          // Handle unexpected errors (protocol-level failures)
-          // Format error message using our error utilities
-          const errorMessage = formatApiError(error);
-          console.error(`[Server] Tool '${name}' unexpected error:`, errorMessage);
+        // Both scopes stay open for the whole call, so the outbound interceptor
+        // sees them however deep in the handler the API request is made.
+        const producer = parseProducerMarker(markers.producer);
+        const withProducer = producer ? () => producerStorage.run(producer, runCall) : runCall;
 
-          // Return as tool execution error with isError: true for better LLM recovery
-          return {
-            content: [
-              {
-                type: 'text' as const,
-                text: errorMessage,
-              },
-            ],
-            isError: true,
-          };
-        }
-      };
-
-      // Both scopes stay open for the whole call, so the outbound interceptor
-      // sees them however deep in the handler the API request is made.
-      const producer = parseProducerMarker(markers.producer);
-      const withProducer = producer ? () => producerStorage.run(producer, runCall) : runCall;
-
-      return markers.integration
-        ? callIntegrationStorage.run(markers.integration, withProducer)
-        : withProducer();
-    });
+        return markers.integration
+          ? callIntegrationStorage.run(markers.integration, withProducer)
+          : withProducer();
+      }),
+    );
   });
 
-  // Wire tool discovery notifications: when tools are activated via qase_discover_tools,
-  // notify the client so it re-queries the tool list.
-  //
-  // Subscribe rather than assign: the registry is a process-wide singleton but
-  // createServer runs once per session on the HTTP transports, and a single
-  // callback slot meant each new session silently replaced the previous one's
-  // — every older session then went unnotified and its client kept calling a
-  // tools/list it had cached before discovery ran.
-  const unsubscribe = toolRegistry.subscribeToolsChanged(() => {
-    server.sendToolListChanged().catch((err) => {
-      console.error('[Server] Failed to send tool list changed notification:', err);
-    });
-  });
-  const closePrevious = server.onclose?.bind(server);
-  server.onclose = () => {
-    unsubscribe();
-    closePrevious?.();
-  };
+  // Tool-list-changed push notifications used to be wired here through the
+  // registry's process-wide listener set (toolRegistry.subscribeToolsChanged),
+  // which assumed one activation event visible to every session. Activation
+  // is per-caller state now (see src/tools/activation.ts), so that mechanism
+  // is gone along with it; the 2026-07-28 era replaces the push with a client
+  // pull via `subscriptions/listen` over a `ServerEventBus`, which a later
+  // task in this migration wires in.
 
   return server;
 }

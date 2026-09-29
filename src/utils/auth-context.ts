@@ -26,3 +26,27 @@ export function getEffectiveToken(): string {
   }
   return envToken;
 }
+
+/**
+ * Per-request subject storage.
+ *
+ * Holds the caller identity — `authInfo.extra.sub` when OAuth verified the
+ * request, `'local'` otherwise — for the current async context. Tool
+ * handlers run several calls deep from the request handler that knows the
+ * subject (they only receive their arguments, not `ctx`), so the value
+ * travels the same way the per-request token does above rather than through
+ * a second, bespoke mechanism.
+ */
+export const requestSubjectStorage = new AsyncLocalStorage<string>();
+
+/** The literal key used when there is no authenticated subject (OAuth off). */
+export const LOCAL_SUBJECT = 'local';
+
+/**
+ * Read the caller identity for the current async context, falling back to
+ * the shared `'local'` key when there is none (no OAuth, or running outside
+ * a `requestSubjectStorage.run()` scope).
+ */
+export function getEffectiveSubject(): string {
+  return requestSubjectStorage.getStore() ?? LOCAL_SUBJECT;
+}

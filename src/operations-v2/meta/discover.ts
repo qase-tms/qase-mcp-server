@@ -10,6 +10,8 @@ import { z } from 'zod';
 import { getMetrics } from '../../cache/index.js';
 import { toolRegistry, ReadAnnotation } from '../../utils/registry.js';
 import { DiscoverToolsOutput } from '../../utils/output-schemas.js';
+import { activationStore } from '../../tools/activation.js';
+import { getEffectiveSubject } from '../../utils/auth-context.js';
 
 const Schema = z.object({
   query: z
@@ -61,11 +63,14 @@ async function handler(args: z.infer<typeof Schema>) {
     });
   }
 
-  // Activate matched tools if requested
+  // Activate matched tools if requested. The active set is per-caller state
+  // now, not the registry's — `store.add` records it for this subject and
+  // returns only the names that were not already active.
   const activated: string[] = [];
   if (activate) {
     const names = matches.map((t) => t.name);
-    activated.push(...toolRegistry.activateTools(names));
+    const subject = getEffectiveSubject();
+    activated.push(...(await activationStore.add(subject, names)));
   }
 
   for (const activatedName of activated) {

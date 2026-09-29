@@ -198,3 +198,11 @@ export function createActivationStore(env: typeof process.env = process.env): To
   if (!url) return new MemoryActivationStore();
   return createRedisActivationStore(url);
 }
+
+/**
+ * Process-wide activation store, built once at module load. `server.ts` and
+ * `discover.ts` both need it — a single shared instance rather than one per
+ * importer keeps every caller reading and writing the same activation state
+ * (and the same Redis connection, when one is configured).
+ */
+export const activationStore: ToolActivationStore = createActivationStore();

@@ -61,19 +61,7 @@ export interface ToolDefinition<T extends z.ZodType = z.ZodType> {
 export class ToolRegistry {
   private tools: Map<string, Tool> = new Map();
   private handlers: Map<string, ToolHandler> = new Map();
-  private activeTools: Set<string> = new Set();
   private toolVisibility: Map<string, 'core' | 'discoverable'> = new Map();
-
-  /**
-   * Listeners invoked when the active tool set changes (each wired to one
-   * Server's sendToolListChanged).
-   *
-   * A set rather than a single slot because the registry is a process-wide
-   * singleton while every HTTP session gets its own Server: with one slot each
-   * new session overwrote the previous one's callback, so only the newest
-   * session ever heard that discovery had activated a tool.
-   */
-  private toolsChangedListeners: Set<() => void> = new Set();
 
   /**
    * Register a new tool with the registry
@@ -141,23 +129,21 @@ export class ToolRegistry {
     // Store handler function
     this.handlers.set(name, handler);
 
-    // Track visibility and activation
+    // Track visibility
     this.toolVisibility.set(name, visibility);
-    if (visibility === 'core') {
-      this.activeTools.add(name);
-    }
 
     // Log registration for debugging (to stderr)
     console.error(`[Registry] Registered tool: ${name} (${visibility})`);
   }
 
   /**
-   * Get active tools only (core + activated discoverable)
-   * Used by the ListToolsRequestSchema handler
+   * Tools visible to a caller: the core set plus whatever that caller has
+   * switched on. The active set is passed in rather than stored here — it
+   * belongs to the caller, not to the process.
    */
-  getTools(): Tool[] {
+  getTools(active: ReadonlySet<string> = new Set()): Tool[] {
     return Array.from(this.tools.values())
-      .filter((t) => this.activeTools.has(t.name))
+      .filter((t) => this.toolVisibility.get(t.name) === 'core' || active.has(t.name))
       .sort(byName);
   }
 
@@ -185,45 +171,6 @@ export class ToolRegistry {
       const haystack = `${t.name} ${t.description ?? ''}`.toLowerCase();
       return words.every((word) => haystack.includes(word));
     });
-  }
-
-  /**
-   * Subscribe to active-tool-set changes. Returns an unsubscribe function the
-   * caller must invoke when its session ends, or the listener — and the Server
-   * it closes over — outlives the connection.
-   */
-  subscribeToolsChanged(listener: () => void): () => void {
-    this.toolsChangedListeners.add(listener);
-    return () => {
-      this.toolsChangedListeners.delete(listener);
-    };
-  }
-
-  /**
-   * Activate tools by name, making them visible in getTools().
-   * Returns the list of newly activated tool names.
-   * Notifies every subscriber if any tools were activated.
-   */
-  activateTools(names: string[]): string[] {
-    const newlyActivated: string[] = [];
-    for (const name of names) {
-      if (this.tools.has(name) && !this.activeTools.has(name)) {
-        this.activeTools.add(name);
-        newlyActivated.push(name);
-      }
-    }
-    if (newlyActivated.length > 0) {
-      for (const listener of this.toolsChangedListeners) {
-        // One dead session's transport must not swallow the notification for
-        // every session subscribed after it.
-        try {
-          listener();
-        } catch (err) {
-          console.error('[Registry] Tool-list-changed listener failed:', err);
-        }
-      }
-    }
-    return newlyActivated;
   }
 
   /**
@@ -270,7 +217,6 @@ export class ToolRegistry {
   unregister(name: string): boolean {
     const hadTool = this.tools.delete(name);
     this.handlers.delete(name);
-    this.activeTools.delete(name);
     this.toolVisibility.delete(name);
     return hadTool;
   }
@@ -283,9 +229,7 @@ export class ToolRegistry {
   clear(): void {
     this.tools.clear();
     this.handlers.clear();
-    this.activeTools.clear();
     this.toolVisibility.clear();
-    this.toolsChangedListeners.clear();
   }
 }
 

@@ -9,12 +9,32 @@
 import { describe, it, expect, beforeEach } from '@jest/globals';
 import { z } from 'zod';
 import { toolRegistry } from '../../utils/registry.js';
+import { activationStore } from '../../tools/activation.js';
+import { requestSubjectStorage } from '../../utils/auth-context.js';
 
 import './discover.js';
 
+let testCounter = 0;
+
+/**
+ * Run the handler under a fresh, unique subject. Activation lives in the
+ * shared, process-wide `activationStore` now rather than on the registry, so
+ * a subject reused across tests would leak activation state between them —
+ * a new one per call keeps every test's activations isolated, the same
+ * independence the old per-test `unregister`/`register` cycle gave for free
+ * when activation was still the registry's own state.
+ */
 function invoke(args: Record<string, unknown>) {
   const handler = toolRegistry.getHandler('qase_discover_tools')!;
-  return handler(args) as Promise<{ found: number; activated: number; tools: { name: string }[] }>;
+  const subject = `test-subject-${++testCounter}`;
+  return requestSubjectStorage.run(subject, () =>
+    (
+      handler(args) as Promise<{ found: number; activated: number; tools: { name: string }[] }>
+    ).then(async (result) => ({
+      ...result,
+      activeNames: Array.from(await activationStore.get(subject)),
+    })),
+  );
 }
 
 beforeEach(() => {
@@ -37,7 +57,12 @@ describe('qase_discover_tools — activation', () => {
 
     expect(result.tools.map((t) => t.name)).toContain('probe_secondary_tool');
     expect(result.activated).toBe(1);
-    expect(toolRegistry.getTools().map((t) => t.name)).toContain('probe_secondary_tool');
+    // Activation now lives in the store, keyed by caller subject, not on the
+    // registry — getTools() only shows it once that active set is passed in.
+    expect(result.activeNames).toContain('probe_secondary_tool');
+    expect(toolRegistry.getTools(new Set(result.activeNames)).map((t) => t.name)).toContain(
+      'probe_secondary_tool',
+    );
   });
 
   it('does not activate anything when `activate` is false', async () => {
@@ -45,6 +70,6 @@ describe('qase_discover_tools — activation', () => {
 
     expect(result.found).toBe(1);
     expect(result.activated).toBe(0);
-    expect(toolRegistry.getTools().map((t) => t.name)).not.toContain('probe_secondary_tool');
+    expect(result.activeNames).not.toContain('probe_secondary_tool');
   });
 });

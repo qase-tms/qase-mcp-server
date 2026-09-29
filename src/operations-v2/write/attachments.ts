@@ -35,8 +35,10 @@ const UploadSchema = z.object({
     .describe(
       'Several files in one request — each entry carries its own filename and either ' +
         'file_base64 or file_path. Qase accepts at most 20 files, 32 MB per file and 128 MB ' +
-        'in total per request. Prefer this over one call per file: it is a single round trip ' +
-        'and returns the hashes in the same order.',
+        'in total per request. Those are Qase limits; on a network transport the request body ' +
+        'itself caps out at 10 MB by default, so base64 content has to fit in that. Prefer ' +
+        'this over one call per file: it is a single round trip and returns the hashes in the ' +
+        'same order.',
     ),
   file_base64: z
     .string()
@@ -44,7 +46,9 @@ const UploadSchema = z.object({
     .describe(
       'Single-file form. File content, base64 encoded. Use this whenever the server is not ' +
         'on the same machine as the file — including the hosted connector, where it is the ' +
-        'only option.',
+        'only option. Base64 grows a file by a third and the whole request body is capped at ' +
+        '10 MB by default, so this form carries roughly 7 MB of file; larger ones need a ' +
+        'local stdio server and file_path.',
     ),
   file_path: z
     .string()

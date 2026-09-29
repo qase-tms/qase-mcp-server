@@ -1,5 +1,6 @@
 import express, { Express } from 'express';
 import { createJsonParseErrorHandler } from './json-parse-error.js';
+import { readBodyLimit } from './body-limit.js';
 import type http from 'node:http';
 import { SSEServerTransport } from '@modelcontextprotocol/server-legacy/sse';
 import { Server } from '@modelcontextprotocol/server';
@@ -29,7 +30,7 @@ interface SseSession {
 
 export function setupSSETransport(createServer: () => Server, config: SSETransportConfig): Express {
   const app = express();
-  app.use(express.json());
+  app.use(express.json({ limit: readBodyLimit() }));
   app.use(createJsonParseErrorHandler());
 
   const sseEndpoint = config.sseEndpoint || '/sse';

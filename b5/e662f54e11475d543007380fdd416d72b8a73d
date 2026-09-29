@@ -1,0 +1,30 @@
+src/server.tool-list-changed.test.ts
+  s_fef725799cacdb::t_2d523a69936ff5 1-20,22-114
+  s_fef725799cacdb::t_e1435474d1f3b5 21
+src/transports/streamableHttp.ts
+  s_fef725799cacdb::t_b79a0794354350 7,185
+src/transports/streamableHttp.body-limit.test.ts
+  s_fef725799cacdb::t_556a8fff7dcd9c 1-15,34-51,57-103
+  s_fef725799cacdb::t_019480cc96830d 16-33
+  s_fef725799cacdb::t_a2ab63d85fe47a 52-56
+src/tools/event-bus.ts
+  s_fef725799cacdb::t_b79a0794354350 260-262,265-273,275-279,284-287,297-304,306-307
+src/operations-v2/meta/discover.ts
+  s_fef725799cacdb::t_b79a0794354350 15,18-57,122-124,126
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "b5e662f54e11475d543007380fdd416d72b8a73d",
+  "prompts": {},
+  "sessions": {
+    "s_fef725799cacdb": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b943b4b3-61be-47d6-8bb1-ad338faf9ede",
+        "model": "claude-opus-5"
+      },
+      "human_author": "Dmitrii Gridnev <dgridnev@qase.io>"
+    }
+  }
+}

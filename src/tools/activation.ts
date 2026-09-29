@@ -76,16 +76,66 @@ export class RedisActivationStore implements ToolActivationStore {
 
   async add(subject: string, names: string[]): Promise<string[]> {
     if (names.length === 0) return [];
+
+    // Computed outside any try block: a bug in this pure filter must never be
+    // reported as a Redis failure.
+    const before = await this.get(subject);
+    const added = names.filter((n) => !before.has(n));
+
     try {
-      const before = await this.get(subject);
       await this.client.sadd(this.key(subject), ...names);
-      await this.client.expire(this.key(subject), this.ttlSeconds);
-      return names.filter((n) => !before.has(n));
     } catch (err) {
+      // Nothing was recorded, so the caller has to re-announce everything —
+      // not just the names we computed as "new".
       console.error('[Activation] Redis write failed, activation not shared:', err);
       return names;
     }
+
+    try {
+      await this.client.expire(this.key(subject), this.ttlSeconds);
+    } catch (err) {
+      // The activation IS recorded at this point (sadd succeeded), so the
+      // return value is still `added`. The key is just missing its ttl until
+      // the next successful add for this subject sets one.
+      console.error(
+        '[Activation] Redis expire failed after a successful write; key has no ttl until the next add:',
+        err,
+      );
+    }
+
+    return added;
   }
+}
+
+/**
+ * Wrap a promise for "the real store, once it's ready" so callers can be
+ * handed a `ToolActivationStore` synchronously: `get`/`add` await `ready`
+ * internally, so a call that arrives before it settles is queued behind it
+ * rather than lost, and every call — during the wait and after — is served
+ * by whatever `ready` finally resolves to, `fallback` included if it
+ * rejects.
+ *
+ * Exported as a seam: it is the only novel behaviour in this module that
+ * isn't otherwise reachable without exercising a real (or faked) dynamic
+ * `import('ioredis')`, so tests construct `ready` directly instead of going
+ * through createRedisActivationStore.
+ */
+export function createForwardingActivationStore(
+  ready: Promise<ToolActivationStore>,
+  fallback: ToolActivationStore = new MemoryActivationStore(),
+): ToolActivationStore {
+  const settled = ready.catch(() => fallback);
+
+  return {
+    async get(subject: string): Promise<Set<string>> {
+      const store = await settled;
+      return store.get(subject);
+    },
+    async add(subject: string, names: string[]): Promise<string[]> {
+      const store = await settled;
+      return store.add(subject, names);
+    },
+  };
 }
 
 /**
@@ -97,9 +147,8 @@ export class RedisActivationStore implements ToolActivationStore {
  *
  * createActivationStore itself must stay synchronous (callers rely on
  * getting a store back immediately, and the no-Redis-URL branch is tested as
- * such), so the dynamic import happens in the background: get/add on the
- * object returned here transparently forward to whichever store the import
- * settles on, falling back to plain memory in the meantime and on failure.
+ * such), so the dynamic import happens in the background via
+ * createForwardingActivationStore.
  */
 function createRedisActivationStore(url: string): ToolActivationStore {
   const fallback = new MemoryActivationStore();
@@ -134,18 +183,9 @@ function createRedisActivationStore(url: string): ToolActivationStore {
       );
       return fallback;
     }
-  })().catch(() => fallback);
+  })();
 
-  return {
-    async get(subject: string): Promise<Set<string>> {
-      const store = await ready;
-      return store.get(subject);
-    },
-    async add(subject: string, names: string[]): Promise<string[]> {
-      const store = await ready;
-      return store.add(subject, names);
-    },
-  };
+  return createForwardingActivationStore(ready, fallback);
 }
 
 // `typeof process.env` rather than the literal `NodeJS.ProcessEnv` type:

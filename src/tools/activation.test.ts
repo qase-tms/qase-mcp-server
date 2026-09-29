@@ -1,5 +1,11 @@
 import { describe, it, expect } from '@jest/globals';
-import { createActivationStore, MemoryActivationStore, RedisActivationStore } from './activation.js';
+import {
+  createActivationStore,
+  createForwardingActivationStore,
+  MemoryActivationStore,
+  RedisActivationStore,
+  type ToolActivationStore,
+} from './activation.js';
 
 describe('MemoryActivationStore', () => {
   it('starts empty for an unknown subject', async () => {
@@ -82,5 +88,50 @@ describe('RedisActivationStore', () => {
 
     expect(calls).toContainEqual(['sadd', 'mcp:tools:active:user-7', 'qase_case_delete']);
     expect(calls).toContainEqual(['expire', 'mcp:tools:active:user-7', '3600']);
+  });
+
+  it('reports actual new activations, not raw input, when sadd succeeds but expire fails', async () => {
+    // sadd DID succeed here — the activation is recorded — only expire
+    // failed. The already-active name must not come back as "newly added",
+    // and the call must not throw despite the partial failure.
+    const partial = {
+      smembers: async () => ['already'],
+      sadd: async () => 1,
+      expire: async () => {
+        throw new Error('expire down');
+      },
+    };
+    const store = new RedisActivationStore(partial as never);
+    expect(await store.add('user-9', ['already', 'new'])).toEqual(['new']);
+  });
+});
+
+describe('createForwardingActivationStore', () => {
+  it('answers a call that arrives before the background store is ready', async () => {
+    let resolveReady!: (store: ToolActivationStore) => void;
+    const ready = new Promise<ToolActivationStore>((resolve) => {
+      resolveReady = resolve;
+    });
+    const store = createForwardingActivationStore(ready);
+
+    // Issued while `ready` is still pending — must be queued, not lost.
+    const pending = store.add('user-1', ['a']);
+    resolveReady(new MemoryActivationStore());
+
+    expect(await pending).toEqual(['a']);
+  });
+
+  it('routes every call to the same fallback instance after ready rejects', async () => {
+    const store = createForwardingActivationStore(Promise.reject(new Error('boom')));
+
+    expect(await store.add('user-1', ['a'])).toEqual(['a']);
+    // A fresh empty store per call would not see the add above; seeing it
+    // here proves every call is served by the one persistent fallback.
+    expect(await store.get('user-1')).toEqual(new Set(['a']));
+  });
+
+  it('answers get with a Set instead of rejecting while ready is unsettled or failed', async () => {
+    const store = createForwardingActivationStore(Promise.reject(new Error('boom')));
+    await expect(store.get('user-1')).resolves.toEqual(new Set());
   });
 });

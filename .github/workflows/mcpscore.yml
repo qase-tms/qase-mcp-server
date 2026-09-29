@@ -27,7 +27,7 @@ jobs:
     runs-on: ubuntu-latest
     name: mcpscore
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - uses: actions/setup-node@v6
         with:
@@ -41,7 +41,7 @@ jobs:
         run: npm run build
 
       - name: Audit against the MCP specification
-        uses: mcp-box/mcpscore-action@v1
+        uses: mcp-box/mcpscore-action@282ceaab1b9d230a9069bf8fdb759ab339efcbdf # v1.2.0
         with:
           # The action launches the built server itself and speaks stdio to it.
           target: ./build/index.js

@@ -147,10 +147,14 @@ toolRegistry.register({
     'hidden until discovered. Search by what you are trying to do — "delete", "milestone", ' +
     '"plan", "review", "custom field" — and matching tools are activated and become callable. ' +
     "Every word in the query must appear in a tool's name or description, so prefer two or three " +
-    'words over a sentence. Activation is announced to your client with ' +
-    'notifications/tools/list_changed: if a tool listed as activated here is still absent from ' +
-    'your tool list, your client did not act on that notification — call the same endpoint ' +
-    'through qase_api rather than reporting the capability as missing. Never conclude a ' +
+    'words over a sentence. Activation itself always takes effect immediately; whether your ' +
+    'client is told about it depends on the connection: stdio gets ' +
+    'notifications/tools/list_changed automatically, an HTTP client only if it opened a ' +
+    'subscriptions/listen stream, and a stateless HTTP request has no channel to deliver one on ' +
+    'at all. If a tool listed as activated here is still absent from your tool list, that is a ' +
+    'missing notification, not a missing activation — call the same endpoint through qase_api ' +
+    'instead of reporting the capability as missing; it asks for confirmation on DELETE exactly ' +
+    'like the dedicated tools do, so this path does not skip that gate. Never conclude a ' +
     'capability is missing without searching here first. Cost: no API call, matching happens in ' +
     'memory, about 3ms. Free to call as often as needed.',
   schema: Schema,

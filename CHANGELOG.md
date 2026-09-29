@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.7.5]
+
+### Fixed
+
+- **Attachment uploads over HTTP were capped at about 75kb of file.** `qase_attachment_upload` carries file content as base64 inside the request body — on a network transport that is the only option, since the server cannot see the caller's filesystem — but `express.json()` ran with its 100kb default on both HTTP transports. Anything larger was refused with `413` no matter what the tool's description promised, including the multi-file form added in 2.7.4. The cap is now 10 MB, which fits roughly 7 MB of file after base64, and is tunable with `QASE_MCP_BODY_LIMIT_MB`. Qase's own limits (20 files, 32 MB each) are reachable over stdio with `file_path`, where no body carries the bytes; the tool now says so rather than advertising a number the transport cannot deliver.
+
+- **An oversized body answered with an HTML stack trace.** Body parsing happens before the auth guard, so any caller who could reach the port — with no token — got back an express error page carrying a `PayloadTooLargeError` stack and absolute `node_modules` paths. It now returns a JSON-RPC error (`-32600` on HTTP 413), the same treatment unparsable JSON already had.
+
+### Changed
+
+- **The MCP SDK packages moved to their current releases** — `server` and `server-legacy` to 2.2.0, `node` to 2.1.0, `client` and `core` to 2.2.0. Nothing changes on the wire: dumps of the protocol and OAuth surfaces taken before and after are byte-identical.
+
 ## [2.7.4]
 
 ### Added

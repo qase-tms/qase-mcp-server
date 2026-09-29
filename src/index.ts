@@ -12,7 +12,7 @@
  * - Operation modules self-register their tools on import
  * - All API errors are handled gracefully with user-friendly messages
  */
-import { StdioServerTransport } from '@modelcontextprotocol/server/stdio';
+import { serveStdio } from '@modelcontextprotocol/server/stdio';
 import { createServer } from './server.js';
 import { toolRegistry } from './utils/registry.js';
 import { VERSION } from './version.js';
@@ -89,11 +89,24 @@ async function main() {
   try {
     switch (transport) {
       case 'stdio': {
-        // Create stdio transport for communication
-        const stdioTransport = new StdioServerTransport();
+        // serveStdio owns the era decision for the connection: the opening
+        // exchange picks it, one instance from the factory is pinned for the
+        // connection's lifetime, and everything after passes through to it.
+        // A 2025-era opening is served as before (`legacy: 'serve'`, the
+        // default), so nothing regresses for a client that has not moved yet.
+        //
+        // The returned handle is only a teardown (`close()`); the process stays
+        // alive on the transport's own stdin handle, exactly as it did when the
+        // transport was connected by hand, and exits when the client closes the
+        // pipe. Closing on the termination signals is new: it ends the pinned
+        // instance rather than leaving it to process death.
+        const handle = serveStdio(() => createServer());
 
-        // Connect server to transport
-        await createServer().connect(stdioTransport);
+        for (const signal of ['SIGINT', 'SIGTERM'] as const) {
+          process.once(signal, () => {
+            void handle.close().finally(() => process.exit(0));
+          });
+        }
 
         console.error(`✓ Server started successfully`);
         console.error(`✓ Transport: stdio`);

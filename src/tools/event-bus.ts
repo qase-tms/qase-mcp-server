@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { InMemoryServerEventBus } from '@modelcontextprotocol/server';
 import type { ServerEvent, ServerEventBus } from '@modelcontextprotocol/server';
 
 /** Minimal surface this module needs from an ioredis-like publisher. */
@@ -254,4 +255,36 @@ export function createServerEventBus(
   const url = env.QASE_MCP_REDIS_URL;
   if (!url) return undefined;
   return createRedisServerEventBus(url);
+}
+
+/**
+ * The one bus this process publishes onto and serves `subscriptions/listen`
+ * from.
+ *
+ * It is a module singleton rather than something `createMcpHandler` builds for
+ * itself because the publish side lives far from the transport: tool handlers
+ * (`qase_discover_tools`) run several frames below the request handler, and in
+ * the modern era each request is served by a fresh `Server` instance that is
+ * gone by the time a listener needs telling. Handing `createMcpHandler` this
+ * instance as its `bus` option is what joins the two halves.
+ *
+ * Without Redis this is the SDK's own in-process bus — correct for a single
+ * replica, and the shape the SDK would have created anyway.
+ */
+export const serverEventBus: ServerEventBus =
+  createServerEventBus() ?? new InMemoryServerEventBus();
+
+/**
+ * Announce that the tool list changed, for clients listening on an open
+ * `subscriptions/listen` stream.
+ *
+ * The event carries no subject: `ServerEventBus` has no addressing, so every
+ * listening client is told to re-read its list. Activation is per-caller, so a
+ * client whose own set did not change re-lists and sees the same tools — a
+ * wasted round trip, never a wrong answer. A client that never opened a
+ * subscription hears nothing at all; that is the era's design, and
+ * `qase_discover_tools` says so in its description.
+ */
+export function publishToolsListChanged(bus: ServerEventBus = serverEventBus): void {
+  bus.publish({ kind: 'tools_list_changed' });
 }

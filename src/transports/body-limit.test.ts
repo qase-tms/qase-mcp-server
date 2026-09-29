@@ -1,7 +1,7 @@
 import { describe, it, expect } from '@jest/globals';
 import express from 'express';
 import request from 'supertest';
-import { readBodyLimit } from './body-limit.js';
+import { readBodyLimit, bodyLimitBytes } from './body-limit.js';
 import { createJsonParseErrorHandler } from './json-parse-error.js';
 
 describe('readBodyLimit', () => {
@@ -16,6 +16,36 @@ describe('readBodyLimit', () => {
   it('ignores a non-numeric or zero override rather than disabling the limit', () => {
     expect(readBodyLimit({ QASE_MCP_BODY_LIMIT_MB: 'lots' })).toBe('10mb');
     expect(readBodyLimit({ QASE_MCP_BODY_LIMIT_MB: '0' })).toBe('10mb');
+  });
+});
+
+/**
+ * express.json() reads the limit as a string, the MCP handler and the Node
+ * adapter read it as a number of bytes. Two readers of one setting is exactly
+ * how the 4 MiB SDK default crept back in once before, so they are pinned to
+ * each other here rather than only to their own expectations.
+ */
+describe('bodyLimitBytes agrees with readBodyLimit', () => {
+  const MB = 1024 * 1024;
+
+  function megabytesIn(limit: string): number {
+    const match = /^(\d+)mb$/.exec(limit);
+    if (!match) throw new Error(`readBodyLimit returned an unparsable limit: ${limit}`);
+    return Number(match[1]);
+  }
+
+  it.each([
+    ['the default', {}],
+    ['an override', { QASE_MCP_BODY_LIMIT_MB: '32' }],
+    ['a non-numeric override', { QASE_MCP_BODY_LIMIT_MB: 'lots' }],
+    ['a zero override', { QASE_MCP_BODY_LIMIT_MB: '0' }],
+  ])('reports the same cap as %s', (_label, env) => {
+    expect(bodyLimitBytes(env)).toBe(megabytesIn(readBodyLimit(env)) * MB);
+  });
+
+  it('is a positive number of bytes, as both SDK options require', () => {
+    expect(bodyLimitBytes({})).toBe(10 * MB);
+    expect(bodyLimitBytes({})).toBeGreaterThan(0);
   });
 });
 

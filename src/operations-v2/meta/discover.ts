@@ -11,6 +11,7 @@ import { getMetrics } from '../../cache/index.js';
 import { toolRegistry, ReadAnnotation } from '../../utils/registry.js';
 import { DiscoverToolsOutput } from '../../utils/output-schemas.js';
 import { activationStore } from '../../tools/activation.js';
+import { publishToolsListChanged } from '../../tools/event-bus.js';
 import { getEffectiveSubject } from '../../utils/auth-context.js';
 
 const Schema = z.object({
@@ -75,6 +76,15 @@ async function handler(args: z.infer<typeof Schema>) {
 
   for (const activatedName of activated) {
     getMetrics().incCounter('qase_mcp_tool_activations_total', { tool: activatedName });
+  }
+
+  // Tell anyone listening that the list they hold is stale. In the 2025 era
+  // this was a push on the session; the session is gone, so it is published to
+  // the event bus that `subscriptions/listen` streams subscribe to. Only a
+  // real change is announced — re-running discovery over tools that were
+  // already on says nothing.
+  if (activated.length > 0) {
+    publishToolsListChanged();
   }
 
   return {

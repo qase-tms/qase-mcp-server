@@ -132,4 +132,9 @@ function registerDefaults(m: Metrics): void {
     'qase_mcp_circuit_breaker_state',
     'Circuit breaker state (0=closed, 1=half_open, 2=open) by name',
   );
+  m.registerCounter('qase_mcp_tool_calls_total', 'Tool calls by tool name');
+  m.registerCounter(
+    'qase_mcp_tool_activations_total',
+    'Tools switched on by qase_discover_tools, by tool name',
+  );
 }

@@ -7,6 +7,7 @@
  */
 
 import { z } from 'zod';
+import { getMetrics } from '../../cache/index.js';
 import { toolRegistry, ReadAnnotation } from '../../utils/registry.js';
 import { DiscoverToolsOutput } from '../../utils/output-schemas.js';
 
@@ -65,6 +66,10 @@ async function handler(args: z.infer<typeof Schema>) {
   if (activate) {
     const names = matches.map((t) => t.name);
     activated.push(...toolRegistry.activateTools(names));
+  }
+
+  for (const activatedName of activated) {
+    getMetrics().incCounter('qase_mcp_tool_activations_total', { tool: activatedName });
   }
 
   return {

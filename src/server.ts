@@ -7,6 +7,7 @@
  */
 
 import { Server, ProtocolError, ProtocolErrorCode } from '@modelcontextprotocol/server';
+import { getMetrics } from './cache/index.js';
 import { toolRegistry } from './utils/registry.js';
 import { formatApiError, ToolExecutionError } from './utils/errors.js';
 import { compactResponse } from './utils/response-shape.js';
@@ -117,6 +118,7 @@ export function createServer(): Server {
       const args = markers.rest;
 
       console.error(`[Server] Executing tool: ${name}`);
+      getMetrics().incCounter('qase_mcp_tool_calls_total', { tool: name });
 
       const runCall = async () => {
         // Get tool handler from registry

@@ -1,5 +1,6 @@
 // src/auth/mcp-guard.ts
 import type { Request, Response, NextFunction, RequestHandler } from 'express';
+import type { AuthInfo } from '@modelcontextprotocol/server';
 import { isJwt } from './token-type.js';
 import type { JwksVerifier } from './jwks-verifier.js';
 import type { OAuthConfig } from './oauth-config.js';
@@ -42,7 +43,7 @@ export function createMcpGuard(verifier: JwksVerifier, config: OAuthConfig): Req
 
     if (isJwt(token)) {
       try {
-        await verifier.verifyJwt(token);
+        (req as Request & { auth?: AuthInfo }).auth = await verifier.verifyJwt(token);
       } catch {
         unauthorized(res, 'JWT validation failed');
         return;

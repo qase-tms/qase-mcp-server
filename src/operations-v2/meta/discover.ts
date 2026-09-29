@@ -12,7 +12,48 @@ import { toolRegistry, ReadAnnotation } from '../../utils/registry.js';
 import { DiscoverToolsOutput } from '../../utils/output-schemas.js';
 import { activationStore } from '../../tools/activation.js';
 import { publishToolsListChanged } from '../../tools/event-bus.js';
+import { getServer } from '../../utils/server-context.js';
 import { getEffectiveSubject } from '../../utils/auth-context.js';
+
+/**
+ * Tell the client its tool list is stale, on every channel that has one.
+ *
+ * The two paths are not alternatives — each serves a shape of connection the
+ * other cannot reach:
+ *
+ * - `publishToolsListChanged()` publishes onto the `ServerEventBus` that
+ *   `createMcpHandler` serves `subscriptions/listen` streams from. That is the
+ *   only route to an HTTP modern-era client, whose listening stream belongs to
+ *   a different request than this one, served by a `Server` instance that no
+ *   longer exists by the time anyone needs telling.
+ * - `sendToolListChanged()` goes out on THIS request's `Server` instance. That
+ *   is the only route on stdio, where one instance serves the whole connection
+ *   and `serveStdio` takes no bus at all — and stdio is what most installs run
+ *   (Claude Desktop, Cursor, the npm package). Skipping it was how the 2.6.0
+ *   fix for issue #93 would have come back on the widest channel we have.
+ *
+ * An HTTP legacy-stateless request reaches neither: there is no session to
+ * notify and no subscription stream to publish to. That is a property of
+ * serving 2025-era traffic statelessly, not something this function can fix.
+ *
+ * Nothing here may fail the tool call: an announcement that does not land
+ * costs the agent one stale list (and `qase_discover_tools`' own description
+ * tells it what to do about that), whereas a throw would lose the activation
+ * result entirely.
+ */
+function announceToolListChanged(): void {
+  try {
+    publishToolsListChanged();
+  } catch (err) {
+    console.error('[Discover] Failed to publish tools/list_changed to the event bus:', err);
+  }
+
+  const server = getServer();
+  if (!server) return;
+  void server.sendToolListChanged().catch((err) => {
+    console.error('[Discover] Failed to send tools/list_changed on this connection:', err);
+  });
+}
 
 const Schema = z.object({
   query: z
@@ -78,13 +119,11 @@ async function handler(args: z.infer<typeof Schema>) {
     getMetrics().incCounter('qase_mcp_tool_activations_total', { tool: activatedName });
   }
 
-  // Tell anyone listening that the list they hold is stale. In the 2025 era
-  // this was a push on the session; the session is gone, so it is published to
-  // the event bus that `subscriptions/listen` streams subscribe to. Only a
-  // real change is announced — re-running discovery over tools that were
-  // already on says nothing.
+  // Tell anyone listening that the list they hold is stale. Only a real change
+  // is announced — re-running discovery over tools that were already on says
+  // nothing. See announceToolListChanged for why this is two channels.
   if (activated.length > 0) {
-    publishToolsListChanged();
+    announceToolListChanged();
   }
 
   return {

@@ -4,7 +4,7 @@ import { toNodeHandler } from '@modelcontextprotocol/node';
 import { createMcpHandler, Server } from '@modelcontextprotocol/server';
 import { requestTokenStorage } from '../utils/auth-context.js';
 import { integrationStorage } from '../utils/integration-context.js';
-import { serverEventBus } from '../tools/event-bus.js';
+import { getServerEventBus } from '../tools/event-bus.js';
 import { getMetrics } from '../cache/index.js';
 import { getOAuthConfig, type OAuthConfig } from '../auth/oauth-config.js';
 import { createJwksVerifier, type JwksVerifier } from '../auth/jwks-verifier.js';
@@ -182,7 +182,7 @@ export function setupStreamableHttpTransport(
     // one tool activation publishes onto (src/tools/event-bus.ts). Passing it
     // explicitly is what lets a change made deep inside a tool handler reach a
     // stream opened by an entirely different request.
-    bus: serverEventBus,
+    bus: getServerEventBus(),
     // Without this the SDK caps bodies at its own 4 MiB default and silently
     // undoes the 10 MB limit configured for attachment uploads.
     maxRequestBodySize: bodyLimitBytes(),

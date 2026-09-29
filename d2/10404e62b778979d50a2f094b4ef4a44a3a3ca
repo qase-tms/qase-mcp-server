@@ -1,0 +1,23 @@
+src/auth/mcp-guard.test.ts
+  s_fef725799cacdb::t_9820c3a9b88de5 73-95
+  s_fef725799cacdb::t_81bec59e674adc 3,5
+src/auth/mcp-guard.ts
+  s_fef725799cacdb::t_39d52f588d6dc3 46
+  s_fef725799cacdb::t_e40bdc41de0b14 3
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "d210404e62b778979d50a2f094b4ef4a44a3a3ca",
+  "prompts": {},
+  "sessions": {
+    "s_fef725799cacdb": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b943b4b3-61be-47d6-8bb1-ad338faf9ede",
+        "model": "claude-opus-5"
+      },
+      "human_author": "Dmitrii Gridnev <dgridnev@qase.io>"
+    }
+  }
+}

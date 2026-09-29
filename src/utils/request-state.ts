@@ -50,7 +50,11 @@ function canonicalize(value: unknown): unknown {
   const source = value as Record<string, unknown>;
   return Object.fromEntries(
     Object.keys(source)
-      .sort()
+      // Explicit code-unit comparison, NOT localeCompare: this ordering feeds a
+      // digest that two replicas must agree on, and localeCompare depends on
+      // the runtime's locale data, so it could order the same keys differently
+      // on two machines and refuse a confirmation the user gave.
+      .sort((a, b) => (a < b ? -1 : a > b ? 1 : 0))
       .map((key) => [key, canonicalize(source[key])]),
   );
 }

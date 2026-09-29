@@ -31,7 +31,7 @@ function isWireMessage(value: unknown): value is WireMessage {
     typeof value === 'object' &&
     value !== null &&
     'origin' in value &&
-    typeof (value as { origin: unknown }).origin === 'string' &&
+    typeof value.origin === 'string' &&
     'event' in value
   );
 }

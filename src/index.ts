@@ -18,6 +18,7 @@ import { toolRegistry } from './utils/registry.js';
 import { VERSION } from './version.js';
 import { setupSSETransport } from './transports/sse.js';
 import { setupStreamableHttpTransport } from './transports/streamableHttp.js';
+import { getRequestStateCodec } from './utils/request-state.js';
 
 /**
  * Parse command line arguments
@@ -87,6 +88,15 @@ async function main() {
   console.error('');
 
   try {
+    // Build (and validate) the request-state codec now, rather than letting
+    // it happen lazily on the first request. `createServer()` is called by
+    // `createMcpHandler` per HTTP request and by `serveStdio` at `initialize`
+    // — both well after this function's try/catch has returned — so a
+    // misconfigured QASE_MCP_REQUEST_STATE_KEY would otherwise leave a
+    // process that starts, answers `/health`, and 500s on every single MCP
+    // request. Doing it here means a bad key fails startup instead.
+    getRequestStateCodec();
+
     switch (transport) {
       case 'stdio': {
         // serveStdio owns the era decision for the connection: the opening

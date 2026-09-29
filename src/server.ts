@@ -24,7 +24,7 @@ import { extractCallMarkers } from './utils/call-markers.js';
 import { parseProducerMarker } from './utils/producer-marker.js';
 import { producerStorage } from './utils/producer-context.js';
 import { callIntegrationStorage } from './utils/integration-context.js';
-import { requestSubjectStorage, LOCAL_SUBJECT } from './utils/auth-context.js';
+import { requestSubjectStorage, subjectFromContext } from './utils/auth-context.js';
 import { getActivationStore } from './tools/activation.js';
 import { VERSION } from './version.js';
 import { listPrompts, getPrompt } from './prompts/index.js';
@@ -42,20 +42,6 @@ import './operations-v2/index.js';
 function rejectUnknownCursor(cursor: unknown): void {
   if (cursor === undefined) return;
   throw new ProtocolError(ProtocolErrorCode.InvalidParams, 'Unknown pagination cursor');
-}
-
-/**
- * Identify the caller for a request. `extra.sub` is what our JWKS verifier
- * (src/auth/jwks-verifier.ts) writes onto `AuthInfo` when OAuth is on; with
- * OAuth off — or no token on this request — there is no `authInfo` at all,
- * and every caller shares the literal `'local'` key, matching today's
- * single-process behaviour.
- */
-function subjectFromContext(ctx: {
-  http?: { authInfo?: { extra?: Record<string, unknown> } };
-}): string {
-  const sub = ctx.http?.authInfo?.extra?.sub;
-  return typeof sub === 'string' ? sub : LOCAL_SUBJECT;
 }
 
 /**

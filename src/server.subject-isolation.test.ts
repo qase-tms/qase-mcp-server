@@ -27,6 +27,7 @@
 import { describe, it, expect, beforeAll, afterAll } from '@jest/globals';
 import { Client, InMemoryTransport } from '@modelcontextprotocol/client';
 import { setTestEnv } from './utils/test-helpers.js';
+import { requestTokenStorage } from './utils/auth-context.js';
 
 setTestEnv();
 
@@ -112,5 +113,53 @@ describe('tool activation is isolated per caller subject', () => {
     const { tools: localTools } = await client.listTools();
     expect(localTools.map((t) => t.name)).toContain('qase_get');
     expect(localTools.map((t) => t.name)).not.toContain('qase_milestone_upsert');
+  });
+
+  // F1: OAuth off (or an opaque token passed through with OAuth on) leaves
+  // `extra.sub` unset, so every one of these callers hits the same
+  // `subjectFromContext` fallback. Without a per-token digest they all
+  // collapse onto the single 'local' bucket — this is the concrete failure
+  // in the finding: two self-run users, each with their own Qase token, see
+  // each other's `qase_discover_tools` activations.
+  it('falls back to a digest of the per-request token when there is no sub, keeping different callers isolated', async () => {
+    await requestTokenStorage.run('token-a', () =>
+      asSubject(undefined, () =>
+        client.callTool({ name: 'qase_discover_tools', arguments: { query: 'milestone' } }),
+      ),
+    );
+
+    // Same token, a later request: the activation is visible.
+    const { tools: tokenATools } = await requestTokenStorage.run('token-a', () =>
+      asSubject(undefined, () => client.listTools()),
+    );
+    expect(tokenATools.map((t) => t.name)).toContain('qase_milestone_upsert');
+
+    // A different token never activated it: absent from ITS tool list, even
+    // though neither request carries a `sub`.
+    const { tools: tokenBTools } = await requestTokenStorage.run('token-b', () =>
+      asSubject(undefined, () => client.listTools()),
+    );
+    expect(tokenBTools.map((t) => t.name)).not.toContain('qase_milestone_upsert');
+  });
+
+  it('keys on the OAuth sub rather than the token when both are present', async () => {
+    await requestTokenStorage.run('token-1', () =>
+      asSubject('user-sub', () =>
+        client.callTool({ name: 'qase_discover_tools', arguments: { query: 'milestone' } }),
+      ),
+    );
+
+    // Same sub, a different token (e.g. a rotated credential): still keyed
+    // on the sub, so the earlier activation is still visible.
+    const { tools } = await requestTokenStorage.run('token-2', () =>
+      asSubject('user-sub', () => client.listTools()),
+    );
+    expect(tools.map((t) => t.name)).toContain('qase_milestone_upsert');
+  });
+
+  it('falls back to the shared local subject when there is neither a sub nor a token', async () => {
+    const { tools } = await asSubject(undefined, () => client.listTools());
+    expect(tools.map((t) => t.name)).not.toContain('qase_milestone_upsert');
+    expect(tools.map((t) => t.name)).toContain('qase_get');
   });
 });

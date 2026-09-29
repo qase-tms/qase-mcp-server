@@ -10,6 +10,7 @@
 import { createHash, randomBytes } from 'node:crypto';
 import { createRequestStateCodec } from '@modelcontextprotocol/server';
 import type { RequestStateCodec, ServerContext } from '@modelcontextprotocol/server';
+import { subjectFromContext } from './auth-context.js';
 
 /** What a pending destructive confirmation carries across the round trip. */
 export interface ConfirmationState {
@@ -82,6 +83,10 @@ export function digestArguments(args: Record<string, unknown>): string {
  * confirmation issued to one authenticated user cannot be replayed by another
  * — the spec's user-binding requirement for state that gates authorization.
  * The binding value never reaches the wire; the codec stores a keyed tag.
+ * The caller identity comes from `subjectFromContext` (auth-context.ts) — the
+ * same derivation tool activation uses — so a caller with no OAuth `sub` is
+ * bound by their per-request token digest rather than collapsing onto one
+ * shared, empty binding for everyone.
  */
 export function createRequestStateCodecFromEnv(
   env: typeof process.env = process.env,
@@ -102,11 +107,7 @@ export function createRequestStateCodecFromEnv(
   return createRequestStateCodec<ConfirmationState>({
     key: configured ?? randomBytes(MIN_KEY_BYTES),
     ttlSeconds: CONFIRMATION_TTL_SECONDS,
-    bind: (ctx: ServerContext) =>
-      `${ctx.mcpReq.method}\0${
-        (ctx as { http?: { authInfo?: { extra?: Record<string, unknown> } } }).http?.authInfo?.extra
-          ?.sub ?? ''
-      }`,
+    bind: (ctx: ServerContext) => `${ctx.mcpReq.method}\0${subjectFromContext(ctx)}`,
   });
 }
 

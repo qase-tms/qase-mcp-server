@@ -1,0 +1,33 @@
+src/utils/protocol-telemetry.test.ts
+  s_fef725799cacdb::t_507819cc884d86 1-8,12-75,88-96,98-125
+  s_fef725799cacdb::t_001d3a907e9a32 10-11,76-87
+  s_fef725799cacdb::t_88c0d238617b83 9,97
+src/utils/protocol-telemetry.ts
+  s_fef725799cacdb::t_ad9e26c6e90013 28-29,93
+  s_fef725799cacdb::t_538426eb606dcd 83-86
+  s_fef725799cacdb::t_99e91c0b0ffd81 1-27,30-82,87-92,94-104
+src/cache/metrics.ts
+  s_fef725799cacdb::t_99e91c0b0ffd81 135-138
+CHANGELOG.md
+  s_fef725799cacdb::t_65683d883f2681 32-34
+src/server.ts
+  s_fef725799cacdb::t_e2923d8e640202 28,105,117-118,128-129,141
+docs/self-run.md
+  s_fef725799cacdb::t_65683d883f2681 378-386
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "cb42c7d9d8f26e45d627ef630ebdc5407bcd2f75",
+  "prompts": {},
+  "sessions": {
+    "s_fef725799cacdb": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b943b4b3-61be-47d6-8bb1-ad338faf9ede",
+        "model": "claude-opus-5"
+      },
+      "human_author": "Dmitrii Gridnev <dgridnev@qase.io>"
+    }
+  }
+}

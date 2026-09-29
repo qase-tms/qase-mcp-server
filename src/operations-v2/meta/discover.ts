@@ -10,7 +10,7 @@ import { z } from 'zod';
 import { getMetrics } from '../../cache/index.js';
 import { toolRegistry, ReadAnnotation } from '../../utils/registry.js';
 import { DiscoverToolsOutput } from '../../utils/output-schemas.js';
-import { activationStore } from '../../tools/activation.js';
+import { getActivationStore } from '../../tools/activation.js';
 import { publishToolsListChanged } from '../../tools/event-bus.js';
 import { getServer } from '../../utils/server-context.js';
 import { getEffectiveSubject } from '../../utils/auth-context.js';
@@ -112,7 +112,7 @@ async function handler(args: z.infer<typeof Schema>) {
   if (activate) {
     const names = matches.map((t) => t.name);
     const subject = getEffectiveSubject();
-    activated.push(...(await activationStore.add(subject, names)));
+    activated.push(...(await getActivationStore().add(subject, names)));
   }
 
   for (const activatedName of activated) {

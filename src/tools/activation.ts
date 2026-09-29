@@ -199,10 +199,24 @@ export function createActivationStore(env: typeof process.env = process.env): To
   return createRedisActivationStore(url);
 }
 
+/** Built on first use by {@link getActivationStore}; see why it is not eager. */
+let processStore: ToolActivationStore | undefined;
+
 /**
- * Process-wide activation store, built once at module load. `server.ts` and
- * `discover.ts` both need it — a single shared instance rather than one per
- * importer keeps every caller reading and writing the same activation state
- * (and the same Redis connection, when one is configured).
+ * The one activation store this process reads and writes.
+ *
+ * `server.ts` (reading the active set for tools/list) and `discover.ts`
+ * (adding to it) must see the same state and, when Redis is configured, the
+ * same connection — hence a process singleton rather than one store per
+ * importer.
+ *
+ * It is LAZY because importing a module must not open sockets. Built eagerly,
+ * every stdio process with QASE_MCP_REDIS_URL set connected an ioredis client
+ * it can never use, and that handle can hold the process open past the stdin
+ * close the SDK's stdio transport otherwise shuts down cleanly on. The server
+ * event bus is lazy for exactly this reason; see getServerEventBus().
  */
-export const activationStore: ToolActivationStore = createActivationStore();
+export function getActivationStore(): ToolActivationStore {
+  processStore ??= createActivationStore();
+  return processStore;
+}

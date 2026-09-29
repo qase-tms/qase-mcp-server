@@ -7,6 +7,18 @@ import {
   type ToolActivationStore,
 } from './activation.js';
 
+const mockRedisConstructions: string[] = [];
+
+jest.mock('ioredis', () => ({
+  __esModule: true,
+  default: class FakeRedis {
+    constructor(url: string) {
+      mockRedisConstructions.push(url);
+    }
+    on() {}
+  },
+}));
+
 describe('MemoryActivationStore', () => {
   it('starts empty for an unknown subject', async () => {
     const store = new MemoryActivationStore();
@@ -103,6 +115,32 @@ describe('RedisActivationStore', () => {
     };
     const store = new RedisActivationStore(partial as never);
     expect(await store.add('user-9', ['already', 'new'])).toEqual(['new']);
+  });
+});
+
+describe('the process-wide activation store', () => {
+  const flushMicrotasks = () => new Promise((resolve) => setImmediate(resolve));
+
+  it('is built on first use, not when the module is imported', async () => {
+    const previous = process.env.QASE_MCP_REDIS_URL;
+    process.env.QASE_MCP_REDIS_URL = 'redis://mock-host:6379';
+    jest.resetModules();
+    mockRedisConstructions.length = 0;
+
+    try {
+      const mod = await import('./activation.js');
+      await flushMicrotasks();
+      expect(mockRedisConstructions).toEqual([]);
+
+      const store = mod.getActivationStore();
+      await flushMicrotasks();
+      expect(mockRedisConstructions).toEqual(['redis://mock-host:6379']);
+
+      expect(mod.getActivationStore()).toBe(store);
+    } finally {
+      if (previous === undefined) delete process.env.QASE_MCP_REDIS_URL;
+      else process.env.QASE_MCP_REDIS_URL = previous;
+    }
   });
 });
 

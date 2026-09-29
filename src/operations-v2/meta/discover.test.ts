@@ -9,7 +9,7 @@
 import { describe, it, expect, beforeEach } from '@jest/globals';
 import { z } from 'zod';
 import { toolRegistry } from '../../utils/registry.js';
-import { activationStore } from '../../tools/activation.js';
+import { getActivationStore } from '../../tools/activation.js';
 import { requestSubjectStorage } from '../../utils/auth-context.js';
 
 import './discover.js';
@@ -18,8 +18,9 @@ let testCounter = 0;
 
 /**
  * Run the handler under a fresh, unique subject. Activation lives in the
- * shared, process-wide `activationStore` now rather than on the registry, so
- * a subject reused across tests would leak activation state between them —
+ * shared, process-wide store returned by `getActivationStore()` now rather
+ * than on the registry, so a subject reused across tests would leak
+ * activation state between them —
  * a new one per call keeps every test's activations isolated, the same
  * independence the old per-test `unregister`/`register` cycle gave for free
  * when activation was still the registry's own state.
@@ -32,7 +33,7 @@ function invoke(args: Record<string, unknown>) {
       handler(args) as Promise<{ found: number; activated: number; tools: { name: string }[] }>
     ).then(async (result) => ({
       ...result,
-      activeNames: Array.from(await activationStore.get(subject)),
+      activeNames: Array.from(await getActivationStore().get(subject)),
     })),
   );
 }

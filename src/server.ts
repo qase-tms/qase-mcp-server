@@ -22,7 +22,7 @@ import { parseProducerMarker } from './utils/producer-marker.js';
 import { producerStorage } from './utils/producer-context.js';
 import { callIntegrationStorage } from './utils/integration-context.js';
 import { requestSubjectStorage, LOCAL_SUBJECT } from './utils/auth-context.js';
-import { activationStore } from './tools/activation.js';
+import { getActivationStore } from './tools/activation.js';
 import { VERSION } from './version.js';
 import { listPrompts, getPrompt } from './prompts/index.js';
 import { SERVER_INSTRUCTIONS } from './server-instructions.js';
@@ -97,7 +97,7 @@ export function createServer(): Server {
   server.setRequestHandler('tools/list', async (request, ctx) => {
     rejectUnknownCursor(request.params?.cursor);
     const subject = subjectFromContext(ctx);
-    const active = await activationStore.get(subject);
+    const active = await getActivationStore().get(subject);
     const tools = toolRegistry.getTools(active);
     console.error(`[Server] Listing ${tools.length} tools`);
     return { tools };

@@ -99,11 +99,17 @@ function isBase64(value: string): boolean {
   return Buffer.from(compact, 'base64').toString('base64') === compact;
 }
 
+/** Trailing "=" characters, which stand in for bytes the encoding dropped. */
+function base64Padding(compact: string): number {
+  if (compact.endsWith('==')) return 2;
+  if (compact.endsWith('=')) return 1;
+  return 0;
+}
+
 /** Decoded size of a base64 string, without decoding it. */
 function base64Bytes(value: string): number {
   const compact = value.replace(/\s/g, '');
-  const padding = compact.endsWith('==') ? 2 : compact.endsWith('=') ? 1 : 0;
-  return Math.max(0, Math.floor((compact.length * 3) / 4) - padding);
+  return Math.max(0, Math.floor((compact.length * 3) / 4) - base64Padding(compact));
 }
 
 function formatSize(bytes: number): string {

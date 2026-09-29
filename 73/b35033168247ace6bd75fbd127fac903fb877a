@@ -1,0 +1,19 @@
+src/cache/metrics.ts
+  s_e6ccac83f566b9::t_f8ec970f8d46b4 5-16,101
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "73b35033168247ace6bd75fbd127fac903fb877a",
+  "prompts": {},
+  "sessions": {
+    "s_e6ccac83f566b9": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "649264ea-1098-4f2f-b59e-163a562ecb09",
+        "model": "claude-opus-5"
+      },
+      "human_author": "Dmitrii Gridnev <dgridnev@qase.io>"
+    }
+  }
+}

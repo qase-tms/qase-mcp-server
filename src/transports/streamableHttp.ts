@@ -15,6 +15,7 @@ import { createBearerRequiredGuard } from '../auth/bearer-guard.js';
 import { authorizeRedirectUriStorage } from '../auth/client-context.js';
 import type { RequestHandler } from 'express';
 import { createJsonParseErrorHandler } from './json-parse-error.js';
+import { readBodyLimit } from './body-limit.js';
 import { createMcpRateLimiter } from './rate-limit.js';
 
 export interface StreamableHttpConfig {
@@ -100,7 +101,7 @@ export function setupStreamableHttpTransport(
     next();
   });
 
-  app.use(express.json());
+  app.use(express.json({ limit: readBodyLimit() }));
   app.use(createJsonParseErrorHandler());
 
   // OAuth: mount proxy auth router + protected-resource metadata, and guard /mcp.

@@ -7,11 +7,11 @@ The Qase MCP Server exposes **41 tools** across 6 groups: Read (2), QQL (2), Wri
 To keep context-token usage low, tools are split into two visibility tiers:
 
 - **`core`** — always listed to the MCP client, no activation needed (17 tools).
-- **`discoverable`** — hidden by default; the LLM finds and activates them on demand via `qase_discover_tools`, which searches tool names/descriptions and activates matches for the rest of the session (24 tools, mostly deletes, review operations, and secondary write operations).
+- **`discoverable`** — hidden by default; the LLM finds and activates them on demand via `qase_discover_tools`, which searches tool names/descriptions and activates matches for that caller (24 tools, mostly deletes, review operations, and secondary write operations).
 
 If a tool you need isn't showing up in your client's tool list, call `qase_discover_tools` with a query (e.g. `"delete"`, `"milestone"`, `"plan"`) to activate it first.
 
-Activation makes the tool callable on the server immediately and the server announces it with `notifications/tools/list_changed`. A client that does not re-read `tools/list` on that notification will not offer the tool no matter how often discovery runs — it typically fails with something like `tools.<name> is not a function`. Nothing on the server side is broken there: use [`qase_api`](#escape-hatch) to reach the same endpoint, or ask for a client that supports the notification. Tools a core tool's own description recommends are never hidden, so this never blocks the main workflows.
+Activation itself always takes effect immediately; whether your client is *told* about it depends on the connection: stdio gets `notifications/tools/list_changed` automatically, an HTTP client only if it opened a `subscriptions/listen` stream, and a stateless HTTP request gets no notification at all. A client that is never told keeps dispatching against the tool list it built when it connected, so the tool the server just switched on is missing from the client's own table no matter how often discovery runs — it typically fails with something like `tools.<name> is not a function`. Nothing on the server side is broken there: use [`qase_api`](#escape-hatch) to reach the same endpoint, or have the client re-read `tools/list`. Tools a core tool's own description recommends are never hidden, so this never blocks the main workflows.
 
 Every tool's schema uses "label or numeric ID" strings for Qase's configurable enum fields (`priority`, `severity`, `type`, `layer`, `behavior`, `status`, `automation` on cases); the server resolves labels against the workspace's actual system-field configuration at call time. See [Case enum values](#case-enum-values) below.
 
@@ -102,7 +102,7 @@ Composite tools chain several underlying operations into one call, so an agent a
 
 | Tool | Description | Key params | Visibility |
 | --- | --- | --- | --- |
-| `qase_discover_tools` | Search for and activate additional Qase tools. By default, only core tools are visible. Use this to find tools for specific needs: deletions, test plans, milestone management, case reviews, etc. Found tools are automatically activated and become available for use — the server announces the change with `notifications/tools/list_changed`, and clients that ignore that notification will not offer the tool until the session is reconnected. | `query` (optional, matches tool name/description), `category` (optional enum: read, write, delete, composite, all), `activate` (optional bool, default true) | core |
+| `qase_discover_tools` | Search for and activate additional Qase tools. By default, only core tools are visible. Use this to find tools for specific needs: deletions, test plans, milestone management, case reviews, etc. Found tools are activated and become callable immediately; whether your client is told about it depends on the connection — stdio always, an HTTP client only with an open `subscriptions/listen` stream, a stateless HTTP request never. | `query` (optional, matches tool name/description), `category` (optional enum: read, write, delete, composite, all), `activate` (optional bool, default true) | core |
 
 ## Case enum values
 

@@ -181,12 +181,12 @@ Only `http` and `https` are recognised; any other value falls back to `https`, s
 
 **Symptom**: `qase_discover_tools` reports the tool as found and activated, but calling it fails inside the client — typically `TypeError: tools.mcp__qase__<tool_name> is not a function`, or the agent insisting the tool does not exist.
 
-**Cause**: activation is a server-side state change, announced to the client with the `notifications/tools/list_changed` notification. Clients that build their tool list once when the session opens and never rebuild it on that notification keep dispatching against the list they cached at connect time, so the tool the server just switched on is missing from the client's own table. The server itself will run the tool fine — the call never reaches it.
+**Cause**: activation is per-caller server-side state, and always takes effect immediately. Whether the client is *told* about it depends on the connection: stdio gets the `notifications/tools/list_changed` notification automatically, an HTTP client only if it opened a `subscriptions/listen` stream, and a stateless HTTP request gets no notification at all. A client that is never told keeps dispatching against the tool list it built when it connected, so the tool the server just switched on is missing from the client's own table. The server itself will run the tool fine — the call never reaches it.
 
 **Solution**:
 1. Update to 2.6.0 or later: the tools the server's own instructions and core descriptions recommend — `qase_case_bulk_create`, `qase_suite_upsert`, `qase_run_complete` — are now core and listed from the start, so the common workflows never depend on discovery (self-run: `npm update -g @qase/mcp-server`; the hosted connector always runs the latest version)
-2. 2.6.0 also fixes notification delivery on the HTTP transports, where only the most recently opened session used to be notified — if several sessions or clients share one server process, older sessions previously never heard about an activation at all
-3. For a tool that is still discoverable, start a new session (or reconnect) after activating it — the fresh `tools/list` includes it
+2. 2.6.0 also fixed notification delivery on the HTTP transports of that era, where only the most recently opened session used to be notified — if several sessions or clients shared one server process, older sessions previously never heard about an activation at all
+3. For a tool that is still discoverable, have your client open a `subscriptions/listen` stream (HTTP) or otherwise re-issue `tools/list` after activating it — there is no session to reconnect any more, and a stateless HTTP request never receives the notification no matter how many times you retry
 4. As a last resort, call the same REST endpoint through `qase_api`, which is core and always listed
 
 ## Tool Not Found

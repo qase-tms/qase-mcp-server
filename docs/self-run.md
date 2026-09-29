@@ -70,7 +70,11 @@ Rules:
 - **The name must be on the allowlist** in [`src/utils/integration-marker.ts`](../src/utils/integration-marker.ts) (`ALLOWED_INTEGRATIONS`). This bounds the cardinality of the analytics dimension, so an unlisted name is ignored entirely and nothing is sent. To add your integration, open a PR adding it to that array.
 - A malformed or unlisted marker is dropped silently; the API call itself still succeeds.
 
-Over HTTP transports the marker can also travel per request instead of per process — send an `X-Qase-Integration: <name>/<version>` header, or add `?integration=<name>/<version>` to the MCP endpoint URL. Each request is read on its own: a marker on one call is never attributed to the next. The query parameter is the fallback for clients that do not pass custom headers through. Precedence: request header → query parameter → `QASE_MCP_INTEGRATION`.
+Over HTTP transports the marker can also travel per request instead of per process — send an `X-Qase-Integration: <name>/<version>` header, or add `?integration=<name>/<version>` to the MCP endpoint URL. The query parameter is the fallback for clients that do not pass custom headers through.
+
+On **Streamable HTTP**, the marker is read fresh on every single request: a marker on one call is never attributed to the next. Precedence: request header → query parameter → `QASE_MCP_INTEGRATION`.
+
+On the (deprecated) **SSE** transport, the marker is captured once, when the `/sse` stream opens, and reused for every message posted on that stream afterwards — a header sent on an individual `/messages` POST can still override it for that one call, but there is no per-request query-parameter fallback once the stream is open. Precedence there is: request header → the value captured when the stream opened → `QASE_MCP_INTEGRATION`.
 
 ### Running more than one replica
 
@@ -318,7 +322,7 @@ npm run start:stdio
 ### SSE Transport
 
 > **Deprecated.** The SSE transport was deprecated in the MCP specification on
-> 2025-03-26 and will be removed in Qase MCP Server 3.0. Use
+> 2025-03-26 and will be removed in a future release. Use
 > `--transport streamable-http` instead.
 
 Server-Sent Events for web-based clients:
@@ -334,7 +338,7 @@ Clients must send a bearer token — see [Security of network transports](#secur
 
 ### Streamable HTTP Transport
 
-Full HTTP-based transport with session management:
+Full HTTP-based transport — there is no session; every request is served on its own:
 
 ```bash
 npm run start:http
@@ -344,6 +348,8 @@ npm run start:http
 ```
 
 Clients must send a bearer token — see [Security of network transports](#security-of-network-transports).
+
+**Deleting anything requires a modern client.** Destructive tools (`qase_case_delete` and the rest) are confirmed through a multi-round-trip exchange: the first call returns a request for input instead of deleting anything, and the client must retry with the answer. That round trip needs capabilities a client declares during `initialize`, which only a client that negotiates the **2026-07-28** revision of MCP provides. A client still on the 2025-11-25 revision — the common case on a stateless HTTP connection — cannot complete it, so its deletion is refused with an explanation naming the two ways out: use a client that negotiates 2026-07-28, or delete in the Qase UI. This is specific to the HTTP transports; stdio and SSE are long-lived connections where confirmation always works, though a stdio client that itself negotiates 2026-07-28 goes through the same round trip rather than the old single-call flow.
 
 ### Custom Configuration
 

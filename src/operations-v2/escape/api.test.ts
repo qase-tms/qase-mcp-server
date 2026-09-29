@@ -98,14 +98,14 @@ describe('paths that could leave the Qase host', () => {
   // tool covers, so pinning it to v1 would refuse a later version for no security
   // gain. A version segment is still required, because that is what stops a path
   // from opening an authority component.
-  it.each([['v2', '/v2/DEMO/result'], ['v3', '/v3/project']] satisfies Array<[string, string]>)(
-    'accepts an endpoint on API %s',
-    async (_label, path) => {
-      await invoke({ method: 'GET', path });
+  it.each([
+    ['v2', '/v2/DEMO/result'],
+    ['v3', '/v3/project'],
+  ] satisfies Array<[string, string]>)('accepts an endpoint on API %s', async (_label, path) => {
+    await invoke({ method: 'GET', path });
 
-      expect(mockRequest).toHaveBeenCalledWith(path, expect.anything());
-    },
-  );
+    expect(mockRequest).toHaveBeenCalledWith(path, expect.anything());
+  });
 
   it('still refuses a versioned-looking path that names another host', async () => {
     await expect(invoke({ method: 'GET', path: '//evil.example/v2/x' })).rejects.toBeInstanceOf(
@@ -150,8 +150,12 @@ describe('DELETE', () => {
   it('throws instead of deleting when the client cannot be asked', async () => {
     mockConfirm.mockResolvedValue({ allowed: false, reason: 'unsupported' });
 
+    // The wording moved with the mechanism: the reason a client cannot be
+    // asked is now the protocol revision it speaks, not a missing elicitation
+    // capability. What is asserted is unchanged — the refusal is thrown, and
+    // it explains itself.
     await expect(invoke({ method: 'DELETE', path: '/v1/project/DEMO' })).rejects.toThrow(
-      /elicitation/,
+      /older revision of the MCP protocol/,
     );
     expect(mockRequest).not.toHaveBeenCalled();
   });

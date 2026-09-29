@@ -1,33 +1,24 @@
 /**
  * The destructive gate over streamable-http, end to end.
  *
- * WHAT CHANGED, AND WHY THIS FILE LOOKS SMALLER
+ * WHAT CHANGED. The gate used to ask through `elicitation/create` on the live
+ * session and wait inside the call for the answer. Serving is per-request now,
+ * so there is no session to wait on: the handler RETURNS an input-required
+ * result and reads the answer off the client's retry (multi-round-trip). The
+ * property under test is unchanged and is the one that must never regress:
+ * NOTHING IS DELETED WITHOUT AN EXPLICIT YES.
  *
- * The gate used to ask through `elicitation/create` on the live session, and
- * this file's tests drove that conversation: prompt arrives, human answers,
- * the delete happens (or does not). Serving is per-request now. The SDK's own
- * words for the stateless legacy leg: "Per-request instances that never saw an
- * initialize (stateless legacy) hold nothing, so gates refuse there" — and
- * `server.getClientCapabilities()` is likewise empty, so
- * `confirmDestructiveAction` cannot establish that the client can be asked.
- * On the modern era there is no server→client request channel at all.
- *
- * So there is no prompt to drive on either path today, and the tests that
- * drove one are gone with the mechanism. What survives is the property those
- * tests existed to protect, and it is the one that must never regress: NOTHING
- * IS DELETED WITHOUT AN EXPLICIT YES. The gate is fail-closed, so losing the
- * channel costs a capability, never a silent deletion — that is asserted here
- * on both eras.
- *
- * Restoring a reachable prompt is the next change in this migration (the gate
- * moves to a multi-round-trip `input_required` result); it owns re-adding the
- * confirm/decline coverage on top of what is asserted here.
+ * These tests drive a real SDK client against a real listening app, because
+ * the round trip is the mechanism — the client fulfils the embedded
+ * elicitation through its own registered handler and retries the call with the
+ * answer and the echoed `requestState`, all inside one `callTool()`.
  */
 
 import { describe, it, expect, beforeAll, afterAll, beforeEach, jest } from '@jest/globals';
 import type http from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/client';
+import type { ElicitResult } from '@modelcontextprotocol/client';
 import { setTestEnv } from '../utils/test-helpers.js';
 
 setTestEnv();
@@ -46,20 +37,36 @@ let baseUrl: URL;
 const openClients: Client[] = [];
 
 /**
- * Connect a client that declares the elicitation capability — the best case
- * for the gate, and the one that used to get a prompt.
+ * Connect a client.
  *
- * `modern: true` negotiates the 2026-07-28 era; without it the client runs the
- * plain 2025 sequence and is served by the handler's stateless legacy leg.
+ * `modern: true` negotiates the 2026-07-28 era, on which the server can ask
+ * for confirmation; without it the client runs the plain 2025 sequence and is
+ * served by the handler's stateless legacy leg, which cannot be asked at all.
+ *
+ * `answer` is what the human says when the prompt arrives: registered as the
+ * client's own `elicitation/create` handler, which is what the multi-round-trip
+ * driver dispatches the embedded request to before retrying the call.
  */
-async function connect(modern: boolean): Promise<Client> {
+async function connect(
+  modern: boolean,
+  answer?: 'accept' | 'decline' | 'cancel',
+  options: { autoFulfill?: boolean } = {},
+): Promise<Client> {
   const client = new Client(
     { name: 'test-client', version: '1.0.0' },
     {
       capabilities: { elicitation: {} },
       ...(modern ? { versionNegotiation: { mode: 'auto' as const } } : {}),
+      ...(options.autoFulfill === false ? { inputRequired: { autoFulfill: false } } : {}),
     },
   );
+
+  if (answer !== undefined) {
+    client.setRequestHandler(
+      'elicitation/create',
+      (): ElicitResult => ({ action: answer, ...(answer === 'accept' && { content: {} }) }),
+    );
+  }
 
   await client.connect(
     new StreamableHTTPClientTransport(baseUrl, {
@@ -70,11 +77,19 @@ async function connect(modern: boolean): Promise<Client> {
   return client;
 }
 
-async function callDelete(client: Client) {
-  return (await client.callTool({
-    name: 'qase_case_delete',
-    arguments: { code: 'TEST', id: 1 },
-  })) as { isError?: boolean; content: Array<{ type: string; text: string }> };
+type DeleteResult = {
+  isError?: boolean;
+  content?: Array<{ type: string; text: string }>;
+  resultType?: string;
+  inputRequests?: Record<string, { method: string; params: { message: string } }>;
+  requestState?: string;
+};
+
+async function callDelete(client: Client, options = {}): Promise<DeleteResult> {
+  return (await client.callTool(
+    { name: 'qase_case_delete', arguments: { code: 'TEST', id: 1 } },
+    options,
+  )) as DeleteResult;
 }
 
 beforeAll(async () => {
@@ -111,32 +126,76 @@ afterAll(async () => {
   await new Promise<void>((resolve) => httpServer.close(() => resolve()));
 }, 30000);
 
-describe.each([
-  // The two eras refuse for different reasons, and the difference is worth
-  // pinning. On the legacy leg the per-request instance never saw an
-  // initialize, so it cannot even establish that the client could be asked
-  // ('unsupported'). On the modern era the client's capabilities DO arrive, on
-  // the request's own `_meta` envelope — but the era has no server→client
-  // request channel, so the send itself fails ('undeliverable'). Both land on
-  // the same side of the gate.
-  ['a 2025-era client on the stateless legacy leg', false, 'does not support MCP elicitation'],
-  ['a 2026-07-28 client', true, 'was not answered'],
-])('the destructive gate never opens without an answer: %s', (_label, modern, reason) => {
-  it('refuses instead of deleting', async () => {
-    const client = await connect(modern);
+describe('the destructive gate on the 2026-07-28 era', () => {
+  // (a) The first round asks. It does not delete, and it does not refuse
+  // either — the answer is still outstanding. Manual mode (`autoFulfill:
+  // false` + `allowInputRequired`) hands the raw result back instead of
+  // driving the round trip, which is the only way to see the first round on
+  // its own.
+  it('answers the first round with a request for confirmation, having deleted nothing', async () => {
+    const client = await connect(true, undefined, { autoFulfill: false });
+
+    const result = await callDelete(client, { allowInputRequired: true });
+
+    expect(deleteCase).not.toHaveBeenCalled();
+    expect(result.resultType).toBe('input_required');
+    expect(result.inputRequests?.confirm?.method).toBe('elicitation/create');
+    expect(result.inputRequests?.confirm?.params.message).toContain('qase_case_delete');
+    // The state that carries the confirmation across the round trip. It is
+    // signed and bound to this caller; without it the retry has nothing to
+    // match the answer against.
+    expect(typeof result.requestState).toBe('string');
+  });
+
+  // (b) The confirmation reaches the user and comes back: the delete happens.
+  it('performs the deletion once the user accepts', async () => {
+    const client = await connect(true, 'accept');
+
+    const result = await callDelete(client);
+
+    expect(deleteCase).toHaveBeenCalledWith('TEST', 1);
+    expect(result.isError).toBeFalsy();
+  });
+
+  // (c) The user says no: nothing is deleted, and the refusal says so in
+  // words the agent can relay.
+  it('deletes nothing when the user declines, and says why', async () => {
+    const client = await connect(true, 'decline');
+
+    const result = await callDelete(client);
+
+    expect(deleteCase).not.toHaveBeenCalled();
+    expect(result.content?.[0].text).toContain('declined');
+    expect(result.content?.[0].text).toContain('Nothing was deleted');
+  });
+
+  it('deletes nothing when the user cancels the prompt', async () => {
+    const client = await connect(true, 'cancel');
+
+    const result = await callDelete(client);
+
+    expect(deleteCase).not.toHaveBeenCalled();
+    expect(result.content?.[0].text).toContain('declined');
+  });
+});
+
+// (d) A client on the older revision cannot be asked on a stateless leg, so
+// the gate refuses at once rather than deleting unconfirmed — and rather than
+// hanging on a prompt nobody will answer.
+describe('the destructive gate for a 2025-era client', () => {
+  it('refuses instead of deleting, naming the protocol revision as the reason', async () => {
+    const client = await connect(false, 'accept');
 
     const result = await callDelete(client);
 
     expect(deleteCase).not.toHaveBeenCalled();
     expect(result.isError).toBe(true);
-    // The refusal names what is missing, so the agent can act on it rather
-    // than concluding the tool is broken.
-    expect(result.content[0].text).toContain('Refused "qase_case_delete"');
-    expect(result.content[0].text).toContain(reason);
+    expect(result.content?.[0].text).toContain('Refused "qase_case_delete"');
+    expect(result.content?.[0].text).toContain('2025-11-25');
   });
 
   it('answers immediately, without waiting on a prompt timeout', async () => {
-    const client = await connect(modern);
+    const client = await connect(false, 'accept');
 
     const started = Date.now();
     await callDelete(client);

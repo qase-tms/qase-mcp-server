@@ -1,0 +1,26 @@
+src/tools/activation.test.ts
+  s_fef725799cacdb::t_eacc8618ece2fd 2
+  s_fef725799cacdb::t_49c4c3c8ac15b3 40-86
+  s_fef725799cacdb::t_4ac1adeddc485e 1,3-39
+src/tools/activation.ts
+  s_fef725799cacdb::t_66067030972470 151-155
+  s_fef725799cacdb::t_68044345c7b07b 92-102,105,107-148
+  s_fef725799cacdb::t_5baa5102ef2411 156
+  s_fef725799cacdb::t_325e7614c5d416 1-91,103-104,106,149-150,157-160
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "f365332993509a061c9b18bf09fb486ca1f0941e",
+  "prompts": {},
+  "sessions": {
+    "s_fef725799cacdb": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b943b4b3-61be-47d6-8bb1-ad338faf9ede",
+        "model": "claude-opus-5"
+      },
+      "human_author": "Dmitrii Gridnev <dgridnev@qase.io>"
+    }
+  }
+}

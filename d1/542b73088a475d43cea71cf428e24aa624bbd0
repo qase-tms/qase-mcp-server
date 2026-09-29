@@ -1,0 +1,27 @@
+src/utils/tool-metrics.test.ts
+  s_fef725799cacdb::t_42ba403d0c37aa 1-25
+src/cache/metrics.ts
+  s_fef725799cacdb::t_b48c8f206d6d54 135-139
+src/server.ts
+  s_fef725799cacdb::t_523bc3f6507df5 10
+  s_fef725799cacdb::t_a84d39b4ba0ef3 121
+src/operations-v2/meta/discover.ts
+  s_fef725799cacdb::t_fd094c7409a606 71-74
+  s_fef725799cacdb::t_566530a1fe0b34 10
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "d1542b73088a475d43cea71cf428e24aa624bbd0",
+  "prompts": {},
+  "sessions": {
+    "s_fef725799cacdb": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b943b4b3-61be-47d6-8bb1-ad338faf9ede",
+        "model": "claude-opus-5"
+      },
+      "human_author": "Dmitrii Gridnev <dgridnev@qase.io>"
+    }
+  }
+}

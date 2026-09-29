@@ -3,17 +3,16 @@
  *
  * The marker used to be captured once, on the `initialize` that opened a
  * session, and remembered for the life of that session. There are no sessions
- * any more, so that capture is gone and the per-request read that replaces it
- * is the NEXT change in this migration — a deliberate, recorded split, so that
- * the era switch and the marker rework stay separately reviewable.
+ * any more, so that capture is gone; the marker is now read per request, off
+ * the header (or the query parameter, for clients that cannot set headers) of
+ * the request that carries it, and never carried over to the next one.
  *
  * Everything that asserted session-remembered behaviour is therefore gone from
  * this file: not a weakened expectation, an expectation about a mechanism that
  * no longer exists. What remains is the part of the chain that is genuinely
  * unchanged — the process-wide `QASE_MCP_INTEGRATION` fallback a stdio
- * deployment relies on, which a tool handler must still observe — plus an
- * explicit statement that no request currently carries a marker of its own, so
- * the gap is visible rather than silent.
+ * deployment relies on, which a tool handler must still observe — plus the
+ * per-request read that replaces the session capture.
  */
 
 import { describe, it, expect, beforeAll, afterAll, afterEach } from '@jest/globals';
@@ -109,12 +108,16 @@ describe('streamable-http integration marker', () => {
     expect(await whoami()).toBe('none');
   });
 
-  // Pins the gap rather than leaving it unstated: the header and the query
-  // parameter reach the server and are ignored, because nothing reads them on
-  // this path yet. The next change in the migration reads them per request and
-  // flips both of these to the marker's value.
-  it('does not yet read the marker off the request itself', async () => {
-    expect(await whoami({ header: 'quality-supervisor/2.0.0' })).toBe('none');
-    expect(await whoami({ query: 'quality-supervisor/1.0.0' })).toBe('none');
+  it('reads the marker from the header of the request that carries it', async () => {
+    expect(await whoami({ header: 'quality-supervisor/2.0.0' })).toBe('quality-supervisor/2.0.0');
+  });
+
+  it('falls back to the query parameter, for clients that cannot set headers', async () => {
+    expect(await whoami({ query: 'quality-supervisor/1.0.0' })).toBe('quality-supervisor/1.0.0');
+  });
+
+  it('does not carry a marker over from an earlier request', async () => {
+    expect(await whoami({ header: 'quality-supervisor/2.0.0' })).toBe('quality-supervisor/2.0.0');
+    expect(await whoami()).toBe('none');
   });
 });

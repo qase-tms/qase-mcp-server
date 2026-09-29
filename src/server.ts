@@ -94,6 +94,17 @@ export function createServer(): Server {
       // when it throws, so the handler only ever sees state this process
       // signed, for this caller and this method.
       requestState: { verify: getRequestStateCodec().verify },
+      cacheHints: {
+        // Same as the SDK default, written down on purpose: the tool list now
+        // depends on who is asking, so the day someone makes it cacheable to
+        // save a round trip, they have to delete this line and answer for it.
+        // A shared cache here would show an agent another caller's tools.
+        'tools/list': { ttlMs: 0, cacheScope: 'private' },
+        // The prompt catalog is static — the same for every caller, and we
+        // declare no prompts.listChanged — so it is the one list worth letting
+        // a shared cache hold.
+        'prompts/list': { ttlMs: 300_000, cacheScope: 'public' },
+      },
     },
   );
 

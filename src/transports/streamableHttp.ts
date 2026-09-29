@@ -16,6 +16,7 @@ import type { RequestHandler } from 'express';
 import { createJsonParseErrorHandler } from './json-parse-error.js';
 import { readBodyLimit, bodyLimitBytes } from './body-limit.js';
 import { createMcpRateLimiter } from './rate-limit.js';
+import { normalizeIntegrationMarker } from '../utils/integration-marker.js';
 
 export interface StreamableHttpConfig {
   port: number;
@@ -54,19 +55,29 @@ export function setupStreamableHttpTransport(
   // CORS middleware for inspector
   app.use((req, res, next) => {
     res.header('Access-Control-Allow-Origin', process.env.CORS_ORIGIN || '*');
-    res.header('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
+    // GET and DELETE are session operations (resume the standalone stream, end
+    // the session) that no longer exist — verified with curl against a running
+    // server that both answer 405 on this endpoint, on the legacy-stateless leg
+    // and on a modern-negotiated request alike.
+    res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
     // Mcp-Method / Mcp-Name are required request headers as of MCP spec 2026-07-28
     // (gateway routing without body parsing) — allow them ahead of client adoption.
     // X-Qase-Integration is ours: without it a browser-based client's preflight
     // strips the marker and only the ?integration= fallback would work.
+    // mcp-session-id is kept even though we no longer issue one: allowing a
+    // header nobody sends is harmless, and dropping it breaks preflight for a
+    // client that still sends it.
     res.header(
       'Access-Control-Allow-Headers',
       'Content-Type, Authorization, mcp-session-id, Mcp-Method, Mcp-Name, X-Qase-Integration',
     );
-    // Expose auth challenge + session id so browser-based MCP clients (Inspector,
-    // Claude.ai web) can read them from cross-origin responses. Without this the
-    // 401 WWW-Authenticate challenge is invisible to client JS and OAuth never starts.
-    res.header('Access-Control-Expose-Headers', 'WWW-Authenticate, mcp-session-id');
+    // Expose the auth challenge so browser-based MCP clients (Inspector,
+    // Claude.ai web) can read it from cross-origin responses. Without this the
+    // 401 WWW-Authenticate challenge is invisible to client JS and OAuth never
+    // starts. mcp-session-id is not exposed: we no longer issue one, and
+    // exposing a header we never send only invites a client to reconstruct
+    // session behaviour that does not exist.
+    res.header('Access-Control-Expose-Headers', 'WWW-Authenticate');
 
     if (req.method === 'OPTIONS') {
       res.sendStatus(200);
@@ -232,12 +243,18 @@ export function setupStreamableHttpTransport(
       console.error('[StreamableHTTP] Using per-request Bearer token');
     }
 
-    // The integration marker is deliberately not read here. It used to be
-    // captured once per session, and the session is gone; reading it per
-    // request is the next change in this migration, which owns the test for it.
-    // An empty scope means getIntegration() falls through to
-    // QASE_MCP_INTEGRATION, exactly as it does on stdio.
-    const integration = '';
+    // Read per request, not per session — there is no session to remember it
+    // for. Header first, since a browser-based client's preflight strips a
+    // query-string marker but not a declared request header; the query
+    // parameter is the fallback for clients that cannot set headers.
+    // normalizeIntegrationMarker() re-validates against ALLOWED_INTEGRATIONS,
+    // so an unknown or malformed marker resolves to '', same as no marker at
+    // all — and getIntegration() falls through to QASE_MCP_INTEGRATION,
+    // exactly as it does on stdio.
+    const rawIntegration = (req.headers['x-qase-integration'] as string) || req.query.integration;
+    const integration =
+      normalizeIntegrationMarker(typeof rawIntegration === 'string' ? rawIntegration : undefined) ??
+      '';
 
     // Run the handler inside AsyncLocalStorage context so getApiClient() can read the token
     try {

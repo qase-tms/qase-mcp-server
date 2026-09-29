@@ -1,0 +1,21 @@
+src/operations-v2/meta/discover.ts
+  s_fef725799cacdb::t_324505c29960f0 150-157
+src/server-instructions.ts
+  s_fef725799cacdb::t_e79fb26d89958e 18
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "d688771c393f0b22f0a2a8e5c1e40b4f6cbdf36c",
+  "prompts": {},
+  "sessions": {
+    "s_fef725799cacdb": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b943b4b3-61be-47d6-8bb1-ad338faf9ede",
+        "model": "claude-opus-5"
+      },
+      "human_author": "Dmitrii Gridnev <dgridnev@qase.io>"
+    }
+  }
+}

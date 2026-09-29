@@ -2,6 +2,18 @@ import { formatLabels } from './prom-format.js';
 
 type Labels = Record<string, string>;
 
+/**
+ * Order two label names by UTF-16 code unit, the same order a bare `sort()`
+ * produces. Deliberately not `localeCompare`: a series key must hash the same
+ * on every host, and locale-aware collation would make it depend on the
+ * runtime's locale.
+ */
+function compareCodeUnits(a: string, b: string): number {
+  if (a < b) return -1;
+  if (a > b) return 1;
+  return 0;
+}
+
 interface MetricDef {
   help: string;
   type: 'counter' | 'gauge';
@@ -86,7 +98,7 @@ export class Metrics {
   private seriesKey(labels: Labels): string {
     const keys = Object.keys(labels);
     if (keys.length === 0) return '';
-    keys.sort();
+    keys.sort(compareCodeUnits);
     const sorted: Labels = {};
     for (const k of keys) sorted[k] = labels[k];
     return JSON.stringify(sorted);

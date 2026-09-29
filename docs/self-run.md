@@ -375,6 +375,15 @@ Metrics include:
 - `qase_mcp_cache_hits_total` / `qase_mcp_cache_misses_total` - Cache hit/miss rates by tier (l1/l2)
 - `qase_mcp_cache_errors_total` - Cache errors by tier
 - `qase_mcp_circuit_breaker_state` - Redis circuit breaker state (0=closed, 1=half_open, 2=open)
+- `qase_mcp_requests_total` - Requests served, labelled by `protocol` (the revision the client
+  negotiated, e.g. `2026-07-28`, or `legacy` for 2025-11-25) and `client` (the client's own name).
+  This is what tells you whether anyone still needs the older protocol revision before it is
+  dropped. A 2025-era client reaches a stateless HTTP request without ever identifying itself, so
+  it is counted as `client="unknown"`; on stdio and SSE the name comes from the connection's
+  `initialize`. The number of distinct client names is capped at 20 per process — the label comes
+  from the wire, and past the cap everything new is counted as `client="other"`.
+- `qase_mcp_tool_calls_total` / `qase_mcp_tool_activations_total` - Tool calls by tool name, and
+  tools switched on by `qase_discover_tools`
 
 > **Note:** This page covers running the server yourself with your own `QASE_API_TOKEN` (self-run). It does not cover operating the hosted OAuth proxy — that is internal operator documentation, not part of this guide.
 

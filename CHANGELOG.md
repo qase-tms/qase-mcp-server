@@ -29,7 +29,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Two counters on `/metrics`:** `qase_mcp_tool_calls_total` by tool name, and `qase_mcp_tool_activations_total` by the tool that was switched on. Discovery was the least visible part of the server and is now the most measurable.
+- **Three counters on `/metrics`:** `qase_mcp_tool_calls_total` by tool name, `qase_mcp_tool_activations_total` by the tool that was switched on, and `qase_mcp_requests_total` by protocol revision and client name. Discovery was the least visible part of the server and is now the most measurable.
+
+- **`qase_mcp_requests_total` answers who is still on the old revision.** This release serves two protocol revisions at once, and the decision to stop serving the older one cannot be read out of the code — only out of traffic. On 2026-07-28 every request carries a `_meta` envelope naming the revision and identifying the client, so both labels come from the request itself; a 2025-era request carries no envelope and is counted as `protocol="legacy"`, with the client named only where an `initialize` established it (stdio, SSE) and `unknown` on a stateless HTTP leg — which is precisely the traffic a modern-only endpoint would refuse. The client label is normalised and capped at 20 distinct values per process, because it arrives from the wire and every distinct value would otherwise be a series nothing evicts.
 
 - **`QASE_MCP_REDIS_URL` also carries tool-list notifications.** When several replicas share a Redis, an activation on one is announced to clients listening on the others.
 

@@ -25,6 +25,7 @@ import { parseProducerMarker } from './utils/producer-marker.js';
 import { producerStorage } from './utils/producer-context.js';
 import { callIntegrationStorage } from './utils/integration-context.js';
 import { requestSubjectStorage, subjectFromContext } from './utils/auth-context.js';
+import { recordProtocolRequest } from './utils/protocol-telemetry.js';
 import { getActivationStore } from './tools/activation.js';
 import { VERSION } from './version.js';
 import { listPrompts, getPrompt } from './prompts/index.js';
@@ -101,6 +102,7 @@ export function createServer(): Server {
    * Called when the MCP client wants to discover available tools.
    */
   server.setRequestHandler('tools/list', async (request, ctx) => {
+    recordProtocolRequest(ctx);
     rejectUnknownCursor(request.params?.cursor);
     const subject = subjectFromContext(ctx);
     const active = await getActivationStore().get(subject);
@@ -112,7 +114,8 @@ export function createServer(): Server {
   /**
    * Handler: List available prompts (workflow templates)
    */
-  server.setRequestHandler('prompts/list', async (request) => {
+  server.setRequestHandler('prompts/list', async (request, ctx) => {
+    recordProtocolRequest(ctx);
     rejectUnknownCursor(request.params?.cursor);
     const prompts = listPrompts();
     console.error(`[Server] Listing ${prompts.length} prompts`);
@@ -122,7 +125,8 @@ export function createServer(): Server {
   /**
    * Handler: Get a specific prompt with arguments
    */
-  server.setRequestHandler('prompts/get', async (request) => {
+  server.setRequestHandler('prompts/get', async (request, ctx) => {
+    recordProtocolRequest(ctx);
     const { name, arguments: args } = request.params;
     console.error(`[Server] Getting prompt: ${name}`);
     return getPrompt(name, args);
@@ -134,6 +138,7 @@ export function createServer(): Server {
    * Executes the specified tool with provided arguments.
    */
   server.setRequestHandler('tools/call', async (request, ctx) => {
+    recordProtocolRequest(ctx);
     // The subject travels via AsyncLocalStorage rather than as a parameter:
     // qase_discover_tools' handler is a plain ToolHandler (args) => Promise<R>
     // several calls below, with no ctx of its own — see auth-context.ts.

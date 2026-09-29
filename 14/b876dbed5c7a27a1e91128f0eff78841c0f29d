@@ -1,0 +1,21 @@
+src/operations-v2/write/attachments.ts
+  s_e6ccac83f566b9::t_2d7fd6a826a148 102-108,112
+src/operations-v2/read/project-context.ts
+  s_e6ccac83f566b9::t_2d7fd6a826a148 158-161
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "14b876dbed5c7a27a1e91128f0eff78841c0f29d",
+  "prompts": {},
+  "sessions": {
+    "s_e6ccac83f566b9": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "649264ea-1098-4f2f-b59e-163a562ecb09",
+        "model": "unknown"
+      },
+      "human_author": "Dmitrii Gridnev <dgridnev@qase.io>"
+    }
+  }
+}

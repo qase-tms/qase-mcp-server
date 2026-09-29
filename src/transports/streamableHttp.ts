@@ -55,11 +55,16 @@ export function setupStreamableHttpTransport(
   // CORS middleware for inspector
   app.use((req, res, next) => {
     res.header('Access-Control-Allow-Origin', process.env.CORS_ORIGIN || '*');
-    // GET and DELETE are session operations (resume the standalone stream, end
-    // the session) that no longer exist — verified with curl against a running
-    // server that both answer 405 on this endpoint, on the legacy-stateless leg
-    // and on a modern-negotiated request alike.
-    res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    // This middleware is mounted with no path, so it answers the preflight for
+    // every route on this app, not just `/mcp`: `/health`, `/metrics`, and the
+    // OAuth well-known/metadata routes (plus mcpAuthRouter, when OAuth is on)
+    // are all GET, so GET stays advertised. DELETE is the one method that
+    // drops out: it was the session-end operation on `/mcp`, no other route
+    // here ever served it, and there is no session left to end — verified
+    // with curl against a running server that GET and DELETE on `/mcp` both
+    // answer 405, on the legacy-stateless leg and on a modern-negotiated
+    // request alike.
+    res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
     // Mcp-Method / Mcp-Name are required request headers as of MCP spec 2026-07-28
     // (gateway routing without body parsing) — allow them ahead of client adoption.
     // X-Qase-Integration is ours: without it a browser-based client's preflight

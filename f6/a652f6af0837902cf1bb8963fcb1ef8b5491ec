@@ -1,0 +1,27 @@
+.github/workflows/docker.yml
+  s_e6ccac83f566b9::t_2de732080f1203 35,39,47,61
+  s_e6ccac83f566b9::t_375b64d3f4f4cd 32
+.github/workflows/npm.yml
+  s_e6ccac83f566b9::t_375b64d3f4f4cd 41,71,144
+  s_e6ccac83f566b9::t_2de732080f1203 109
+  s_e6ccac83f566b9::t_880e1dd0e491d8 48,79
+.github/workflows/mcpscore.yml
+  s_e6ccac83f566b9::t_2de732080f1203 44
+  s_e6ccac83f566b9::t_375b64d3f4f4cd 30
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "f6a652f6af0837902cf1bb8963fcb1ef8b5491ec",
+  "prompts": {},
+  "sessions": {
+    "s_e6ccac83f566b9": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "649264ea-1098-4f2f-b59e-163a562ecb09",
+        "model": "unknown"
+      },
+      "human_author": "Dmitrii Gridnev <dgridnev@qase.io>"
+    }
+  }
+}

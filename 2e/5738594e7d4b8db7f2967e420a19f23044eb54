@@ -1,0 +1,31 @@
+src/transports/streamableHttp.integration-marker.test.ts
+  s_fef725799cacdb::t_3253e59e3974af 111-121
+  s_fef725799cacdb::t_0c1cd46b034664 6-8,14-15
+src/server.cache-hints.test.ts
+  s_fef725799cacdb::t_27b628d6935683 1-84
+src/transports/rate-limit.ts
+  s_fef725799cacdb::t_51517eacfac244 12
+src/server.ts
+  s_fef725799cacdb::t_7df4b25ac787b0 97-107
+src/transports/streamableHttp.ts
+  s_fef725799cacdb::t_f039ea30f0aee6 246-254
+  s_fef725799cacdb::t_f2b39dd746b9b6 58-62,67-69,74-80
+  s_fef725799cacdb::t_9756b3acd7654d 19
+  s_fef725799cacdb::t_8d097ca479c9fd 255-257
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "2e5738594e7d4b8db7f2967e420a19f23044eb54",
+  "prompts": {},
+  "sessions": {
+    "s_fef725799cacdb": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b943b4b3-61be-47d6-8bb1-ad338faf9ede",
+        "model": "claude-opus-5"
+      },
+      "human_author": "Dmitrii Gridnev <dgridnev@qase.io>"
+    }
+  }
+}

@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.1]
+
+### Fixed
+
+- **`qql_help` said that results have no run-ID field.** QQL has filtered results by `runId` since September 2026. The value is the run number from the run URL, so `/run/DEMO/dashboard/42` is `runId = 42`. The help told the model the opposite and sent it to `qase_api` with `filters[run]`, so it never wrote the direct query. The result entry now lists `runId` and says that run numbers restart in every project: without `project = "CODE"`, `runId = 42` matches run 42 of every project, and `GROUP BY runId` merges them into one group. The aggregation examples gain a per-run status breakdown.
+
+- **`isManual` was missing from the result fields.** The entry lists it now, with the values it takes: `"Manual"` or `"Automated"` with `=` or `!=`. A boolean does not work there: `isManual = true` selects only the "to be automated" cases.
+
 ## [3.0.0]
 
 ### Required deployment step

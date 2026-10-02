@@ -184,10 +184,21 @@ describe('qql_help — per-entity fields', () => {
     expect(text).toContain('timeSpent 0');
   });
 
-  it('warns that result has no run-ID field', async () => {
+  it('names runId as the per-project run number of a result', async () => {
     const text = textOf((await help('entities')).content);
 
-    expect(text).toContain('no run-ID field');
+    // Run numbers restart in every project, so a runId filter without a project
+    // silently matches the same number in all of them.
+    expect(text).toContain('runId');
+    expect(text).toContain('Run numbers restart in every project');
+    expect(text).not.toContain('no run-ID field');
+  });
+
+  it('tells the model to filter isManual by its titles, not booleans', async () => {
+    const text = textOf((await help('entities')).content);
+
+    // isManual = true selects only "to be automated" cases, a different set.
+    expect(text).toContain('isManual takes "Manual" or "Automated"');
   });
 
   it('flags that case.suite is a title but result.suite is a numeric ID', async () => {

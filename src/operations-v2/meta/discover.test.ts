@@ -74,3 +74,42 @@ describe('qase_discover_tools — activation', () => {
     expect(result.activeNames).not.toContain('probe_secondary_tool');
   });
 });
+
+describe('qase_discover_tools — what counts as an activation', () => {
+  beforeEach(() => {
+    toolRegistry.unregister('probe_core_tool');
+    toolRegistry.register({
+      name: 'probe_core_tool',
+      title: 'Probe core tool',
+      description: 'A probe tool used to verify discovery activation.',
+      schema: z.object({}),
+      handler: async () => ({}),
+      visibility: 'core',
+    });
+  });
+
+  it('does not count a core tool as activated — it was never hidden', async () => {
+    // Both probes match the same query; only the discoverable one is hidden.
+    const result = await invoke({ query: 'probe tool used to verify' });
+
+    expect(result.tools.map((t) => t.name)).toEqual(
+      expect.arrayContaining(['probe_core_tool', 'probe_secondary_tool']),
+    );
+    // `found` reports everything that matched, including what was already visible…
+    expect(result.found).toBeGreaterThanOrEqual(2);
+    // …but `activated` must report only what the caller could not see before,
+    // because that number is what tells an agent its tool list changed.
+    expect(result.activated).toBe(1);
+    expect(result.activeNames).toEqual(['probe_secondary_tool']);
+  });
+
+  it('reports nothing activated when every match was already visible', async () => {
+    toolRegistry.unregister('probe_secondary_tool');
+
+    const result = await invoke({ query: 'probe tool used to verify' });
+
+    expect(result.tools.map((t) => t.name)).toContain('probe_core_tool');
+    expect(result.activated).toBe(0);
+    expect(result.activeNames).toEqual([]);
+  });
+});

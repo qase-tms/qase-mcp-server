@@ -39,6 +39,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`QASE_MCP_SESSION_TTL_MINUTES`.** It tuned how long an idle HTTP session was kept in memory before eviction. There are no sessions left to evict (above), so it is read nowhere any more. An operator with it set in a deployment can drop it whenever convenient — leaving it in place is harmless, it is simply ignored.
 
+- **`qase_discover_tools` no longer counts tools that were already visible.** It reported every match as activated, core tools included — so a search that turned nothing on could still answer `activated: 5`, inflate the activation counter, and announce `tools/list_changed` for a list that had not changed. It now records only the matches that were actually hidden from that caller, which is what the number was always meant to mean. `found` still reports everything that matched.
+
 ### Breaking
 
 - **A 2025-era client on a stateless HTTP connection can no longer confirm a deletion, and so cannot delete.** Confirmation on that revision needs the capabilities a client declares during `initialize`, and a stateless request never sent one. Such a call is refused with an explanation naming the reason and the two ways out: use a client that negotiates 2026-07-28, or delete in the Qase UI. This affects the HTTP transports only. Over stdio and SSE the connection is long-lived and the client's capabilities are known, so a 2025-era client confirms there exactly as before — but a **stdio** client that itself negotiates 2026-07-28 does not: it gets the same input-required result an HTTP client gets and must retry the call carrying the answer, rather than the old single round-trip push.

@@ -108,9 +108,15 @@ async function handler(args: z.infer<typeof Schema>) {
   // Activate matched tools if requested. The active set is per-caller state
   // now, not the registry's — `store.add` records it for this subject and
   // returns only the names that were not already active.
+  //
+  // Only the discoverable matches are offered to the store. A core tool is in
+  // every caller's list already, so recording one would report an activation
+  // that changed nothing: it inflates `activated`, inflates the activation
+  // counter, and fires a tools/list_changed notification for a list that did
+  // not change.
   const activated: string[] = [];
   if (activate) {
-    const names = matches.map((t) => t.name);
+    const names = matches.filter((t) => toolRegistry.isDiscoverable(t.name)).map((t) => t.name);
     const subject = getEffectiveSubject();
     activated.push(...(await getActivationStore().add(subject, names)));
   }

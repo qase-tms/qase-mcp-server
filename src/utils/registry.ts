@@ -148,6 +148,18 @@ export class ToolRegistry {
   }
 
   /**
+   * Whether a tool is hidden until a caller switches it on.
+   *
+   * Discovery needs this to tell apart the two kinds of match it returns: a
+   * core tool was always in the caller's list, so recording it as "activated"
+   * reports a change that did not happen. An unknown name reads as not
+   * discoverable — there is nothing to switch on.
+   */
+  isDiscoverable(name: string): boolean {
+    return this.toolVisibility.get(name) === 'discoverable';
+  }
+
+  /**
    * Get ALL registered tools regardless of activation status.
    * Used for discovery search and testing.
    */

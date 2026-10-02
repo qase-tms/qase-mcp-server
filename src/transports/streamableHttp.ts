@@ -1,11 +1,10 @@
 import express, { Express } from 'express';
 import { mcpAuthRouter } from '@modelcontextprotocol/server-legacy/auth';
-import { NodeStreamableHTTPServerTransport } from '@modelcontextprotocol/node';
-import { Server } from '@modelcontextprotocol/server';
-import { randomUUID } from 'crypto';
+import { toNodeHandler } from '@modelcontextprotocol/node';
+import { createMcpHandler, Server } from '@modelcontextprotocol/server';
 import { requestTokenStorage } from '../utils/auth-context.js';
 import { integrationStorage } from '../utils/integration-context.js';
-import { normalizeIntegrationMarker } from '../utils/integration-marker.js';
+import { getServerEventBus } from '../tools/event-bus.js';
 import { getMetrics } from '../cache/index.js';
 import { getOAuthConfig, type OAuthConfig } from '../auth/oauth-config.js';
 import { createJwksVerifier, type JwksVerifier } from '../auth/jwks-verifier.js';
@@ -15,33 +14,14 @@ import { createBearerRequiredGuard } from '../auth/bearer-guard.js';
 import { authorizeRedirectUriStorage } from '../auth/client-context.js';
 import type { RequestHandler } from 'express';
 import { createJsonParseErrorHandler } from './json-parse-error.js';
-import { readBodyLimit } from './body-limit.js';
+import { readBodyLimit, bodyLimitBytes } from './body-limit.js';
 import { createMcpRateLimiter } from './rate-limit.js';
+import { normalizeIntegrationMarker } from '../utils/integration-marker.js';
 
 export interface StreamableHttpConfig {
   port: number;
   host?: string;
   endpoint?: string;
-}
-
-// Helper to check if a request is an initialize request
-function isInitializeRequest(body: unknown): boolean {
-  return (
-    typeof body === 'object' && body !== null && 'method' in body && body.method === 'initialize'
-  );
-}
-
-/**
- * Read the integration marker off a request, normalised (see integration-marker.ts).
- *
- * Two channels, both required. The header is the primary one; the query parameter
- * exists because it is not yet proven that custom request headers survive the
- * OAuth flow on the hosted endpoint in every MCP client, and a URL is the one
- * thing every client definitely passes through. The query parameter is only read
- * at session creation — after that the value is remembered per session.
- */
-function readIntegrationMarker(value: unknown): string | undefined {
-  return typeof value === 'string' ? normalizeIntegrationMarker(value) : undefined;
 }
 
 /**
@@ -75,19 +55,34 @@ export function setupStreamableHttpTransport(
   // CORS middleware for inspector
   app.use((req, res, next) => {
     res.header('Access-Control-Allow-Origin', process.env.CORS_ORIGIN || '*');
-    res.header('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
+    // This middleware is mounted with no path, so it answers the preflight for
+    // every route on this app, not just `/mcp`: `/health`, `/metrics`, and the
+    // OAuth well-known/metadata routes (plus mcpAuthRouter, when OAuth is on)
+    // are all GET, so GET stays advertised. DELETE is the one method that
+    // drops out: it was the session-end operation on `/mcp`, no other route
+    // here ever served it, and there is no session left to end — verified
+    // with curl against a running server that GET and DELETE on `/mcp` both
+    // answer 405, on the legacy-stateless leg and on a modern-negotiated
+    // request alike.
+    res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
     // Mcp-Method / Mcp-Name are required request headers as of MCP spec 2026-07-28
     // (gateway routing without body parsing) — allow them ahead of client adoption.
     // X-Qase-Integration is ours: without it a browser-based client's preflight
     // strips the marker and only the ?integration= fallback would work.
+    // mcp-session-id is kept even though we no longer issue one: allowing a
+    // header nobody sends is harmless, and dropping it breaks preflight for a
+    // client that still sends it.
     res.header(
       'Access-Control-Allow-Headers',
       'Content-Type, Authorization, mcp-session-id, Mcp-Method, Mcp-Name, X-Qase-Integration',
     );
-    // Expose auth challenge + session id so browser-based MCP clients (Inspector,
-    // Claude.ai web) can read them from cross-origin responses. Without this the
-    // 401 WWW-Authenticate challenge is invisible to client JS and OAuth never starts.
-    res.header('Access-Control-Expose-Headers', 'WWW-Authenticate, mcp-session-id');
+    // Expose the auth challenge so browser-based MCP clients (Inspector,
+    // Claude.ai web) can read it from cross-origin responses. Without this the
+    // 401 WWW-Authenticate challenge is invisible to client JS and OAuth never
+    // starts. mcp-session-id is not exposed: we no longer issue one, and
+    // exposing a header we never send only invites a client to reconstruct
+    // session behaviour that does not exist.
+    res.header('Access-Control-Expose-Headers', 'WWW-Authenticate');
 
     if (req.method === 'OPTIONS') {
       res.sendStatus(200);
@@ -185,43 +180,38 @@ export function setupStreamableHttpTransport(
     mcpGuard ?? createBearerRequiredGuard(),
   ];
 
-  // Session management - store transport and last-seen timestamp per session.
-  // Sessions are in-memory per pod; one idle longer than this window is evicted
-  // (the client transparently re-initializes on the resulting 404). Default 24h so
-  // intermittently-used hosted connectors aren't dropped on idle; tune via
-  // QASE_MCP_SESSION_TTL_MINUTES. Note: longer TTL keeps more sessions in memory.
-  const ttlMinutesRaw = process.env.QASE_MCP_SESSION_TTL_MINUTES;
-  const ttlMinutes =
-    ttlMinutesRaw && /^\d+$/.test(ttlMinutesRaw) && Number(ttlMinutesRaw) > 0
-      ? Number(ttlMinutesRaw)
-      : 1440; // 24 hours
-  const SESSION_TTL_MS = ttlMinutes * 60 * 1000;
-  const sessions = new Map<string, NodeStreamableHTTPServerTransport>();
-  const sessionLastSeen = new Map<string, number>();
-  // Integration marker captured at session creation (header or ?integration=),
-  // so later requests on the session need not repeat it. Evicted with the session.
-  const sessionIntegrations = new Map<string, string>();
-
-  // Periodically evict stale sessions that never sent a DELETE
-  const cleanupInterval = setInterval(
-    () => {
-      const now = Date.now();
-      for (const [id, ts] of sessionLastSeen) {
-        if (now - ts > SESSION_TTL_MS) {
-          const staleTransport = sessions.get(id);
-          if (staleTransport) {
-            staleTransport.close().catch(() => {});
-            sessions.delete(id);
-          }
-          sessionLastSeen.delete(id);
-          sessionIntegrations.delete(id);
-          console.error(`[StreamableHTTP] Evicted stale session: ${id}`);
-        }
-      }
-    },
-    5 * 60 * 1000,
-  ); // check every 5 minutes
-  cleanupInterval.unref(); // don't keep the process alive just for cleanup
+  // One handler serves both protocol eras.
+  //
+  // `createMcpHandler` is per-request by construction: it calls the factory for
+  // every request it serves and throws the instance away with the response. The
+  // session map that used to live here — with its TTL sweep, its 404 for an
+  // unknown id and its `mcp-session-id` header — has no counterpart in the
+  // 2026-07-28 era, and the handler answers the two operations that only made
+  // sense with a session (`GET` and `DELETE` on this endpoint) with 405.
+  //
+  // `legacy: 'stateless'` keeps 2025-era clients working: their requests are
+  // routed to the handler's stateless legacy leg, which builds the same kind of
+  // streamable-HTTP transport the hand-wired code did, minus the session.
+  const mcpHandler = createMcpHandler(() => createServer(), {
+    legacy: 'stateless',
+    // The process-wide bus `subscriptions/listen` streams subscribe to, and the
+    // one tool activation publishes onto (src/tools/event-bus.ts). Passing it
+    // explicitly is what lets a change made deep inside a tool handler reach a
+    // stream opened by an entirely different request.
+    bus: getServerEventBus(),
+    // Without this the SDK caps bodies at its own 4 MiB default and silently
+    // undoes the 10 MB limit configured for attachment uploads.
+    maxRequestBodySize: bodyLimitBytes(),
+    onerror: (err) => console.error('[StreamableHTTP] handler error:', err),
+  });
+  // The adapter applies its own bound to bodies it reads off the Node stream.
+  // Every request here arrives behind `express.json()` and is handed over as a
+  // parsed body, so that path is not taken — but the two caps are set from the
+  // same place so they cannot drift if it ever is.
+  const nodeHandler = toNodeHandler(mcpHandler, {
+    maxRequestBodySize: bodyLimitBytes(),
+    onerror: (err) => console.error('[StreamableHTTP] adapter error:', err),
+  });
 
   // Health check endpoint
   app.get('/health', (_req, res) => {
@@ -234,126 +224,21 @@ export function setupStreamableHttpTransport(
     res.send(getMetrics().renderPrometheus());
   });
 
-  // MCP endpoint - DELETE for session cleanup
-  app.delete(endpoint, ...guards, async (req, res): Promise<void> => {
-    const sessionId = req.headers['mcp-session-id'] as string | undefined;
-
-    if (!sessionId) {
-      res.status(400).json({ error: 'Missing mcp-session-id header' });
-      return;
-    }
-    if (!sessions.has(sessionId)) {
-      // Unknown session → 404 so the client re-initializes (see POST handler).
-      res.status(404).json({ error: 'Session not found. Reinitialize the session.' });
-      return;
-    }
-
-    const transport = sessions.get(sessionId)!;
-
-    try {
-      await transport.close();
-      sessions.delete(sessionId);
-      sessionLastSeen.delete(sessionId);
-      sessionIntegrations.delete(sessionId);
-      console.error(`[StreamableHTTP] Session closed: ${sessionId}`);
-      res.status(200).json({ status: 'session closed' });
-    } catch (error) {
-      console.error('[StreamableHTTP] Error closing session:', error);
-      if (!res.headersSent) {
-        res.status(500).json({
-          error: 'Internal server error',
-        });
-      }
-    }
-  });
-
-  // MCP endpoint - GET for SSE streams (if needed)
-  app.get(endpoint, ...guards, async (req, res): Promise<void> => {
-    const sessionId = req.headers['mcp-session-id'] as string | undefined;
-
-    if (!sessionId) {
-      res.status(400).json({ error: 'Missing mcp-session-id header' });
-      return;
-    }
-    if (!sessions.has(sessionId)) {
-      // Unknown session → 404 so the client re-initializes (see POST handler).
-      res.status(404).json({ error: 'Session not found. Reinitialize the session.' });
-      return;
-    }
-
-    const transport = sessions.get(sessionId)!;
-
-    try {
-      await transport.handleRequest(req, res);
-    } catch (error) {
-      console.error('[StreamableHTTP] Error handling GET request:', error);
-      if (!res.headersSent) {
-        res.status(500).json({
-          error: 'Internal server error',
-        });
-      }
-    }
-  });
-
-  // MCP endpoint - POST for messages
-  app.post(endpoint, ...guards, async (req, res): Promise<void> => {
-    console.error(`[StreamableHTTP] POST ${endpoint} received`, {
-      sessionId: req.headers['mcp-session-id'],
-      body: req.body,
-    });
-
-    const sessionId = req.headers['mcp-session-id'] as string | undefined;
-    let transport: NodeStreamableHTTPServerTransport;
-
-    // Integration marker on this request, if it carried one.
-    const headerIntegration = readIntegrationMarker(req.headers['x-qase-integration']);
-    // The one remembered for the session, filled in below.
-    let sessionIntegration: string | undefined;
-
-    if (sessionId && sessions.has(sessionId)) {
-      // Reuse existing transport for this session — bump last-seen
-      transport = sessions.get(sessionId)!;
-      sessionLastSeen.set(sessionId, Date.now());
-      sessionIntegration = sessionIntegrations.get(sessionId);
-    } else if (isInitializeRequest(req.body)) {
-      // This is an initialize request - create new session
-      const newSessionId = randomUUID();
-      transport = new NodeStreamableHTTPServerTransport({
-        sessionIdGenerator: () => newSessionId,
-        // Responses stream as SSE (the spec default). In JSON mode the pending
-        // HTTP response cannot carry a server→client request, so a destructive
-        // confirmation prompt can never reach the caller mid-call.
-      });
-
-      // Store session and record creation time
-      sessions.set(newSessionId, transport);
-      sessionLastSeen.set(newSessionId, Date.now());
-
-      // Remember the integration for the life of the session. The query parameter
-      // is only available here, on the initialize request that carries the URL.
-      sessionIntegration = headerIntegration ?? readIntegrationMarker(req.query.integration);
-      if (sessionIntegration) {
-        sessionIntegrations.set(newSessionId, sessionIntegration);
-      }
-
-      // Create a fresh Server instance per session — the SDK requires one Server per transport
-      await createServer().connect(transport);
-
-      console.error(`[StreamableHTTP] New session created: ${newSessionId}`);
-    } else if (sessionId) {
-      // Session ID provided but unknown (expired, evicted, server restarted, or the
-      // request landed on a different instance). Per the MCP streamable-http spec,
-      // respond 404 so the client transparently starts a new session (re-initialize)
-      // instead of getting stuck on a 400. Auth (JWT) is client-side, so no re-login.
-      res.status(404).json({ error: 'Session not found. Reinitialize the session.' });
-      return;
-    } else {
-      // No session ID and not an initialize request.
-      res.status(400).json({
-        error: 'Bad Request: no session ID provided and not an initialize request',
-      });
-      return;
-    }
+  // MCP endpoint — one route for every method.
+  //
+  // `GET` and `DELETE` used to have hand-written routes of their own: resume
+  // the standalone stream, end the session. Both are 2025-era session
+  // operations and there is no session to do either to, so the handler answers
+  // them `405`. They stay mounted here — rather than left to express's own
+  // 404 — precisely so that the handler's 405 is what a client receives, and
+  // so that an unauthenticated probe of either still meets the guard chain
+  // first.
+  //
+  // The guard chain is unchanged and stays in this order: rate limiter (reject a
+  // flood before spending a signature verify on it) → auth guard → the two
+  // AsyncLocalStorage scopes → the handler.
+  app.all(endpoint, ...guards, async (req, res): Promise<void> => {
+    console.error(`[StreamableHTTP] ${req.method} ${endpoint} received`);
 
     // Extract per-request token from Authorization header (Bearer <token>)
     const authHeader = (req.headers['authorization'] as string) || '';
@@ -363,14 +248,29 @@ export function setupStreamableHttpTransport(
       console.error('[StreamableHTTP] Using per-request Bearer token');
     }
 
-    // Precedence: this request's header → the value remembered for the session →
-    // (inside getIntegration) the QASE_MCP_INTEGRATION env var.
-    const integration = headerIntegration ?? sessionIntegration ?? '';
+    // Read per request, not per session — there is no session to remember it
+    // for. Header first, since a browser-based client's preflight strips a
+    // query-string marker but not a declared request header; the query
+    // parameter is the fallback for clients that cannot set headers.
+    // normalizeIntegrationMarker() re-validates against ALLOWED_INTEGRATIONS,
+    // so an unknown or malformed marker resolves to '', same as no marker at
+    // all — and getIntegration() falls through to QASE_MCP_INTEGRATION,
+    // exactly as it does on stdio.
+    const rawIntegration = (req.headers['x-qase-integration'] as string) || req.query.integration;
+    const integration =
+      normalizeIntegrationMarker(typeof rawIntegration === 'string' ? rawIntegration : undefined) ??
+      '';
 
     // Run the handler inside AsyncLocalStorage context so getApiClient() can read the token
     try {
       await requestTokenStorage.run(requestToken, () =>
-        integrationStorage.run(integration, () => transport.handleRequest(req, res, req.body)),
+        integrationStorage.run(integration, () =>
+          // `req.auth` is the pass-through authInfo: the adapter forwards
+          // whatever upstream middleware attached, and the handler never reads
+          // a header or verifies a token itself. `req.body` is what
+          // express.json() already parsed, so nothing re-reads the stream.
+          nodeHandler(req, res, req.body),
+        ),
       );
     } catch (error) {
       console.error('[StreamableHTTP] Error handling request:', error);

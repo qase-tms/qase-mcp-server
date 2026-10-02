@@ -113,9 +113,7 @@ describe('Schema-API Contract Tests', () => {
   });
 
   describe('qase_case_upsert — steps_type field', () => {
-    assertFieldsExist([
-      ['qase_case_upsert', 'steps_type'],
-    ]);
+    assertFieldsExist([['qase_case_upsert', 'steps_type']]);
   });
 
   // ── qase_attachment_upload ────────────────────────────────────────────
@@ -206,37 +204,27 @@ describe('Schema-API Contract Tests', () => {
 
   // ── qase_milestone_upsert ─────────────────────────────────────────────
   describe('qase_milestone_upsert — field types', () => {
-    assertFieldsExist([
-      ['qase_milestone_upsert', 'title'],
-    ]);
+    assertFieldsExist([['qase_milestone_upsert', 'title']]);
   });
 
   // ── qase_suite_upsert ─────────────────────────────────────────────────
   describe('qase_suite_upsert — field types', () => {
-    assertFieldsExist([
-      ['qase_suite_upsert', 'title'],
-    ]);
+    assertFieldsExist([['qase_suite_upsert', 'title']]);
   });
 
   // ── qase_environment_upsert ───────────────────────────────────────────
   describe('qase_environment_upsert — field types', () => {
-    assertFieldsExist([
-      ['qase_environment_upsert', 'title'],
-    ]);
+    assertFieldsExist([['qase_environment_upsert', 'title']]);
   });
 
   // ── qase_plan_upsert ──────────────────────────────────────────────────
   describe('qase_plan_upsert — field types', () => {
-    assertFieldsExist([
-      ['qase_plan_upsert', 'title'],
-    ]);
+    assertFieldsExist([['qase_plan_upsert', 'title']]);
   });
 
   // ── qase_shared_step_upsert ───────────────────────────────────────────
   describe('qase_shared_step_upsert — field types', () => {
-    assertFieldsExist([
-      ['qase_shared_step_upsert', 'title'],
-    ]);
+    assertFieldsExist([['qase_shared_step_upsert', 'title']]);
   });
 
   // ── qase_get ──────────────────────────────────────────────────────────
@@ -335,7 +323,9 @@ describe('Tool Smoke Tests', () => {
   it('should have ~40 tools registered (v2 tool set + reviews + projects + custom fields + discover)', () => {
     expect(allTools.length).toBeGreaterThanOrEqual(25);
     expect(allTools.length).toBeLessThanOrEqual(45);
-    console.error(`[Smoke] Found ${allTools.length} registered tools (${toolRegistry.getTools().length} core)`);
+    console.error(
+      `[Smoke] Found ${allTools.length} registered tools (${toolRegistry.getTools().length} core)`,
+    );
   });
 
   it('all expected v2 tool names are present', () => {
@@ -433,14 +423,13 @@ describe('Tool Smoke Tests', () => {
     }
   });
 
-  it('discoverable tools become visible after activation', () => {
-    const activated = toolRegistry.activateTools(['qase_case_delete', 'qase_milestone_upsert']);
-    expect(activated).toContain('qase_case_delete');
-    expect(activated).toContain('qase_milestone_upsert');
-
-    const coreTools = toolRegistry.getTools().map((t) => t.name);
-    expect(coreTools).toContain('qase_case_delete');
-    expect(coreTools).toContain('qase_milestone_upsert');
+  it('discoverable tools become visible once in the active set', () => {
+    // Activation is per-caller state now (src/tools/activation.ts), not the
+    // registry's — getTools() takes the active set directly.
+    const active = new Set(['qase_case_delete', 'qase_milestone_upsert']);
+    const visibleTools = toolRegistry.getTools(active).map((t) => t.name);
+    expect(visibleTools).toContain('qase_case_delete');
+    expect(visibleTools).toContain('qase_milestone_upsert');
   });
 
   it('no v1 tool names are present', () => {

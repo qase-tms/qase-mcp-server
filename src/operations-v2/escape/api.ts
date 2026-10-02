@@ -61,7 +61,13 @@ async function handler(args: z.infer<typeof Schema>) {
   // gate, and a DELETE here reaches endpoints no dedicated tool covers, up to
   // removing a whole project. So ask on the method actually used.
   if (method === 'DELETE') {
-    const confirmation = await confirmDestructiveAction('qase_api', { method, path });
+    // Everything that decides WHAT this request removes goes into the
+    // confirmation, because the confirmation is pinned to exactly what it was
+    // shown. `path` is the obvious half; `query` and `body` are the other one
+    // — both reach the wire (`params` and `data` on the request below), and on
+    // endpoints that take a filter or a list of ids they are what selects the
+    // records. Confirming `DELETE /v1/x?id=1` must not authorise `?id=2`.
+    const confirmation = await confirmDestructiveAction('qase_api', { method, path, query, body });
     if (!confirmation.allowed) {
       const text = describeRefusal(`qase_api (DELETE ${path})`, confirmation.reason);
       // A decline is the user's decision, so it comes back as an ordinary

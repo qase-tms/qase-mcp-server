@@ -16,14 +16,19 @@ fail_on = "high"
 # report, which is how real findings start getting skipped.
 capability_prompts_list_changed = "off"
 
-# The three rules below check conformance to MCP 2026-07-28. We are deliberately
-# on the legacy era: the server answers 2025-11-25, and adopting the new era is
-# a separate, planned piece of work (it needs `createMcpHandler` with stateless
-# serving, which in turn needs the tool registry to stop being per-process).
-# They are demoted rather than switched off, so they keep counting toward the
-# score and the gap stays visible — but they do not fail a build for a decision
-# already made. Delete these three lines when the new era lands: the gate should
-# start demanding them the moment we claim to support it.
-readiness_2026_server_discover = "low"
-readiness_2026_meta_validation = "low"
-readiness_2026_cache_metadata = "low"
+# server/discover advertises only modern revisions, by the SDK's design: the
+# doc on the handler says "supportedVersions lists only modern revisions
+# (2025-era versions are negotiated via initialize)". We serve both eras, so
+# this rule sees a discover naming 2026-07-28 alone and reports the legacy
+# revision as missing. There is nothing to fix on our side short of overriding
+# the SDK's own server/discover handler, so the rule is off rather than left
+# to read as a defect.
+protocol_version_supported_versions_include_negotiated = "off"
+
+# NOT turned off, deliberately: readiness_2026_unsupported_version_error fails,
+# and it should. The SDK answers an unknown protocol version with -32022 only
+# on the modern-only path (`legacy: 'reject'`); we run `legacy: 'stateless'`,
+# so an unknown version falls through to the legacy leg instead. Satisfying the
+# rule means refusing every client still on 2025-11-25. This red line is the
+# honest price of dual-era support, and it should disappear on its own the day
+# we drop the legacy era — not before.

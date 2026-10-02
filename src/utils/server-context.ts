@@ -1,15 +1,20 @@
 /**
  * Server Context
  *
- * Provides access to the MCP Server instance within tool handlers
- * via AsyncLocalStorage, following the same pattern as auth-context.ts.
+ * Per-request context for code that sits too far below a request handler to be
+ * passed it, carried through AsyncLocalStorage the same way auth-context.ts
+ * carries the caller's subject.
  *
- * This enables features that require server-level access (elicitation,
- * tool list notifications) without passing the server through handler signatures.
+ * Two stores live here: the MCP `Server` instance (for server-level features)
+ * and the handler's own `ServerContext`, which is what the destructive-action
+ * gate needs — it reads the retry's answers, the verified request state, and
+ * the protocol era off it.
  */
 
 import { AsyncLocalStorage } from 'async_hooks';
-import type { Server, RequestId } from '@modelcontextprotocol/server';
+import { inputRequired, inputResponse } from '@modelcontextprotocol/server';
+import type { InputRequiredResult, Server, ServerContext } from '@modelcontextprotocol/server';
+import { digestArguments, getRequestStateCodec, type ConfirmationState } from './request-state.js';
 
 /**
  * Per-request server storage.
@@ -25,11 +30,41 @@ export function getServer(): Server | undefined {
   return serverStorage.getStore();
 }
 
+/** Per-request handler context, for code too far below the handler to be passed it. */
+export const requestContextStorage = new AsyncLocalStorage<ServerContext>();
+
+/**
+ * Get the current request's handler context.
+ * Returns undefined if called outside of a requestContextStorage.run() scope.
+ */
+export function getRequestContext(): ServerContext | undefined {
+  return requestContextStorage.getStore();
+}
+
+/** The key the confirmation request and its answer are correlated by. */
+const CONFIRM_KEY = 'confirm';
+
+/**
+ * Thrown by the destructive-action gate to hand an input-required result up to
+ * the `tools/call` handler.
+ *
+ * Multi-round-trip works by RETURNING the request, but the gate is called from
+ * inside plain tool handlers (`(args) => Promise<R>`) several frames below the
+ * handler that does the returning — see src/operations-v2/escape/api.ts. An
+ * exception is the only way up that does not change every handler's signature.
+ */
+export class InputRequiredSignal extends Error {
+  constructor(readonly result: InputRequiredResult) {
+    super('input required');
+    this.name = 'InputRequiredSignal';
+  }
+}
+
 /** Why a destructive action was refused. */
 export type RefusalReason =
-  /** The client cannot show a confirmation prompt at all. */
+  /** The client cannot be shown a confirmation prompt at all. */
   | 'unsupported'
-  /** The prompt was sent but no answer came back (dropped, timed out). */
+  /** The prompt was sent but no usable answer came back for this action. */
   | 'undeliverable'
   /** The human saw the prompt and said no. */
   | 'declined';
@@ -40,53 +75,93 @@ export type DestructiveConfirmation = { allowed: true } | { allowed: false; reas
 const REFUSED_UNSUPPORTED = { allowed: false, reason: 'unsupported' } as const;
 
 /**
- * Ask the user to confirm a destructive action via MCP elicitation.
+ * Ask the user to confirm a destructive action, across a round trip.
  *
- * Fail-closed: the action proceeds only on an explicit yes. Anything else —
- * no server, no elicitation capability, an undelivered prompt, a decline —
- * refuses and names the reason, so the caller can say what happened.
+ * On the first round there is no answer, so the gate signals an input-required
+ * result and the `tools/call` handler returns it; the client collects the
+ * answer and retries the same call carrying it. On the retry the answer is
+ * read straight off the request.
  *
- * `relatedRequestId` is what makes the prompt arrive: without it the SDK sends
- * the request on the standalone SSE stream (opened by `GET /mcp`), which MCP
- * clients do not open, and the prompt is silently dropped.
+ * Fail-closed: the action proceeds only on an explicit accept whose signed
+ * state names this very call — this tool, with these arguments. No request
+ * context, a client on a protocol revision this server cannot ask, a decline,
+ * a cancel, an answer belonging to some other confirmation — all refuse, and
+ * name the reason so the caller can say what happened.
  */
 export async function confirmDestructiveAction(
   toolName: string,
   args: Record<string, unknown>,
-  relatedRequestId?: RequestId,
 ): Promise<DestructiveConfirmation> {
-  const server = getServer();
-  if (!server) return REFUSED_UNSUPPORTED;
+  const ctx = getRequestContext();
+  if (!ctx) return REFUSED_UNSUPPORTED;
 
-  // Check if the client supports elicitation
-  const caps = server.getClientCapabilities();
-  if (!caps?.elicitation) return REFUSED_UNSUPPORTED;
-
-  try {
-    const argsPreview = Object.entries(args)
-      .map(([k, v]) => `  ${k}: ${JSON.stringify(v)}`)
-      .join('\n');
-
-    const result = await server.elicitInput(
-      {
-        message:
-          `Confirm destructive action: ${toolName}\n\n${argsPreview}\n\n` +
-          'This permanently deletes the resource and cannot be undone.',
-        // No fields to fill in: accepting the prompt is the confirmation, and
-        // the client's own decline button is the refusal. A checkbox on top of
-        // that only produced false refusals — people accepted the dialog and
-        // left the box at its default.
-        requestedSchema: { type: 'object', properties: {} },
-      },
-      relatedRequestId === undefined ? undefined : { relatedRequestId },
-    );
-
-    return result.action === 'accept' ? { allowed: true } : { allowed: false, reason: 'declined' };
-  } catch (error) {
-    // The prompt never came back — refuse rather than delete unconfirmed.
-    console.error('[Server] Elicitation failed, refusing destructive action:', error);
-    return { allowed: false, reason: 'undeliverable' };
+  // Round two: the client came back with an answer. `inputResponse` is what
+  // separates a refusal from a missing answer — `acceptedContent` reads both
+  // as "nothing", which would send a decline round the loop again until it hit
+  // the client's maxRounds.
+  const answer = inputResponse(ctx.mcpReq.inputResponses, CONFIRM_KEY);
+  if (answer.kind === 'elicit') {
+    // The state was already verified by the seam before this handler ran — it
+    // is this process's own, for this caller, unexpired. What is left is that
+    // the answer belongs to THIS call: the same tool, and the same arguments
+    // the human was shown. Neither alone is enough. Without the tool, one
+    // confirmation would open every destructive tool; without the arguments,
+    // one confirmed deletion would authorise every other deletion by the same
+    // tool until the state expired.
+    //
+    // A plain string comparison, not `timingSafeEqual`: both operands are
+    // public values derived from arguments the caller itself sent, and the one
+    // from the wire is already integrity-proven, so there is no secret for a
+    // timing difference to leak. `timingSafeEqual` would also throw on a
+    // length mismatch, which is a shape this has to answer rather than crash.
+    const state = ctx.mcpReq.requestState<ConfirmationState>();
+    if (state?.tool !== toolName || state.arguments !== digestArguments(args)) {
+      // Not a decline: the human never saw these arguments, so nobody said no
+      // — and nobody said yes either. Unconfirmed, nothing deleted.
+      return { allowed: false, reason: 'undeliverable' };
+    }
+    return answer.action === 'accept' ? { allowed: true } : { allowed: false, reason: 'declined' };
   }
+
+  // Round one. A 2025-era request carries no per-request envelope. On a
+  // stateless leg that is the end of it: the per-request instance never saw an
+  // `initialize`, so nothing says the client could answer and there is no
+  // connection to ask on — refuse, do not ask.
+  //
+  // A legacy connection that is still stateful (the SSE transport, and a stdio
+  // connection that negotiated 2025) is the exception: that instance DID see
+  // `initialize`, and the SDK's own legacy shim fulfils the same
+  // input-required return by sending a real `elicitation/create` on it and
+  // re-entering this handler with the answer. Declared capabilities are what
+  // the shim's gate consults, so they are what decides here too.
+  if (ctx.mcpReq.envelope === undefined && !getServer()?.getClientCapabilities()?.elicitation) {
+    return REFUSED_UNSUPPORTED;
+  }
+
+  const argsPreview = Object.entries(args)
+    .map(([k, v]) => `  ${k}: ${JSON.stringify(v)}`)
+    .join('\n');
+
+  throw new InputRequiredSignal(
+    inputRequired({
+      inputRequests: {
+        [CONFIRM_KEY]: inputRequired.elicit({
+          message:
+            `Confirm destructive action: ${toolName}\n\n${argsPreview}\n\n` +
+            'This permanently deletes the resource and cannot be undone.',
+          // No fields to fill in: accepting the prompt is the confirmation, and
+          // the client's own decline button is the refusal. A checkbox on top of
+          // that only produced false refusals — people accepted the dialog and
+          // left the box at its default.
+          requestedSchema: { type: 'object', properties: {} },
+        }),
+      },
+      requestState: await getRequestStateCodec().mint(
+        { tool: toolName, arguments: digestArguments(args) },
+        ctx,
+      ),
+    }),
+  );
 }
 
 /** Human-readable explanation for a refused destructive action. */
@@ -94,9 +169,9 @@ export function describeRefusal(toolName: string, reason: RefusalReason): string
   switch (reason) {
     case 'unsupported':
       return (
-        `Refused "${toolName}": destructive actions need confirmation, and this client ` +
-        `does not support MCP elicitation, so it cannot be asked for. Use a client that ` +
-        `declares the elicitation capability, or perform the deletion in the Qase UI.`
+        `Refused "${toolName}": destructive actions need confirmation, and this client speaks an ` +
+        `older revision of the MCP protocol (2025-11-25), on which this server cannot ask for it. ` +
+        `Update the client to one that negotiates 2026-07-28, or delete in the Qase UI.`
       );
     case 'undeliverable':
       return (

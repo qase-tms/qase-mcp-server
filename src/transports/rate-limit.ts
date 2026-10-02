@@ -9,7 +9,7 @@ const WINDOW_MS = 60_000;
  *
  * `QASE_MCP_RATE_LIMIT_PER_MINUTE=0` turns the limiter off; anything that is not
  * a non-negative integer falls back to the default rather than failing startup,
- * matching how QASE_MCP_SESSION_TTL_MINUTES is read.
+ * matching how `QASE_MCP_BODY_LIMIT_MB` is read (src/transports/body-limit.ts).
  */
 export function readRateLimitPerMinute(
   env: Record<string, string | undefined> = process.env,

@@ -1,0 +1,31 @@
+src/operations-v2/qql/qql-help.test.ts
+  s_505f7d8723d921::t_6d5b5816a5f675 187,190-201
+CHANGELOG.md
+  s_505f7d8723d921::t_bff1c07c43b349 9-15
+  s_505f7d8723d921::t_0000d4fdf20700 8
+src/operations-v2/qql/index.ts
+  s_505f7d8723d921::t_1f1ff0e51d6730 232
+  s_505f7d8723d921::t_cf831d1bd9b50d 199-208
+package-lock.json
+  s_505f7d8723d921::t_fd8811cf5b4ac5 3,9
+package.json
+  s_505f7d8723d921::t_b139c9e8546010 3
+server.json
+  s_505f7d8723d921::t_4e9c27a61e4eea 11,16
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "3bfbb148a3a5139a80c30a5f265a6fa2812ea216",
+  "prompts": {},
+  "sessions": {
+    "s_505f7d8723d921": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "a00dd156-1e2b-4a87-af78-2adc0914ac51",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Artem Frolov <afrolov@qase.io>"
+    }
+  }
+}

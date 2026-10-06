@@ -1,20 +1,24 @@
 /**
- * Integration Marker Capture (streamable-http)
+ * Integration Marker (streamable-http)
  *
- * Drives the real Express app so both supported channels are exercised end to
- * end: the `X-Qase-Integration` request header and the `?integration=` query
- * parameter on the MCP endpoint. Both exist on purpose — it is not yet proven
- * that custom headers survive the OAuth flow on the hosted endpoint in every MCP
- * client, and the query parameter is the fallback.
+ * The marker used to be captured once, on the `initialize` that opened a
+ * session, and remembered for the life of that session. There are no sessions
+ * any more, so that capture is gone; the marker is now read per request, off
+ * the header (or the query parameter, for clients that cannot set headers) of
+ * the request that carries it, and never carried over to the next one.
  *
- * The tool handler reports getIntegration(), i.e. what a Qase API call made from
- * inside that request would actually see.
+ * Everything that asserted session-remembered behaviour is therefore gone from
+ * this file: not a weakened expectation, an expectation about a mechanism that
+ * no longer exists. What remains is the part of the chain that is genuinely
+ * unchanged — the process-wide `QASE_MCP_INTEGRATION` fallback a stdio
+ * deployment relies on, which a tool handler must still observe — plus the
+ * per-request read that replaces the session capture.
  */
 
 import { describe, it, expect, beforeAll, afterAll, afterEach } from '@jest/globals';
 import type http from 'node:http';
 import request from 'supertest';
-import { Server } from "@modelcontextprotocol/server";
+import { Server } from '@modelcontextprotocol/server';
 import { getIntegration } from '../utils/integration-context.js';
 
 process.env.QASE_OAUTH_ENABLED = 'false';
@@ -24,7 +28,13 @@ let app: ReturnType<typeof import('./streamableHttp.js').setupStreamableHttpTran
 function makeServer(): Server {
   const server = new Server({ name: 'test', version: '0.0.0' }, { capabilities: { tools: {} } });
   server.setRequestHandler('tools/list', async () => ({
-    tools: [{ name: 'whoami', description: 'reports the integration marker', inputSchema: { type: 'object' } }],
+    tools: [
+      {
+        name: 'whoami',
+        description: 'reports the integration marker',
+        inputSchema: { type: 'object' },
+      },
+    ],
   }));
   server.setRequestHandler('tools/call', async () => ({
     content: [{ type: 'text', text: getIntegration() ?? 'none' }],
@@ -35,8 +45,8 @@ function makeServer(): Server {
 const ACCEPT = 'application/json, text/event-stream';
 
 /**
- * Responses are SSE (the transport streams them so mid-call server→client
- * requests are possible), so the JSON-RPC payload arrives in `data:` lines.
+ * Responses on the legacy leg are SSE, so the JSON-RPC payload arrives in
+ * `data:` lines.
  */
 function parseSse(body: string): any {
   const data = body
@@ -47,41 +57,26 @@ function parseSse(body: string): any {
   return JSON.parse(data);
 }
 
-/** Initialize a session, optionally with a header and/or a query marker. */
-async function initSession(opts: { header?: string; query?: string } = {}): Promise<string> {
+/**
+ * Call the whoami tool and return the marker it observed. Sessions are gone,
+ * so this is one self-contained request; the handler answers it whether or not
+ * an initialize ever preceded it.
+ */
+async function whoami(opts: { header?: string; query?: string } = {}): Promise<string> {
   let req = request(app).post('/mcp');
   if (opts.query !== undefined) req = req.query({ integration: opts.query });
   if (opts.header !== undefined) req = req.set('X-Qase-Integration', opts.header);
 
   const res = await req
+    .set('Content-Type', 'application/json')
     .set('Accept', ACCEPT)
     .set('Authorization', 'Bearer test-token')
     .send({
       jsonrpc: '2.0',
-      id: 1,
-      method: 'initialize',
-      params: {
-        protocolVersion: '2025-03-26',
-        capabilities: {},
-        clientInfo: { name: 'test-client', version: '1.0.0' },
-      },
+      id: 2,
+      method: 'tools/call',
+      params: { name: 'whoami', arguments: {} },
     });
-
-  expect(res.status).toBe(200);
-  const sessionId = res.headers['mcp-session-id'];
-  expect(typeof sessionId).toBe('string');
-  return sessionId;
-}
-
-/** Call the whoami tool on a session and return the marker it observed. */
-async function whoami(sessionId: string, header?: string): Promise<string> {
-  let req = request(app).post('/mcp').set('mcp-session-id', sessionId);
-  if (header !== undefined) req = req.set('X-Qase-Integration', header);
-
-  const res = await req
-    .set('Accept', ACCEPT)
-    .set('Authorization', 'Bearer test-token')
-    .send({ jsonrpc: '2.0', id: 2, method: 'tools/call', params: { name: 'whoami', arguments: {} } });
 
   expect(res.status).toBe(200);
   return parseSse(res.text).result.content[0].text;
@@ -104,62 +99,25 @@ afterAll(async () => {
 });
 
 describe('streamable-http integration marker', () => {
-  it('captures the marker from the ?integration= query parameter at session creation', async () => {
-    const sessionId = await initSession({ query: 'quality-supervisor/1.0.0' });
-    // Later requests carry no marker of their own — the session remembers it.
-    expect(await whoami(sessionId)).toBe('quality-supervisor/1.0.0');
-  });
-
-  it('captures the marker from the X-Qase-Integration request header', async () => {
-    const sessionId = await initSession({ header: 'quality-supervisor/2.0.0' });
-    expect(await whoami(sessionId)).toBe('quality-supervisor/2.0.0');
-  });
-
-  it('accepts the header on any request, not just initialize', async () => {
-    const sessionId = await initSession();
-    expect(await whoami(sessionId, 'quality-supervisor/3.0.0')).toBe('quality-supervisor/3.0.0');
-  });
-
-  it('prefers the request header over the value remembered for the session', async () => {
-    const sessionId = await initSession({ query: 'quality-supervisor/1.0.0' });
-    expect(await whoami(sessionId, 'quality-supervisor/9.9.9')).toBe('quality-supervisor/9.9.9');
-    // …and the session value survives for requests that send no header.
-    expect(await whoami(sessionId)).toBe('quality-supervisor/1.0.0');
-  });
-
-  it('prefers the header over the query parameter when both are present', async () => {
-    const sessionId = await initSession({
-      header: 'quality-supervisor/2.0.0',
-      query: 'quality-supervisor/1.0.0',
-    });
-    expect(await whoami(sessionId)).toBe('quality-supervisor/2.0.0');
-  });
-
-  it('keeps two concurrent sessions with different markers apart', async () => {
-    const [first, second] = await Promise.all([
-      initSession({ query: 'quality-supervisor/1.0.0' }),
-      initSession({ header: 'quality-supervisor/2.0.0' }),
-    ]);
-
-    const [firstMarker, secondMarker] = await Promise.all([whoami(first), whoami(second)]);
-
-    expect(firstMarker).toBe('quality-supervisor/1.0.0');
-    expect(secondMarker).toBe('quality-supervisor/2.0.0');
-  });
-
-  it('does not remember a non-allowlisted or malformed marker', async () => {
-    const sessionId = await initSession({ query: 'some-random-plugin/1.0.0' });
-    expect(await whoami(sessionId, 'not a marker at all')).toBe('none');
-  });
-
-  it('normalises what it remembers to the canonical form', async () => {
-    const sessionId = await initSession({ query: ' Quality-Supervisor / 1.0.0 ' });
-    expect(await whoami(sessionId)).toBe('quality-supervisor/1.0.0');
-  });
-
-  it('lets a session without a marker fall through to QASE_MCP_INTEGRATION', async () => {
+  it('falls through to QASE_MCP_INTEGRATION when the request carries nothing', async () => {
     process.env.QASE_MCP_INTEGRATION = 'quality-supervisor/4.0.0';
-    const sessionId = await initSession();
-    expect(await whoami(sessionId)).toBe('quality-supervisor/4.0.0');
+    expect(await whoami()).toBe('quality-supervisor/4.0.0');
+  });
+
+  it('reports none when neither the request nor the environment names one', async () => {
+    expect(await whoami()).toBe('none');
+  });
+
+  it('reads the marker from the header of the request that carries it', async () => {
+    expect(await whoami({ header: 'quality-supervisor/2.0.0' })).toBe('quality-supervisor/2.0.0');
+  });
+
+  it('falls back to the query parameter, for clients that cannot set headers', async () => {
+    expect(await whoami({ query: 'quality-supervisor/1.0.0' })).toBe('quality-supervisor/1.0.0');
+  });
+
+  it('does not carry a marker over from an earlier request', async () => {
+    expect(await whoami({ header: 'quality-supervisor/2.0.0' })).toBe('quality-supervisor/2.0.0');
+    expect(await whoami()).toBe('none');
   });
 });

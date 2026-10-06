@@ -12,12 +12,13 @@
  * - Operation modules self-register their tools on import
  * - All API errors are handled gracefully with user-friendly messages
  */
-import { StdioServerTransport } from '@modelcontextprotocol/server/stdio';
+import { serveStdio } from '@modelcontextprotocol/server/stdio';
 import { createServer } from './server.js';
 import { toolRegistry } from './utils/registry.js';
 import { VERSION } from './version.js';
 import { setupSSETransport } from './transports/sse.js';
 import { setupStreamableHttpTransport } from './transports/streamableHttp.js';
+import { getRequestStateCodec } from './utils/request-state.js';
 
 /**
  * Parse command line arguments
@@ -87,13 +88,35 @@ async function main() {
   console.error('');
 
   try {
+    // Build (and validate) the request-state codec now, rather than letting
+    // it happen lazily on the first request. `createServer()` is called by
+    // `createMcpHandler` per HTTP request and by `serveStdio` at `initialize`
+    // — both well after this function's try/catch has returned — so a
+    // misconfigured QASE_MCP_REQUEST_STATE_KEY would otherwise leave a
+    // process that starts, answers `/health`, and 500s on every single MCP
+    // request. Doing it here means a bad key fails startup instead.
+    getRequestStateCodec();
+
     switch (transport) {
       case 'stdio': {
-        // Create stdio transport for communication
-        const stdioTransport = new StdioServerTransport();
+        // serveStdio owns the era decision for the connection: the opening
+        // exchange picks it, one instance from the factory is pinned for the
+        // connection's lifetime, and everything after passes through to it.
+        // A 2025-era opening is served as before (`legacy: 'serve'`, the
+        // default), so nothing regresses for a client that has not moved yet.
+        //
+        // The returned handle is only a teardown (`close()`); the process stays
+        // alive on the transport's own stdin handle, exactly as it did when the
+        // transport was connected by hand, and exits when the client closes the
+        // pipe. Closing on the termination signals is new: it ends the pinned
+        // instance rather than leaving it to process death.
+        const handle = serveStdio(() => createServer());
 
-        // Connect server to transport
-        await createServer().connect(stdioTransport);
+        for (const signal of ['SIGINT', 'SIGTERM'] as const) {
+          process.once(signal, () => {
+            void handle.close().finally(() => process.exit(0));
+          });
+        }
 
         console.error(`✓ Server started successfully`);
         console.error(`✓ Transport: stdio`);

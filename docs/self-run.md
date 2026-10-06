@@ -70,7 +70,36 @@ Rules:
 - **The name must be on the allowlist** in [`src/utils/integration-marker.ts`](../src/utils/integration-marker.ts) (`ALLOWED_INTEGRATIONS`). This bounds the cardinality of the analytics dimension, so an unlisted name is ignored entirely and nothing is sent. To add your integration, open a PR adding it to that array.
 - A malformed or unlisted marker is dropped silently; the API call itself still succeeds.
 
-Over HTTP transports the marker can also travel per request instead of per process — send an `X-Qase-Integration: <name>/<version>` header, or add `?integration=<name>/<version>` to the MCP endpoint URL (read when the session is created, then remembered for that session). The query parameter is the fallback for clients that do not pass custom headers through. Precedence: request header → the value remembered for the session → `QASE_MCP_INTEGRATION`.
+Over HTTP transports the marker can also travel per request instead of per process — send an `X-Qase-Integration: <name>/<version>` header, or add `?integration=<name>/<version>` to the MCP endpoint URL. The query parameter is the fallback for clients that do not pass custom headers through.
+
+On **Streamable HTTP**, the marker is read fresh on every single request: a marker on one call is never attributed to the next. Precedence: request header → query parameter → `QASE_MCP_INTEGRATION`.
+
+On the (deprecated) **SSE** transport, the marker is captured once, when the `/sse` stream opens, and reused for every message posted on that stream afterwards — a header sent on an individual `/messages` POST can still override it for that one call, but there is no per-request query-parameter fallback once the stream is open. Precedence there is: request header → the value captured when the stream opened → `QASE_MCP_INTEGRATION`.
+
+### Running more than one replica
+
+Two pieces of state used to live inside a single process. From 3.0.0 both can be shared, and on a
+multi-replica deployment both **must** be, because there are no sessions any more — consecutive
+requests from the same client land on whichever replica the load balancer picks.
+
+```bash
+# Required when running more than one replica: the HMAC key that signs a pending
+# destructive-action confirmation. At least 32 bytes, identical on every replica.
+QASE_MCP_REQUEST_STATE_KEY=<a shared random string of 32+ bytes>
+
+# Optional: share tool activation and tool-list notifications across replicas.
+QASE_MCP_REDIS_URL=redis://host:6379
+```
+
+`QASE_MCP_REQUEST_STATE_KEY` is what makes a confirmation survive the trip through the client. The
+server asks, the client answers, and the answer comes back carrying server-minted state that is
+verified before anything is deleted. Without a shared key each replica generates its own at startup,
+so a confirmation minted by one replica fails verification on another and the deletion is refused —
+safe, but destructive tools stop working. A single replica needs nothing set.
+
+`QASE_MCP_REDIS_URL` is optional and affects convenience rather than correctness: without it, tools
+activated by `qase_discover_tools` are remembered only by the replica that activated them, so the
+same caller may see them appear and disappear between calls.
 
 ### Custom Domains (Enterprise)
 
@@ -293,7 +322,7 @@ npm run start:stdio
 ### SSE Transport
 
 > **Deprecated.** The SSE transport was deprecated in the MCP specification on
-> 2025-03-26 and will be removed in Qase MCP Server 3.0. Use
+> 2025-03-26 and will be removed in a future release. Use
 > `--transport streamable-http` instead.
 
 Server-Sent Events for web-based clients:
@@ -309,7 +338,7 @@ Clients must send a bearer token — see [Security of network transports](#secur
 
 ### Streamable HTTP Transport
 
-Full HTTP-based transport with session management:
+Full HTTP-based transport — there is no session; every request is served on its own:
 
 ```bash
 npm run start:http
@@ -319,6 +348,8 @@ npm run start:http
 ```
 
 Clients must send a bearer token — see [Security of network transports](#security-of-network-transports).
+
+**Deleting anything requires a modern client.** Destructive tools (`qase_case_delete` and the rest) are confirmed through a multi-round-trip exchange: the first call returns a request for input instead of deleting anything, and the client must retry with the answer. That round trip needs capabilities a client declares during `initialize`, which only a client that negotiates the **2026-07-28** revision of MCP provides. A client still on the 2025-11-25 revision — the common case on a stateless HTTP connection — cannot complete it, so its deletion is refused with an explanation naming the two ways out: use a client that negotiates 2026-07-28, or delete in the Qase UI. This is specific to the HTTP transports; stdio and SSE are long-lived connections where confirmation always works, though a stdio client that itself negotiates 2026-07-28 goes through the same round trip rather than the old single-call flow.
 
 ### Custom Configuration
 
@@ -344,6 +375,15 @@ Metrics include:
 - `qase_mcp_cache_hits_total` / `qase_mcp_cache_misses_total` - Cache hit/miss rates by tier (l1/l2)
 - `qase_mcp_cache_errors_total` - Cache errors by tier
 - `qase_mcp_circuit_breaker_state` - Redis circuit breaker state (0=closed, 1=half_open, 2=open)
+- `qase_mcp_requests_total` - Requests served, labelled by `protocol` (the revision the client
+  negotiated, e.g. `2026-07-28`, or `legacy` for 2025-11-25) and `client` (the client's own name).
+  This is what tells you whether anyone still needs the older protocol revision before it is
+  dropped. A 2025-era client reaches a stateless HTTP request without ever identifying itself, so
+  it is counted as `client="unknown"`; on stdio and SSE the name comes from the connection's
+  `initialize`. The number of distinct client names is capped at 20 per process — the label comes
+  from the wire, and past the cap everything new is counted as `client="other"`.
+- `qase_mcp_tool_calls_total` / `qase_mcp_tool_activations_total` - Tool calls by tool name, and
+  tools switched on by `qase_discover_tools`
 
 > **Note:** This page covers running the server yourself with your own `QASE_API_TOKEN` (self-run). It does not cover operating the hosted OAuth proxy — that is internal operator documentation, not part of this guide.
 

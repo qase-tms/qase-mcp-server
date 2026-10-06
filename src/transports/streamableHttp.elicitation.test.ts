@@ -1,19 +1,24 @@
 /**
- * Destructive-Action Confirmation over streamable-http (end to end)
+ * The destructive gate over streamable-http, end to end.
  *
- * Drives the real Express app with the real MCP SDK client, so the whole chain
- * is exercised: tools/call → destructive gate → elicitation prompt on the
- * stream of that very call → the client's answer → the Qase API call, or not.
+ * WHAT CHANGED. The gate used to ask through `elicitation/create` on the live
+ * session and wait inside the call for the answer. Serving is per-request now,
+ * so there is no session to wait on: the handler RETURNS an input-required
+ * result and reads the answer off the client's retry (multi-round-trip). The
+ * property under test is unchanged and is the one that must never regress:
+ * NOTHING IS DELETED WITHOUT AN EXPLICIT YES.
  *
- * The bug this guards: the prompt used to be routed to the standalone SSE
- * stream (`GET /mcp`), which no client opens, so it was dropped — and the
- * server deleted the entity anyway, unconfirmed.
+ * These tests drive a real SDK client against a real listening app, because
+ * the round trip is the mechanism — the client fulfils the embedded
+ * elicitation through its own registered handler and retries the call with the
+ * answer and the echoed `requestState`, all inside one `callTool()`.
  */
 
 import { describe, it, expect, beforeAll, afterAll, beforeEach, jest } from '@jest/globals';
 import type http from 'node:http';
 import type { AddressInfo } from 'node:net';
-import { Client, StreamableHTTPClientTransport } from "@modelcontextprotocol/client";
+import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/client';
+import type { ElicitResult } from '@modelcontextprotocol/client';
 import { setTestEnv } from '../utils/test-helpers.js';
 
 setTestEnv();
@@ -32,33 +37,35 @@ let baseUrl: URL;
 const openClients: Client[] = [];
 
 /**
- * Connect a client. `onElicit` present → the client declares the elicitation
- * capability and answers prompts with it; absent → no capability at all, like
- * the clients that were deleting entities without ever being asked.
+ * Connect a client.
  *
- * With OAuth disabled, the server requires a bearer token. Pass it via the
- * transport's requestInit option.
+ * `modern: true` negotiates the 2026-07-28 era, on which the server can ask
+ * for confirmation; without it the client runs the plain 2025 sequence and is
+ * served by the handler's stateless legacy leg, which cannot be asked at all.
+ *
+ * `answer` is what the human says when the prompt arrives: registered as the
+ * client's own `elicitation/create` handler, which is what the multi-round-trip
+ * driver dispatches the embedded request to before retrying the call.
  */
 async function connect(
-  onElicit?: (
-    message: string,
-    schemaProperties: Record<string, unknown>,
-  ) => { action: 'accept' | 'decline' | 'cancel'; confirm?: boolean },
+  modern: boolean,
+  answer?: 'accept' | 'decline' | 'cancel',
+  options: { autoFulfill?: boolean } = {},
 ): Promise<Client> {
   const client = new Client(
     { name: 'test-client', version: '1.0.0' },
-    { capabilities: onElicit ? { elicitation: {} } : {} },
+    {
+      capabilities: { elicitation: {} },
+      ...(modern ? { versionNegotiation: { mode: 'auto' as const } } : {}),
+      ...(options.autoFulfill === false ? { inputRequired: { autoFulfill: false } } : {}),
+    },
   );
 
-  if (onElicit) {
-    client.setRequestHandler('elicitation/create', async (request) => {
-      const answer = onElicit(
-        request.params.message,
-        ((request.params as { requestedSchema?: { properties?: Record<string, unknown> } })
-          .requestedSchema?.properties ?? {}),
-      );
-      return answer.action === 'accept' ? { action: 'accept', content: {} } : { action: answer.action };
-    });
+  if (answer !== undefined) {
+    client.setRequestHandler(
+      'elicitation/create',
+      (): ElicitResult => ({ action: answer, ...(answer === 'accept' && { content: {} }) }),
+    );
   }
 
   await client.connect(
@@ -70,11 +77,19 @@ async function connect(
   return client;
 }
 
-async function callDelete(client: Client) {
-  return (await client.callTool({
-    name: 'qase_case_delete',
-    arguments: { code: 'TEST', id: 1 },
-  })) as { isError?: boolean; content: Array<{ type: string; text: string }> };
+type DeleteResult = {
+  isError?: boolean;
+  content?: Array<{ type: string; text: string }>;
+  resultType?: string;
+  inputRequests?: Record<string, { method: string; params: { message: string } }>;
+  requestState?: string;
+};
+
+async function callDelete(client: Client, options = {}): Promise<DeleteResult> {
+  return (await client.callTool(
+    { name: 'qase_case_delete', arguments: { code: 'TEST', id: 1 } },
+    options,
+  )) as DeleteResult;
 }
 
 beforeAll(async () => {
@@ -111,179 +126,80 @@ afterAll(async () => {
   await new Promise<void>((resolve) => httpServer.close(() => resolve()));
 }, 30000);
 
-describe('destructive confirmation over streamable-http', () => {
-  it('deletes once the user confirms the prompt', async () => {
-    const prompts: string[] = [];
-    const client = await connect((message) => {
-      prompts.push(message);
-      return { action: 'accept', confirm: true };
-    });
+describe('the destructive gate on the 2026-07-28 era', () => {
+  // (a) The first round asks. It does not delete, and it does not refuse
+  // either — the answer is still outstanding. Manual mode (`autoFulfill:
+  // false` + `allowInputRequired`) hands the raw result back instead of
+  // driving the round trip, which is the only way to see the first round on
+  // its own.
+  it('answers the first round with a request for confirmation, having deleted nothing', async () => {
+    const client = await connect(true, undefined, { autoFulfill: false });
+
+    const result = await callDelete(client, { allowInputRequired: true });
+
+    expect(deleteCase).not.toHaveBeenCalled();
+    expect(result.resultType).toBe('input_required');
+    expect(result.inputRequests?.confirm?.method).toBe('elicitation/create');
+    expect(result.inputRequests?.confirm?.params.message).toContain('qase_case_delete');
+    // The state that carries the confirmation across the round trip. It is
+    // signed and bound to this caller; without it the retry has nothing to
+    // match the answer against.
+    expect(typeof result.requestState).toBe('string');
+  });
+
+  // (b) The confirmation reaches the user and comes back: the delete happens.
+  it('performs the deletion once the user accepts', async () => {
+    const client = await connect(true, 'accept');
 
     const result = await callDelete(client);
 
-    // The prompt reached the client on the stream of this very call.
-    expect(prompts).toHaveLength(1);
-    expect(prompts[0]).toContain('qase_case_delete');
     expect(deleteCase).toHaveBeenCalledWith('TEST', 1);
     expect(result.isError).toBeFalsy();
   });
 
-  it('does not delete when the user declines', async () => {
-    const client = await connect(() => ({ action: 'decline' }));
+  // (c) The user says no: nothing is deleted, and the refusal says so in
+  // words the agent can relay.
+  it('deletes nothing when the user declines, and says why', async () => {
+    const client = await connect(true, 'decline');
 
     const result = await callDelete(client);
 
     expect(deleteCase).not.toHaveBeenCalled();
-    expect(result.content[0].text).toContain('declined');
-    // A human saying no is a decision, not a tool failure.
-    expect(result.isError).toBeFalsy();
+    expect(result.content?.[0].text).toContain('declined');
+    expect(result.content?.[0].text).toContain('Nothing was deleted');
   });
 
-  it('deletes on a bare accept — the prompt carries no fields to fill in', async () => {
-    const prompts: Array<Record<string, unknown>> = [];
-    const client = await connect((message, schema) => {
-      prompts.push(schema);
-      expect(message).toContain('qase_case_delete');
-      return { action: 'accept' };
-    });
+  it('deletes nothing when the user cancels the prompt', async () => {
+    const client = await connect(true, 'cancel');
 
-    await callDelete(client);
+    const result = await callDelete(client);
 
-    expect(prompts[0]).toEqual({});
-    expect(deleteCase).toHaveBeenCalledWith('TEST', 1);
+    expect(deleteCase).not.toHaveBeenCalled();
+    expect(result.content?.[0].text).toContain('declined');
   });
+});
 
-  it('refuses instead of deleting when the client cannot be asked', async () => {
-    const client = await connect();
+// (d) A client on the older revision cannot be asked on a stateless leg, so
+// the gate refuses at once rather than deleting unconfirmed — and rather than
+// hanging on a prompt nobody will answer.
+describe('the destructive gate for a 2025-era client', () => {
+  it('refuses instead of deleting, naming the protocol revision as the reason', async () => {
+    const client = await connect(false, 'accept');
 
     const result = await callDelete(client);
 
     expect(deleteCase).not.toHaveBeenCalled();
     expect(result.isError).toBe(true);
-    expect(result.content[0].text).toContain('elicitation');
+    expect(result.content?.[0].text).toContain('Refused "qase_case_delete"');
+    expect(result.content?.[0].text).toContain('2025-11-25');
   });
 
-  it('answers a client that cannot be asked immediately, without waiting on a timeout', async () => {
-    const client = await connect();
+  it('answers immediately, without waiting on a prompt timeout', async () => {
+    const client = await connect(false, 'accept');
 
     const started = Date.now();
     await callDelete(client);
 
     expect(Date.now() - started).toBeLessThan(1000);
   });
-});
-
-/**
- * The SDK client above opens the standalone `GET /mcp` stream, so a prompt
- * could reach it either way. Real clients (Claude, Cursor, Codex) do not open
- * it — for them the prompt has to travel on the POST response of the call
- * itself. This block speaks raw HTTP and never opens that stream, which is the
- * exact shape that used to hang for 60s and then delete unconfirmed.
- */
-describe('destructive confirmation without a standalone SSE stream', () => {
-  const ACCEPT = 'application/json, text/event-stream';
-
-  async function post(body: unknown, sessionId?: string): Promise<Response> {
-    return fetch(baseUrl, {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        accept: ACCEPT,
-        Authorization: 'Bearer test-token',
-        ...(sessionId ? { 'mcp-session-id': sessionId } : {}),
-      },
-      body: JSON.stringify(body),
-    });
-  }
-
-  /** Read SSE `data:` payloads off a response body until `done` returns true. */
-  async function readMessages(
-    response: Response,
-    onMessage: (msg: any) => boolean | Promise<boolean>,
-  ): Promise<void> {
-    const reader = response.body!.getReader();
-    const decoder = new TextDecoder();
-    let buffer = '';
-
-    for (;;) {
-      const { value, done } = await reader.read();
-      if (done) return;
-      buffer += decoder.decode(value, { stream: true });
-
-      let split: number;
-      while ((split = buffer.indexOf('\n\n')) !== -1) {
-        const frame = buffer.slice(0, split);
-        buffer = buffer.slice(split + 2);
-        const data = frame
-          .split('\n')
-          .filter((line) => line.startsWith('data:'))
-          .map((line) => line.slice('data:'.length).trim())
-          .join('');
-        if (!data) continue;
-        if (await onMessage(JSON.parse(data))) {
-          await reader.cancel();
-          return;
-        }
-      }
-    }
-  }
-
-  async function initSession(): Promise<string> {
-    const res = await post({
-      jsonrpc: '2.0',
-      id: 1,
-      method: 'initialize',
-      params: {
-        protocolVersion: '2025-06-18',
-        capabilities: { elicitation: {} },
-        clientInfo: { name: 'raw-client', version: '1.0.0' },
-      },
-    });
-    const sessionId = res.headers.get('mcp-session-id')!;
-    expect(typeof sessionId).toBe('string');
-    await res.body?.cancel();
-
-    await post({ jsonrpc: '2.0', method: 'notifications/initialized' }, sessionId);
-    return sessionId;
-  }
-
-  it('delivers the prompt on the response of the call and deletes only after the answer', async () => {
-    const sessionId = await initSession();
-
-    const res = await post(
-      {
-        jsonrpc: '2.0',
-        id: 2,
-        method: 'tools/call',
-        params: { name: 'qase_case_delete', arguments: { code: 'TEST', id: 1 } },
-      },
-      sessionId,
-    );
-
-    let prompted = false;
-    let toolResult: any;
-
-    await readMessages(res, async (msg) => {
-      if (msg.method === 'elicitation/create') {
-        prompted = true;
-        expect(msg.params.message).toContain('qase_case_delete');
-        // The entity must still be untouched while we are being asked.
-        expect(deleteCase).not.toHaveBeenCalled();
-        await post(
-          { jsonrpc: '2.0', id: msg.id, result: { action: 'accept', content: {} } },
-          sessionId,
-        );
-        return false;
-      }
-      if (msg.id === 2) {
-        toolResult = msg.result;
-        return true;
-      }
-      return false;
-    });
-
-    expect(prompted).toBe(true);
-    expect(deleteCase).toHaveBeenCalledWith('TEST', 1);
-    expect(toolResult.isError).toBeFalsy();
-  }, 15000);
 });

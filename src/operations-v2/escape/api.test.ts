@@ -98,14 +98,14 @@ describe('paths that could leave the Qase host', () => {
   // tool covers, so pinning it to v1 would refuse a later version for no security
   // gain. A version segment is still required, because that is what stops a path
   // from opening an authority component.
-  it.each([['v2', '/v2/DEMO/result'], ['v3', '/v3/project']] satisfies Array<[string, string]>)(
-    'accepts an endpoint on API %s',
-    async (_label, path) => {
-      await invoke({ method: 'GET', path });
+  it.each([
+    ['v2', '/v2/DEMO/result'],
+    ['v3', '/v3/project'],
+  ] satisfies Array<[string, string]>)('accepts an endpoint on API %s', async (_label, path) => {
+    await invoke({ method: 'GET', path });
 
-      expect(mockRequest).toHaveBeenCalledWith(path, expect.anything());
-    },
-  );
+    expect(mockRequest).toHaveBeenCalledWith(path, expect.anything());
+  });
 
   it('still refuses a versioned-looking path that names another host', async () => {
     await expect(invoke({ method: 'GET', path: '//evil.example/v2/x' })).rejects.toBeInstanceOf(
@@ -124,6 +124,24 @@ describe('DELETE', () => {
     const [toolName, args] = mockConfirm.mock.calls[0] as unknown as [string, unknown];
     expect(toolName).toBe('qase_api');
     expect(JSON.stringify(args)).toContain('/v1/project/DEMO');
+  });
+
+  // The confirmation is pinned to the arguments it was shown, so everything
+  // that decides which records go has to be among them. On this tool a filter
+  // in `query` or a list of ids in `body` selects the records just as much as
+  // the path does — leaving them out would let one confirmed DELETE be
+  // replayed against a different set.
+  it('confirms the query and body too, not just the path', async () => {
+    await invoke({
+      method: 'DELETE',
+      path: '/v1/result/DEMO',
+      query: { 'filters[run]': '7' },
+      body: { ids: [1, 2] },
+    });
+
+    const [, args] = mockConfirm.mock.calls[0] as unknown as [string, Record<string, unknown>];
+    expect(args.query).toEqual({ 'filters[run]': '7' });
+    expect(args.body).toEqual({ ids: [1, 2] });
   });
 
   it('makes the request once confirmed', async () => {
@@ -150,8 +168,12 @@ describe('DELETE', () => {
   it('throws instead of deleting when the client cannot be asked', async () => {
     mockConfirm.mockResolvedValue({ allowed: false, reason: 'unsupported' });
 
+    // The wording moved with the mechanism: the reason a client cannot be
+    // asked is now the protocol revision it speaks, not a missing elicitation
+    // capability. What is asserted is unchanged — the refusal is thrown, and
+    // it explains itself.
     await expect(invoke({ method: 'DELETE', path: '/v1/project/DEMO' })).rejects.toThrow(
-      /elicitation/,
+      /older revision of the MCP protocol/,
     );
     expect(mockRequest).not.toHaveBeenCalled();
   });

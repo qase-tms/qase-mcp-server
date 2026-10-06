@@ -1,0 +1,25 @@
+CHANGELOG.md
+  s_505f7d8723d921::t_42217edaaabb31 44-49
+package-lock.json
+  s_505f7d8723d921::t_d841fd3f559a3d 3,9
+package.json
+  s_505f7d8723d921::t_3b62e77dc638b6 3
+server.json
+  s_505f7d8723d921::t_a9166fa4e6c4eb 11,16
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "291b854e40856132ef818b30176fd949238cf28d",
+  "prompts": {},
+  "sessions": {
+    "s_505f7d8723d921": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "a00dd156-1e2b-4a87-af78-2adc0914ac51",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Artem Frolov <afrolov@qase.io>"
+    }
+  }
+}

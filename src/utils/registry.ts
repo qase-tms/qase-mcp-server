@@ -55,6 +55,39 @@ export interface ToolDefinition<T extends z.ZodType = z.ZodType> {
 }
 
 /**
+ * Annotation hints as the MCP spec defaults them when a tool says nothing.
+ * A hint equal to its default carries no information, so the wire projection
+ * leaves it out — the client reads exactly the same meaning either way.
+ */
+const SPEC_DEFAULT_HINTS: Readonly<Record<string, boolean>> = {
+  readOnlyHint: false,
+  destructiveHint: true,
+  idempotentHint: false,
+  openWorldHint: true,
+};
+
+/**
+ * The shape a tool takes on the wire, as opposed to the one the registry
+ * stores. Every byte of `tools/list` is sent to the model on every request:
+ *
+ *  - hints equal to the spec defaults are dropped (see SPEC_DEFAULT_HINTS);
+ *  - `outputSchema` is dropped: no client validates results against it, and
+ *    its one job here — deciding whether to attach `structuredContent` — is
+ *    now done for every object result (see server.ts).
+ *
+ * The stored definition keeps both, because handlers and tests read it.
+ */
+function toWire(tool: Tool): Tool {
+  const { outputSchema: _omitted, annotations, ...rest } = tool;
+  void _omitted;
+  if (!annotations) return rest;
+  const kept = Object.fromEntries(
+    Object.entries(annotations).filter(([k, v]) => SPEC_DEFAULT_HINTS[k] !== v),
+  );
+  return Object.keys(kept).length ? { ...rest, annotations: kept } : rest;
+}
+
+/**
  * Tool Registry Class
  * Manages the lifecycle of MCP tools with support for dynamic discovery
  */
@@ -144,7 +177,8 @@ export class ToolRegistry {
   getTools(active: ReadonlySet<string> = new Set()): Tool[] {
     return Array.from(this.tools.values())
       .filter((t) => this.toolVisibility.get(t.name) === 'core' || active.has(t.name))
-      .sort(byName);
+      .sort(byName)
+      .map(toWire);
   }
 
   /**
@@ -164,7 +198,7 @@ export class ToolRegistry {
    * Used for discovery search and testing.
    */
   getAllTools(): Tool[] {
-    return Array.from(this.tools.values()).sort(byName);
+    return Array.from(this.tools.values()).sort(byName).map(toWire);
   }
 
   /**

@@ -206,7 +206,6 @@ export function createServer(): Server {
 
                 // Default: wrap in compact JSON text block
                 const compacted = compactResponse(result);
-                const hasOutputSchema = toolDef?.outputSchema !== undefined;
                 return {
                   content: [
                     {
@@ -214,10 +213,15 @@ export function createServer(): Server {
                       text: JSON.stringify(compacted),
                     },
                   ],
-                  // SDK requires structuredContent when outputSchema is defined
-                  ...(hasOutputSchema && {
-                    structuredContent: compacted as Record<string, unknown>,
-                  }),
+                  // Attached for every object result, not only where an
+                  // outputSchema used to say so: the wire no longer carries
+                  // outputSchema at all (see registry.ts toWire), and a client
+                  // that reads structured data gains nothing from its absence.
+                  ...(compacted !== null &&
+                    typeof compacted === 'object' &&
+                    !Array.isArray(compacted) && {
+                      structuredContent: compacted as Record<string, unknown>,
+                    }),
                 };
               } catch (error) {
                 // Not a failure: the gate inside a tool handler (qase_api's

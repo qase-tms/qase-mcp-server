@@ -107,17 +107,35 @@ export function describeCaller(ctx: TelemetryContext): string {
   const envelope = ctx.mcpReq?.envelope;
 
   if (!envelope) {
+    // 2025-era: the name is whatever `initialize` established on this
+    // connection, and a stateless leg never saw one.
     const legacy = getServer()?.getClientVersion();
-    return `${legacy?.name ?? 'unknown'}${legacy?.version ? ` ${legacy.version}` : ''} @ ${LEGACY_PROTOCOL}`;
+    return formatCaller(legacy?.name, legacy?.version, LEGACY_PROTOCOL);
   }
 
   const version = envelope[PROTOCOL_VERSION_META_KEY];
   const info = envelope[CLIENT_INFO_META_KEY] as { name?: unknown; version?: unknown } | undefined;
-  const name = typeof info?.name === 'string' && info.name ? info.name : 'unknown';
-  const build = typeof info?.version === 'string' && info.version ? ` ${info.version}` : '';
-  const revision = typeof version === 'string' && version ? version : UNKNOWN_PROTOCOL;
 
-  return `${name}${build} @ ${revision}`;
+  return formatCaller(
+    info?.name,
+    info?.version,
+    typeof version === 'string' && version ? version : UNKNOWN_PROTOCOL,
+  );
+}
+
+/**
+ * `name version @ revision`, leaving out whichever parts the client withheld.
+ *
+ * Both eras read their three values from different places but write the same
+ * line, so the shape lives here once — the two call sites differ in where
+ * they look, not in what they produce. Everything arriving here is `unknown`
+ * because it came off the wire.
+ */
+function formatCaller(name: unknown, version: unknown, revision: string): string {
+  const who = typeof name === 'string' && name ? name : 'unknown';
+  const build = typeof version === 'string' && version ? ' ' + version : '';
+
+  return `${who}${build} @ ${revision}`;
 }
 
 /** One labeller per process, so the cap bounds the process and not one request. */

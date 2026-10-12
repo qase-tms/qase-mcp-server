@@ -1,0 +1,21 @@
+src/operations-v2/write/case-fields.test.ts
+  s_fef725799cacdb::t_0e3ad174d1ec2d 1-50
+src/operations-v2/write/case-fields.ts
+  s_fef725799cacdb::t_b83950fac595f6 40-54,58,60
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "449d903ad1be286844b6c01311fb3661b4071e9d",
+  "prompts": {},
+  "sessions": {
+    "s_fef725799cacdb": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b943b4b3-61be-47d6-8bb1-ad338faf9ede",
+        "model": "claude-opus-5"
+      },
+      "human_author": "Dmitrii Gridnev <dgridnev@qase.io>"
+    }
+  }
+}

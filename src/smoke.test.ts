@@ -56,12 +56,12 @@ import { toolRegistry } from './utils/registry.js';
 
 // Helper to extract JSON schema properties from a registered tool (searches ALL tools)
 function getSchemaProperties(toolName: string): Record<string, any> {
-  const tool = toolRegistry.getAllTools().find((t) => t.name === toolName);
+  const tool = toolRegistry.getDefinitions().find((t) => t.name === toolName);
   return (tool?.inputSchema as any)?.properties ?? {};
 }
 
 function getSchemaRequired(toolName: string): string[] {
-  const tool = toolRegistry.getAllTools().find((t) => t.name === toolName);
+  const tool = toolRegistry.getDefinitions().find((t) => t.name === toolName);
   return (tool?.inputSchema as any)?.required ?? [];
 }
 
@@ -312,11 +312,11 @@ describe('Schema-API Contract Tests', () => {
 });
 
 describe('Tool Smoke Tests', () => {
-  let allTools: ReturnType<typeof toolRegistry.getAllTools>;
+  let allTools: ReturnType<typeof toolRegistry.getDefinitions>;
   let allToolNames: string[];
 
   beforeAll(() => {
-    allTools = toolRegistry.getAllTools();
+    allTools = toolRegistry.getDefinitions();
     allToolNames = allTools.map((t) => t.name);
   });
 
@@ -426,7 +426,7 @@ describe('Tool Smoke Tests', () => {
     const visibleTools = toolRegistry.getTools().map((t) => t.name);
     expect(visibleTools).toContain('qase_case_delete');
     expect(visibleTools).toContain('qase_milestone_upsert');
-    expect(visibleTools).toHaveLength(toolRegistry.getAllTools().length);
+    expect(visibleTools).toHaveLength(toolRegistry.getDefinitions().length);
   });
 
   it('no v1 tool names are present', () => {
@@ -479,7 +479,7 @@ describe('Tool Smoke Tests', () => {
   it.each(
     // Test ALL tools (including discoverable) — handlers should all be callable
     (() => {
-      const tools = toolRegistry.getAllTools();
+      const tools = toolRegistry.getDefinitions();
       return tools.map((t) => t.name);
     })(),
   )('tool "%s" handler is callable', async (toolName) => {

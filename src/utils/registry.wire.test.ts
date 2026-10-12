@@ -40,6 +40,19 @@ describe('the wire projection of a tool', () => {
   });
 
   it('does not carry an outputSchema', () => {
-    for (const t of toolRegistry.getAllTools()) expect(t).not.toHaveProperty('outputSchema');
+    for (const t of toolRegistry.getTools()) expect(t).not.toHaveProperty('outputSchema');
+  });
+
+  // The projection is what the wire gets; internal callers read the stored
+  // definitions. `destructiveHint: true` IS the spec default, so stripping it
+  // from the wire is right — and reading the wire internally once left the
+  // category filter of qase_discover_tools matching nothing and every
+  // deletion reported as not destructive.
+  it('keeps the destructive hint where the server itself reads it', () => {
+    const stored = toolRegistry.getDefinitions().filter((t) => t.annotations?.destructiveHint);
+    const onTheWire = toolRegistry.getTools().filter((t) => t.annotations?.destructiveHint);
+
+    expect(stored.length).toBeGreaterThan(5);
+    expect(onTheWire).toHaveLength(0);
   });
 });

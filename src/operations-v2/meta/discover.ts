@@ -27,7 +27,7 @@ const Schema = z.object({
 
 async function handler(args: z.infer<typeof Schema>) {
   const { query, category } = args;
-  let matches = query ? toolRegistry.searchTools(query) : toolRegistry.getAllTools();
+  let matches = query ? toolRegistry.searchTools(query) : toolRegistry.getDefinitions();
 
   // Filter by category based on tool annotations
   if (category && category !== 'all') {

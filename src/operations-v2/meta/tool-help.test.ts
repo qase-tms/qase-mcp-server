@@ -36,7 +36,7 @@ describe('qase_tool_help', () => {
 describe('every tool', () => {
   it('has help, and the help says more than the description', () => {
     const thin = toolRegistry
-      .getAllTools()
+      .getDefinitions()
       // The help tool is its own documentation; everything else must say more in help.
       .filter((t) => t.name !== 'qase_tool_help')
       .map((t) => ({ name: t.name, help: toolRegistry.getHelp(t.name), description: t.description ?? '' }))

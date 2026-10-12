@@ -200,7 +200,7 @@ export class ToolRegistry {
    * be told about a list that changed on a stateless connection anyway.
    */
   getTools(): Tool[] {
-    return this.getAllTools();
+    return this.getDefinitions().map(toWire);
   }
 
   /** The long documentation of a tool, or undefined when it has none. */
@@ -209,11 +209,19 @@ export class ToolRegistry {
   }
 
   /**
-   * Get ALL registered tools regardless of activation status.
-   * Used for discovery search and testing.
+   * Every tool as it was registered, with nothing projected away.
+   *
+   * This is what code INSIDE the server reads — search, the category filter,
+   * the help index. `getTools()` is for the wire and drops annotation hints
+   * that match the spec's own defaults, and one of those defaults is
+   * `destructiveHint: true`. Reading the wire shape internally therefore said
+   * no tool was destructive: `qase_discover_tools` answered `category:
+   * "delete"` with nothing and reported `destructive: false` for every
+   * deletion it listed. The two shapes are kept apart by name so that cannot
+   * be reintroduced by reaching for whichever accessor is nearest.
    */
-  getAllTools(): Tool[] {
-    return Array.from(this.tools.values()).sort(byName).map(toWire);
+  getDefinitions(): Tool[] {
+    return Array.from(this.tools.values()).sort(byName);
   }
 
   /**
@@ -228,7 +236,7 @@ export class ToolRegistry {
     const words = query.toLowerCase().split(/\s+/).filter(Boolean);
     if (words.length === 0) return [];
 
-    return this.getAllTools().filter((t) => {
+    return this.getDefinitions().filter((t) => {
       const haystack = `${t.name} ${t.description ?? ''}`.toLowerCase();
       return words.every((word) => haystack.includes(word));
     });

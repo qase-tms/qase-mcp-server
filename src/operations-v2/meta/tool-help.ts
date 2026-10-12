@@ -21,7 +21,7 @@ async function handler(rawArgs: Record<string, unknown>) {
   const help = toolRegistry.getHelp(tool);
   if (!definition || !help) {
     const names = toolRegistry
-      .getAllTools()
+      .getDefinitions()
       .map((t) => t.name)
       .join(', ');
     throw new ToolExecutionError(`No help for "${tool}". Tools with help: ${names}`);

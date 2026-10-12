@@ -22,7 +22,7 @@ const MAX = 2000; // what Claude reads; past this the tail is wasted
 let tools: Tool[];
 
 beforeAll(() => {
-  tools = toolRegistry.getAllTools();
+  tools = toolRegistry.getDefinitions();
 });
 
 function describeOf(name: string): string {

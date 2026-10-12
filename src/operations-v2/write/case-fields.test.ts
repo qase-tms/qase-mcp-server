@@ -53,7 +53,7 @@ describe('the shared case schema', () => {
   });
 
   it('keeps every $ref pointing at a definition that exists', () => {
-    for (const tool of toolRegistry.getAllTools()) {
+    for (const tool of toolRegistry.getDefinitions()) {
       const schema = JSON.stringify(tool.inputSchema);
       const defs = Object.keys((tool.inputSchema as Schema).$defs ?? {});
 

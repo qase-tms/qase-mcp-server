@@ -327,7 +327,7 @@ describe('ToolRegistry', () => {
 
       registry.unregister('to_remove');
       expect(registry.getTools().map((t) => t.name)).not.toContain('to_remove');
-      expect(registry.getAllTools().map((t) => t.name)).not.toContain('to_remove');
+      expect(registry.getDefinitions().map((t) => t.name)).not.toContain('to_remove');
       expect(registry.getHandler('to_remove')).toBeUndefined();
     });
   });
@@ -348,7 +348,7 @@ describe('ToolRegistry', () => {
       registry.clear();
 
       expect(registry.getTools()).toHaveLength(0);
-      expect(registry.getAllTools()).toHaveLength(0);
+      expect(registry.getDefinitions()).toHaveLength(0);
       expect(registry.getToolCount()).toBe(0);
     });
   });
@@ -357,7 +357,7 @@ describe('ToolRegistry', () => {
 describe('getTools() — the real catalogue', () => {
   it('lists every registered tool, nothing hidden', () => {
     const listed = toolRegistry.getTools().map((t) => t.name);
-    for (const t of toolRegistry.getAllTools()) expect(listed).toContain(t.name);
+    for (const t of toolRegistry.getDefinitions()) expect(listed).toContain(t.name);
     expect(listed).toContain('qase_case_delete');
     expect(listed).toContain('qase_review_create');
   });

@@ -112,7 +112,6 @@ const SPEC_DEFAULT_HINTS: Readonly<Record<string, boolean>> = {
  */
 function toWire(tool: Tool): Tool {
   const { outputSchema: _omitted, annotations, ...rest } = tool;
-  void _omitted;
   if (!annotations) return rest;
   const kept = Object.fromEntries(
     Object.entries(annotations).filter(([k, v]) => SPEC_DEFAULT_HINTS[k] !== v),
@@ -169,7 +168,6 @@ export class ToolRegistry {
     // repeats it in all 42 schemas and no client reads it, so it is dropped —
     // the MCP spec already fixes the dialect for `inputSchema`.
     const { $schema: _dialect, ...body } = converted;
-    void _dialect;
 
     stripSafeIntegerBounds(body);
 

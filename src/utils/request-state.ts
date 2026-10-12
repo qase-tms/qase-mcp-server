@@ -43,6 +43,20 @@ const MIN_KEY_BYTES = 32;
  */
 export const CONFIRMATION_TTL_SECONDS = 600;
 
+/**
+ * Order two keys by code unit, NOT by `localeCompare`.
+ *
+ * This ordering feeds a digest that two replicas must agree on, and
+ * `localeCompare` depends on the runtime's locale data — it could order the
+ * same two keys differently on two machines and refuse a confirmation the
+ * user actually gave.
+ */
+function byCodeUnit(a: string, b: string): number {
+  if (a < b) return -1;
+  if (a > b) return 1;
+  return 0;
+}
+
 /** Recursively sort object keys so two spellings of one value serialise alike. */
 function canonicalize(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(canonicalize);
@@ -50,11 +64,7 @@ function canonicalize(value: unknown): unknown {
   const source = value as Record<string, unknown>;
   return Object.fromEntries(
     Object.keys(source)
-      // Explicit code-unit comparison, NOT localeCompare: this ordering feeds a
-      // digest that two replicas must agree on, and localeCompare depends on
-      // the runtime's locale data, so it could order the same keys differently
-      // on two machines and refuse a confirmation the user gave.
-      .sort((a, b) => (a < b ? -1 : a > b ? 1 : 0))
+      .sort(byCodeUnit)
       .map((key) => [key, canonicalize(source[key])]),
   );
 }

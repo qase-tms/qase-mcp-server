@@ -44,5 +44,4 @@ toolRegistry.register({
   schema: Schema,
   handler,
   annotations: ReadAnnotation,
-  visibility: 'core',
 });

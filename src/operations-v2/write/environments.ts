@@ -8,7 +8,7 @@ const UpsertSchema = z.object({
   code: ProjectCodeSchema,
   id: IdSchema.optional().describe('Environment ID — if provided, updates; if omitted, creates'),
   title: z.string().min(1).max(255).describe('Environment title'),
-  description: z.string().optional(),
+  description: z.string().optional().describe('Free-form description of the environment'),
   slug: z.string().optional().describe('URL-friendly identifier'),
   host: z.string().optional().describe('Environment host/URL'),
 });
@@ -67,7 +67,6 @@ toolRegistry.register({
   schema: UpsertSchema,
   handler: upsert,
   annotations: CreateAnnotation,
-  visibility: 'discoverable',
 });
 
 toolRegistry.register({
@@ -84,5 +83,4 @@ toolRegistry.register({
   schema: DeleteSchema,
   handler: del,
   annotations: DeleteAnnotation,
-  visibility: 'discoverable',
 });

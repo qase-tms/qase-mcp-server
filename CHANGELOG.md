@@ -17,7 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Sessions are gone, and with them `mcp-session-id`.** The server no longer issues a session id, and `GET` and `DELETE` on the MCP endpoint — the two session operations of the old revision — answer `405`. `mcp-session-id` is still accepted as a request header, so a client that still sends one is not broken by a CORS preflight; it is simply ignored. `Access-Control-Allow-Methods` no longer advertises `DELETE` either, for the same reason: it was the session-end operation, and there is no session left to end.
 
-- **Tool activation is per caller, and can be shared between replicas.** `qase_discover_tools` used to switch tools on for the whole process, so one user's discovery changed what every other user saw. Activation is now keyed by the caller's identity: the OAuth subject when the request carries one, otherwise a SHA-256 digest of the API token the caller presented, and only when neither is available — stdio, where one process serves one user — the single shared local identity. When `QASE_MCP_REDIS_URL` is set the result is stored in Redis with a one-hour lifetime so every replica sees it; without Redis it is remembered per process, which is correct for a single replica. Activation survives with no session at all: discover on one connection, list tools on a brand-new one, and the activated tools are there.
+- **Every tool is listed from the first request — nothing is hidden behind discovery any more.** Twenty-four tools used to stay out of the tool list until `qase_discover_tools` switched them on, to keep the list small; on a stateless connection there is no way to tell a client that its list changed, so the switched-on tool was callable server-side and absent client-side until the client happened to reconnect. With the list itself now a third smaller than the old core-only one, hiding no longer pays for the confusion it caused: the full catalogue is sent every time, the list never changes while the server runs, and `qase_discover_tools` stays as a search over it. The per-caller activation store, its Redis use and the `tools/list_changed` announcements went with it.
 
 - **The integration marker is read per request on the Streamable HTTP transport.** It used to be captured once when a session opened and remembered for that session's lifetime. `X-Qase-Integration` and `?integration=` are now read on the request that carries them, and never attributed to the next one. The SSE transport keeps a long-lived stream and is unchanged: it still reads the marker when the stream opens and remembers it for that stream.
 
@@ -29,11 +29,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Three counters on `/metrics`:** `qase_mcp_tool_calls_total` by tool name, `qase_mcp_tool_activations_total` by the tool that was switched on, and `qase_mcp_requests_total` by protocol revision and client name. Discovery was the least visible part of the server and is now the most measurable.
+- **Two counters on `/metrics`:** `qase_mcp_tool_calls_total` by tool name, and `qase_mcp_requests_total` by protocol revision and client name.
 
 - **`qase_mcp_requests_total` answers who is still on the old revision.** This release serves two protocol revisions at once, and the decision to stop serving the older one cannot be read out of the code — only out of traffic. On 2026-07-28 every request carries a `_meta` envelope naming the revision and identifying the client, so both labels come from the request itself; a 2025-era request carries no envelope and is counted as `protocol="legacy"`, with the client named only where an `initialize` established it (stdio, SSE) and `unknown` on a stateless HTTP leg — which is precisely the traffic a modern-only endpoint would refuse. The client label is normalised and capped at 20 distinct values per process, because it arrives from the wire and every distinct value would otherwise be a series nothing evicts.
-
-- **`QASE_MCP_REDIS_URL` also carries tool-list notifications.** When several replicas share a Redis, an activation on one is announced to clients listening on the others.
 
 ### Removed
 

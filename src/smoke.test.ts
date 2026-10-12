@@ -399,9 +399,9 @@ describe('Tool Smoke Tests', () => {
     }
   });
 
-  it('discoverable tools are NOT in getTools() by default', () => {
-    const coreTools = toolRegistry.getTools().map((t) => t.name);
-    const discoverableTools = [
+  it('lists the tools that used to be hidden behind discovery', () => {
+    const listed = toolRegistry.getTools().map((t) => t.name);
+    for (const name of [
       'qase_case_delete',
       'qase_suite_delete',
       'qase_milestone_upsert',
@@ -417,19 +417,16 @@ describe('Tool Smoke Tests', () => {
       'qase_defect_delete',
       'qase_attachment_delete',
       'qase_external_issue_link',
-    ];
-    for (const name of discoverableTools) {
-      expect(coreTools).not.toContain(name);
+    ]) {
+      expect(listed).toContain(name);
     }
   });
 
-  it('discoverable tools become visible once in the active set', () => {
-    // Activation is per-caller state now (src/tools/activation.ts), not the
-    // registry's — getTools() takes the active set directly.
-    const active = new Set(['qase_case_delete', 'qase_milestone_upsert']);
-    const visibleTools = toolRegistry.getTools(active).map((t) => t.name);
+  it('lists every tool from the start — nothing is hidden behind discovery', () => {
+    const visibleTools = toolRegistry.getTools().map((t) => t.name);
     expect(visibleTools).toContain('qase_case_delete');
     expect(visibleTools).toContain('qase_milestone_upsert');
+    expect(visibleTools).toHaveLength(toolRegistry.getAllTools().length);
   });
 
   it('no v1 tool names are present', () => {

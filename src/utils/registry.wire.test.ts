@@ -15,7 +15,7 @@ import { describe, it, expect } from '@jest/globals';
 import { toolRegistry, DeleteAnnotation, CreateAnnotation } from './registry.js';
 import '../operations-v2/index.js';
 
-const wire = (name: string) => toolRegistry.getTools(new Set([name])).find((t) => t.name === name)!;
+const wire = (name: string) => toolRegistry.getTools().find((t) => t.name === name)!;
 
 describe('the wire projection of a tool', () => {
   it('omits annotation hints that equal the spec defaults', () => {

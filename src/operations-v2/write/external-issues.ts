@@ -126,5 +126,4 @@ toolRegistry.register({
   schema: Schema,
   handler,
   annotations: UpdateAnnotation,
-  visibility: 'discoverable',
 });

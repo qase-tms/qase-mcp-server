@@ -36,12 +36,10 @@ beforeEach(() => {
 });
 
 describe('registration', () => {
-  it('registers both tools as discoverable', () => {
-    expect(toolRegistry.hasTool('qase_project_create')).toBe(true);
-    expect(toolRegistry.hasTool('qase_project_delete')).toBe(true);
+  it('registers both tools, listed from the start', () => {
     const listed = toolRegistry.getTools().map((t) => t.name);
-    expect(listed).not.toContain('qase_project_create');
-    expect(listed).not.toContain('qase_project_delete');
+    expect(listed).toContain('qase_project_create');
+    expect(listed).toContain('qase_project_delete');
   });
 
   it('marks deletion destructive so the confirmation gate covers it', () => {

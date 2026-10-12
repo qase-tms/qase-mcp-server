@@ -286,7 +286,6 @@ toolRegistry.register({
   annotations: CreateAnnotation,
   // Core, not discoverable: the `attachments` field on core tools is unusable
   // without it, and a hidden tool left agents concluding uploads were impossible.
-  visibility: 'core',
 });
 
 toolRegistry.register({
@@ -303,5 +302,4 @@ toolRegistry.register({
   schema: DeleteSchema,
   handler: del,
   annotations: DeleteAnnotation,
-  visibility: 'discoverable',
 });

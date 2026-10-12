@@ -205,7 +205,7 @@ const UpdateSchema = z.object({
 
 const ListSchema = z.object({
   code: ProjectCodeSchema,
-  status: z.enum(['open', 'merged', 'declined']).optional(),
+  status: z.enum(['open', 'merged', 'declined']).optional().describe('Only reviews in this state'),
   type: z
     .enum(['create', 'edit'])
     .optional()
@@ -215,7 +215,7 @@ const ListSchema = z.object({
   reviewer_uuid: z.string().optional().describe('Only reviews this author UUID is a reviewer on'),
   search: z.string().optional().describe('Substring match on the review title'),
   limit: z.number().int().positive().max(100).optional().describe('Default 25, max 100'),
-  offset: z.number().int().nonnegative().optional(),
+  offset: z.number().int().nonnegative().optional().describe('Skip this many reviews, for paging'),
 });
 
 const GetIdSchema = z.object({
@@ -444,7 +444,6 @@ toolRegistry.register({
   handler: create,
   annotations: CreateAnnotation,
   outputSchema: ReviewCreateOutput,
-  visibility: 'discoverable',
 });
 
 toolRegistry.register({
@@ -462,7 +461,6 @@ toolRegistry.register({
   handler: update,
   annotations: UpdateAnnotation,
   outputSchema: ReviewUpdateOutput,
-  visibility: 'discoverable',
 });
 
 toolRegistry.register({
@@ -481,7 +479,6 @@ toolRegistry.register({
   handler: list,
   annotations: ReadAnnotation,
   outputSchema: ReviewListOutput,
-  visibility: 'discoverable',
 });
 
 toolRegistry.register({
@@ -498,7 +495,6 @@ toolRegistry.register({
   schema: GetIdSchema,
   handler: del,
   annotations: DeleteAnnotation,
-  visibility: 'discoverable',
 });
 
 toolRegistry.register({
@@ -518,5 +514,4 @@ toolRegistry.register({
   handler: bulkCreate,
   annotations: CreateAnnotation,
   outputSchema: ReviewBulkCreateOutput,
-  visibility: 'discoverable',
 });

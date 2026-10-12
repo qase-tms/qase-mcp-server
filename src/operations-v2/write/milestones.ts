@@ -8,8 +8,8 @@ const UpsertSchema = z.object({
   code: ProjectCodeSchema,
   id: IdSchema.optional().describe('Milestone ID — if provided, updates; if omitted, creates'),
   title: z.string().min(1).max(255).describe('Milestone title'),
-  description: z.string().optional(),
-  status: z.enum(['active', 'completed']).optional(),
+  description: z.string().optional().describe('Free-form description of the milestone'),
+  status: z.enum(['active', 'completed']).optional().describe('active (default) or completed'),
   due_date: z.number().optional().describe('Due date as Unix timestamp'),
 });
 
@@ -66,7 +66,6 @@ toolRegistry.register({
   schema: UpsertSchema,
   handler: upsert,
   annotations: CreateAnnotation,
-  visibility: 'discoverable',
 });
 
 toolRegistry.register({
@@ -83,5 +82,4 @@ toolRegistry.register({
   schema: DeleteSchema,
   handler: del,
   annotations: DeleteAnnotation,
-  visibility: 'discoverable',
 });

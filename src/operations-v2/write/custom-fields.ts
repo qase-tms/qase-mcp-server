@@ -42,12 +42,15 @@ const UpsertSchema = z.object({
     .array(z.string())
     .optional()
     .describe('Option titles — required for selectbox, radio and multiselect'),
-  placeholder: z.string().optional(),
-  default_value: z.string().optional(),
-  is_filterable: z.boolean().optional(),
-  is_visible: z.boolean().optional(),
-  is_required: z.boolean().optional(),
-  is_enabled_for_all_projects: z.boolean().optional(),
+  placeholder: z.string().optional().describe('Hint shown in the empty field'),
+  default_value: z.string().optional().describe('Value a new entity gets when none is entered'),
+  is_filterable: z.boolean().optional().describe('Whether the field can be used as a filter'),
+  is_visible: z.boolean().optional().describe('Whether the field is shown on the entity'),
+  is_required: z.boolean().optional().describe('Whether a value must be given on create'),
+  is_enabled_for_all_projects: z
+    .boolean()
+    .optional()
+    .describe('Apply to every project in the workspace, instead of only those in projects_codes'),
   projects_codes: z
     .array(ProjectCodeSchema)
     .optional()
@@ -270,7 +273,6 @@ toolRegistry.register({
   schema: UpsertSchema,
   handler: upsert,
   annotations: CreateAnnotation,
-  visibility: 'discoverable',
 });
 
 toolRegistry.register({
@@ -287,5 +289,4 @@ toolRegistry.register({
   schema: DeleteSchema,
   handler: del,
   annotations: DeleteAnnotation,
-  visibility: 'discoverable',
 });

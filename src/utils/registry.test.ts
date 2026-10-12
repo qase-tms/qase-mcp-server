@@ -215,118 +215,6 @@ describe('ToolRegistry', () => {
     });
   });
 
-  describe('visibility and discovery', () => {
-    const schema = z.object({});
-    const handler = jest.fn();
-
-    it('core tools (default) are active and in getTools()', () => {
-      registry.register({
-        name: 'core_tool',
-        title: 'Core tool',
-        description: 'core',
-        schema,
-        handler,
-      });
-
-      expect(registry.getTools().map((t) => t.name)).toContain('core_tool');
-    });
-
-    it('explicit core visibility is active', () => {
-      registry.register({
-        name: 'explicit_core',
-        title: 'Explicit core',
-        description: 'core',
-        schema,
-        handler,
-        visibility: 'core',
-      });
-
-      expect(registry.getTools().map((t) => t.name)).toContain('explicit_core');
-    });
-
-    it('discoverable tools are NOT in getTools() by default', () => {
-      registry.register({
-        name: 'hidden_tool',
-        title: 'Hidden tool',
-        description: 'hidden',
-        schema,
-        handler,
-        visibility: 'discoverable',
-      });
-
-      expect(registry.getTools().map((t) => t.name)).not.toContain('hidden_tool');
-    });
-
-    it('discoverable tools ARE in getAllTools()', () => {
-      registry.register({
-        name: 'hidden_tool',
-        title: 'Hidden tool',
-        description: 'hidden',
-        schema,
-        handler,
-        visibility: 'discoverable',
-      });
-
-      expect(registry.getAllTools().map((t) => t.name)).toContain('hidden_tool');
-    });
-
-    it('discoverable tools have a handler even when inactive', () => {
-      registry.register({
-        name: 'hidden_tool',
-        title: 'Hidden tool',
-        description: 'hidden',
-        schema,
-        handler,
-        visibility: 'discoverable',
-      });
-
-      expect(registry.getHandler('hidden_tool')).toBe(handler);
-    });
-
-    it('mixed core and discoverable tools', () => {
-      registry.register({ name: 'core_a', title: 'Core a', description: 'a', schema, handler });
-      registry.register({
-        name: 'disc_b',
-        title: 'Disc b',
-        description: 'b',
-        schema,
-        handler,
-        visibility: 'discoverable',
-      });
-      registry.register({ name: 'core_c', title: 'Core c', description: 'c', schema, handler });
-
-      const active = registry.getTools().map((t) => t.name);
-      expect(active).toEqual(['core_a', 'core_c']);
-
-      const all = registry.getAllTools().map((t) => t.name);
-      expect(all).toEqual(['core_a', 'core_c', 'disc_b']);
-    });
-  });
-
-  // getTools() no longer stores its own activation state: the active set is
-  // per-caller (see src/tools/activation.ts) and is passed in on every call.
-  // These exercise the real, production-registered catalog on the singleton
-  // `toolRegistry` rather than fixtures on a local instance, because the
-  // point is the actual core/discoverable split, not the mechanics of a
-  // made-up tool.
-  describe('getTools(active) — the real catalog', () => {
-    it('lists core tools when nothing is activated', () => {
-      const visible = toolRegistry.getTools(new Set()).map((t) => t.name);
-      expect(visible).toContain('qase_get');
-      expect(visible).not.toContain('qase_case_delete');
-    });
-
-    it('includes a discoverable tool once it is in the active set', () => {
-      const visible = toolRegistry.getTools(new Set(['qase_case_delete'])).map((t) => t.name);
-      expect(visible).toContain('qase_case_delete');
-    });
-
-    it('ignores an active name that is not a registered tool', () => {
-      const visible = toolRegistry.getTools(new Set(['qase_nonexistent'])).map((t) => t.name);
-      expect(visible).not.toContain('qase_nonexistent');
-    });
-  });
-
   describe('searchTools', () => {
     const schema = z.object({});
     const handler = jest.fn();
@@ -338,7 +226,6 @@ describe('ToolRegistry', () => {
         description: 'Delete a test case',
         schema,
         handler,
-        visibility: 'discoverable',
       });
       registry.register({
         name: 'qase_case_upsert',
@@ -353,7 +240,6 @@ describe('ToolRegistry', () => {
         description: 'Delete a test run',
         schema,
         handler,
-        visibility: 'discoverable',
       });
       registry.register({
         name: 'qql_search',
@@ -374,11 +260,10 @@ describe('ToolRegistry', () => {
       expect(results.map((t) => t.name)).toEqual(['qase_case_delete', 'qase_case_upsert']);
     });
 
-    it('includes inactive (discoverable) tools in results', () => {
+    it('searches the whole catalogue, and every hit is already listed', () => {
       const results = registry.searchTools('delete');
       expect(results).toHaveLength(2);
-      // These are discoverable and inactive
-      expect(registry.getTools().map((t) => t.name)).not.toContain('qase_case_delete');
+      expect(registry.getTools().map((t) => t.name)).toContain('qase_case_delete');
     });
 
     it('returns empty array for no matches', () => {
@@ -436,21 +321,19 @@ describe('ToolRegistry', () => {
         description: 'x',
         schema,
         handler: jest.fn(),
-        visibility: 'discoverable',
       });
 
-      const active = new Set(['to_remove']);
-      expect(registry.getTools(active).map((t) => t.name)).toContain('to_remove');
+      expect(registry.getTools().map((t) => t.name)).toContain('to_remove');
 
       registry.unregister('to_remove');
-      expect(registry.getTools(active).map((t) => t.name)).not.toContain('to_remove');
+      expect(registry.getTools().map((t) => t.name)).not.toContain('to_remove');
       expect(registry.getAllTools().map((t) => t.name)).not.toContain('to_remove');
       expect(registry.getHandler('to_remove')).toBeUndefined();
     });
   });
 
-  describe('clear with visibility', () => {
-    it('clears all tools, including discoverable ones passed in as active', () => {
+  describe('clear', () => {
+    it('clears every tool', () => {
       const schema = z.object({});
       const handler = jest.fn();
       registry.register({ name: 'a', title: 'A', description: 'a', schema, handler });
@@ -460,14 +343,22 @@ describe('ToolRegistry', () => {
         description: 'b',
         schema,
         handler,
-        visibility: 'discoverable',
       });
 
       registry.clear();
 
-      expect(registry.getTools(new Set(['b']))).toHaveLength(0);
+      expect(registry.getTools()).toHaveLength(0);
       expect(registry.getAllTools()).toHaveLength(0);
       expect(registry.getToolCount()).toBe(0);
     });
+  });
+});
+
+describe('getTools() — the real catalogue', () => {
+  it('lists every registered tool, nothing hidden', () => {
+    const listed = toolRegistry.getTools().map((t) => t.name);
+    for (const t of toolRegistry.getAllTools()) expect(listed).toContain(t.name);
+    expect(listed).toContain('qase_case_delete');
+    expect(listed).toContain('qase_review_create');
   });
 });

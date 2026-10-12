@@ -8,7 +8,7 @@ const UpsertSchema = z.object({
   code: ProjectCodeSchema,
   id: IdSchema.optional().describe('Plan ID — if provided, updates; if omitted, creates'),
   title: z.string().min(1).max(255).describe('Test plan title'),
-  description: z.string().optional(),
+  description: z.string().optional().describe('Free-form description of the plan'),
   cases: z.array(z.number().int().positive()).optional().describe('Case IDs to include'),
 });
 
@@ -66,7 +66,6 @@ toolRegistry.register({
   schema: UpsertSchema,
   handler: upsert,
   annotations: CreateAnnotation,
-  visibility: 'discoverable',
 });
 
 toolRegistry.register({
@@ -83,5 +82,4 @@ toolRegistry.register({
   schema: DeleteSchema,
   handler: del,
   annotations: DeleteAnnotation,
-  visibility: 'discoverable',
 });

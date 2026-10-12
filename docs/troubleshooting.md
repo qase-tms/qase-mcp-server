@@ -172,22 +172,18 @@ Only `http` and `https` are recognised; any other value falls back to `https`, s
 **Symptom**: `qase_review_*` tools are missing, or every call fails.
 
 **Solution**:
-1. Review tools are discoverable — ask the agent to run `qase_discover_tools` with `"review"`
+1. Since 3.0.0 the review tools are listed from the start; on an older version ask the agent to run `qase_discover_tools` with `"review"`
 2. Enable **Test case review** in the project settings; without it every review endpoint rejects the request
 3. Approving, requesting changes, merging, and declining are **UI-only** — the public API has no endpoints for them, so no tool can perform them
 4. `reviewers` takes author UUIDs (or emails, which are resolved). The review's author cannot be its own reviewer, and the author is whoever owns the API token
 
-## A discovered tool still isn't callable
+## A tool is missing from the client's list
 
-**Symptom**: `qase_discover_tools` reports the tool as found and activated, but calling it fails inside the client — typically `TypeError: tools.mcp__qase__<tool_name> is not a function`, or the agent insisting the tool does not exist.
+**Symptom**: the client does not offer a tool this reference says exists.
 
-**Cause**: activation is per-caller server-side state, and always takes effect immediately. Whether the client is *told* about it depends on the connection: stdio gets the `notifications/tools/list_changed` notification automatically, an HTTP client only if it opened a `subscriptions/listen` stream, and a stateless HTTP request gets no notification at all. A client that is never told keeps dispatching against the tool list it built when it connected, so the tool the server just switched on is missing from the client's own table. The server itself will run the tool fine — the call never reaches it.
+**Cause**: before 3.0.0, most tools were hidden until `qase_discover_tools` activated them, and a client on a stateless HTTP connection was never told the list had changed. Since 3.0.0 every tool is listed from the first request and the list never changes while the server runs.
 
-**Solution**:
-1. Update to 2.6.0 or later: the tools the server's own instructions and core descriptions recommend — `qase_case_bulk_create`, `qase_suite_upsert`, `qase_run_complete` — are now core and listed from the start, so the common workflows never depend on discovery (self-run: `npm update -g @qase/mcp-server`; the hosted connector always runs the latest version)
-2. 2.6.0 also fixed notification delivery on the HTTP transports of that era, where only the most recently opened session used to be notified — if several sessions or clients shared one server process, older sessions previously never heard about an activation at all
-3. For a tool that is still discoverable, have your client open a `subscriptions/listen` stream (HTTP) or otherwise re-issue `tools/list` after activating it — there is no session to reconnect any more, and a stateless HTTP request never receives the notification no matter how many times you retry
-4. As a last resort, call the same REST endpoint through `qase_api`, which is core and always listed
+**Solution**: update to 3.0.0 or later (self-run: `npm update -g @qase/mcp-server`; the hosted connector always runs the latest version), then reconnect so the client re-reads `tools/list`. On an older version, call the same REST endpoint through `qase_api`, which was always listed.
 
 ## Tool Not Found
 

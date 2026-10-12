@@ -15,6 +15,10 @@ fail_on = "high"
 # prompts.listChanged. Left on, it would put a permanently red line in every
 # report, which is how real findings start getting skipped.
 capability_prompts_list_changed = "off"
+# Same reason for tools: since 3.0.0 every tool is listed and the list never
+# changes while the server runs, so there is nothing to notify about and we
+# do not declare tools.listChanged. The rule only checks the declaration.
+capability_tools_list_changed = "off"
 
 # server/discover advertises only modern revisions, by the SDK's design: the
 # doc on the handler says "supportedVersions lists only modern revisions

@@ -87,7 +87,7 @@ requests from the same client land on whichever replica the load balancer picks.
 # destructive-action confirmation. At least 32 bytes, identical on every replica.
 QASE_MCP_REQUEST_STATE_KEY=<a shared random string of 32+ bytes>
 
-# Optional: share tool activation and tool-list notifications across replicas.
+# Optional: share the L2 cache across replicas.
 QASE_MCP_REDIS_URL=redis://host:6379
 ```
 
@@ -97,9 +97,7 @@ verified before anything is deleted. Without a shared key each replica generates
 so a confirmation minted by one replica fails verification on another and the deletion is refused —
 safe, but destructive tools stop working. A single replica needs nothing set.
 
-`QASE_MCP_REDIS_URL` is optional and affects convenience rather than correctness: without it, tools
-activated by `qase_discover_tools` are remembered only by the replica that activated them, so the
-same caller may see them appear and disappear between calls.
+`QASE_MCP_REDIS_URL` is optional: it shares the response cache between replicas so a repeated read is served from Valkey rather than from Qase again.
 
 ### Custom Domains (Enterprise)
 
@@ -382,8 +380,7 @@ Metrics include:
   it is counted as `client="unknown"`; on stdio and SSE the name comes from the connection's
   `initialize`. The number of distinct client names is capped at 20 per process — the label comes
   from the wire, and past the cap everything new is counted as `client="other"`.
-- `qase_mcp_tool_calls_total` / `qase_mcp_tool_activations_total` - Tool calls by tool name, and
-  tools switched on by `qase_discover_tools`
+- `qase_mcp_tool_calls_total` - Tool calls by tool name
 
 > **Note:** This page covers running the server yourself with your own `QASE_API_TOKEN` (self-run). It does not cover operating the hosted OAuth proxy — that is internal operator documentation, not part of this guide.
 

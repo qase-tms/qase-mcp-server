@@ -6,7 +6,7 @@
  * - Convert Zod schemas to JSON Schema automatically
  * - Store and retrieve tool handlers
  * - Manage tool lifecycle
- * - Support tool discovery with core/discoverable visibility
+ * - Every registered tool is listed; qase_discover_tools is a search over the catalogue
  */
 import { Tool, ToolAnnotations } from '@modelcontextprotocol/server';
 import { z } from 'zod';
@@ -59,8 +59,6 @@ export interface ToolDefinition<T extends z.ZodType = z.ZodType> {
    * here, where it costs nothing until it is asked for.
    */
   help?: string;
-  /** Tool visibility: 'core' tools are always listed, 'discoverable' tools require activation via qase_discover_tools */
-  visibility?: 'core' | 'discoverable';
 }
 
 /**
@@ -103,13 +101,12 @@ function toWire(tool: Tool): Tool {
 export class ToolRegistry {
   private tools: Map<string, Tool> = new Map();
   private handlers: Map<string, ToolHandler> = new Map();
-  private toolVisibility: Map<string, 'core' | 'discoverable'> = new Map();
   private help: Map<string, string> = new Map();
 
   /**
    * Register a new tool with the registry
    *
-   * @param definition - Tool definition including name, description, schema, handler, and visibility
+   * @param definition - Tool definition including name, description, schema and handler
    *
    * @example
    * ```typescript
@@ -119,14 +116,12 @@ export class ToolRegistry {
    *   description: 'Get all projects',
    *   schema: z.object({ limit: z.number().optional() }),
    *   handler: async (args) => { ... },
-   *   visibility: 'discoverable', // hidden until discovered
    * });
    * ```
    */
   register<T extends z.ZodType>(definition: ToolDefinition<T>): void {
     const { name, title, description, schema, handler, annotations, outputSchema, help } =
       definition;
-    const visibility = definition.visibility ?? 'core';
 
     // Convert Zod schema to JSON Schema for MCP protocol
     // Using explicit type assertion to avoid TypeScript's deep type inference issues
@@ -174,35 +169,17 @@ export class ToolRegistry {
     this.handlers.set(name, handler);
     if (help) this.help.set(name, help);
 
-    // Track visibility
-    this.toolVisibility.set(name, visibility);
-
     // Log registration for debugging (to stderr)
-    console.error(`[Registry] Registered tool: ${name} (${visibility})`);
+    console.error(`[Registry] Registered tool: ${name}`);
   }
 
   /**
-   * Tools visible to a caller: the core set plus whatever that caller has
-   * switched on. The active set is passed in rather than stored here — it
-   * belongs to the caller, not to the process.
+   * Every tool, in the shape it takes on the wire. Nothing is hidden: the
+   * full list is what a client needs to call any of them, and a client cannot
+   * be told about a list that changed on a stateless connection anyway.
    */
-  getTools(active: ReadonlySet<string> = new Set()): Tool[] {
-    return Array.from(this.tools.values())
-      .filter((t) => this.toolVisibility.get(t.name) === 'core' || active.has(t.name))
-      .sort(byName)
-      .map(toWire);
-  }
-
-  /**
-   * Whether a tool is hidden until a caller switches it on.
-   *
-   * Discovery needs this to tell apart the two kinds of match it returns: a
-   * core tool was always in the caller's list, so recording it as "activated"
-   * reports a change that did not happen. An unknown name reads as not
-   * discoverable — there is nothing to switch on.
-   */
-  isDiscoverable(name: string): boolean {
-    return this.toolVisibility.get(name) === 'discoverable';
+  getTools(): Tool[] {
+    return this.getAllTools();
   }
 
   /** The long documentation of a tool, or undefined when it has none. */
@@ -280,7 +257,6 @@ export class ToolRegistry {
   unregister(name: string): boolean {
     const hadTool = this.tools.delete(name);
     this.handlers.delete(name);
-    this.toolVisibility.delete(name);
     return hadTool;
   }
 
@@ -292,7 +268,6 @@ export class ToolRegistry {
   clear(): void {
     this.tools.clear();
     this.handlers.clear();
-    this.toolVisibility.clear();
   }
 }
 

@@ -137,8 +137,4 @@ function registerDefaults(m: Metrics): void {
     'Requests served, by protocol revision and client name — the traffic that decides when the 2025 era can be dropped',
   );
   m.registerCounter('qase_mcp_tool_calls_total', 'Tool calls by tool name');
-  m.registerCounter(
-    'qase_mcp_tool_activations_total',
-    'Tools switched on by qase_discover_tools, by tool name',
-  );
 }

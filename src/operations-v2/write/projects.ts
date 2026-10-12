@@ -10,7 +10,7 @@ const CreateSchema = z
     code: ProjectCodeSchema.describe(
       'Project code — unique per workspace, letters only (no digits or special characters)',
     ),
-    description: z.string().optional(),
+    description: z.string().optional().describe('Free-form description of the project'),
     access: z
       .enum(['all', 'group', 'none'])
       .optional()
@@ -75,7 +75,6 @@ toolRegistry.register({
   schema: CreateSchema,
   handler: create,
   annotations: CreateAnnotation,
-  visibility: 'discoverable',
 });
 
 toolRegistry.register({
@@ -95,5 +94,4 @@ toolRegistry.register({
   schema: DeleteSchema,
   handler: del,
   annotations: DeleteAnnotation,
-  visibility: 'discoverable',
 });

@@ -35,9 +35,8 @@ function invoke(args: Record<string, unknown>) {
 }
 
 describe('qase_external_issue_link — registration', () => {
-  it('is registered as a discoverable tool', () => {
-    expect(toolRegistry.hasTool('qase_external_issue_link')).toBe(true);
-    expect(toolRegistry.getTools().map((t) => t.name)).not.toContain('qase_external_issue_link');
+  it('is registered and listed from the start', () => {
+    expect(toolRegistry.getTools().map((t) => t.name)).toContain('qase_external_issue_link');
   });
 
   it('is findable by searching for "jira"', () => {

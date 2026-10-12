@@ -75,12 +75,9 @@ describe('review tools — registration', () => {
     'qase_review_bulk_create',
   ];
 
-  it('registers all five as discoverable', () => {
-    const core = toolRegistry.getTools().map((t) => t.name);
-    for (const name of tools) {
-      expect(toolRegistry.hasTool(name)).toBe(true);
-      expect(core).not.toContain(name);
-    }
+  it('registers all five, listed from the start', () => {
+    const listed = toolRegistry.getTools().map((t) => t.name);
+    for (const name of tools) expect(listed).toContain(name);
   });
 
   it('is findable by searching for "review"', () => {
@@ -437,7 +434,9 @@ describe('review tools — error guidance', () => {
   it('does not blame the project setting for a missing review', async () => {
     rejectWith(mockUpdateReview, 404, 'Review not found');
 
-    const text = await suggestionOf(invoke('qase_review_update', { code: 'DEMO', id: 9, title: 'x' }));
+    const text = await suggestionOf(
+      invoke('qase_review_update', { code: 'DEMO', id: 9, title: 'x' }),
+    );
     expect(text).not.toMatch(/Project settings/);
   });
 

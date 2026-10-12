@@ -17,6 +17,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from '@jest/globals';
+import { CLIENT_CAPABILITIES_META_KEY } from '@modelcontextprotocol/server';
 import type { Server, ServerContext } from '@modelcontextprotocol/server';
 import {
   serverStorage,
@@ -35,6 +36,9 @@ import { digestArguments, getRequestStateCodec } from './request-state.js';
  * `envelope` present is the 2026-07-28 era (a per-request `_meta` envelope);
  * `envelope: undefined` is a 2025-era client, which this server cannot ask.
  * `inputResponses` + `requestState` are what a retried request carries.
+ *
+ * The default envelope declares elicitation, because that is what a client
+ * able to answer sends. Pass an envelope without it to model one that cannot.
  */
 function fakeCtx(
   overrides: {
@@ -47,7 +51,10 @@ function fakeCtx(
   const { inputResponses, requestState, sub = 'user-a' } = overrides;
   // `envelope: undefined` has to mean "absent", not "fall back to the default"
   // — an absent envelope IS the 2025-era case under test.
-  const envelope = 'envelope' in overrides ? overrides.envelope : {};
+  const envelope =
+    'envelope' in overrides
+      ? overrides.envelope
+      : { [CLIENT_CAPABILITIES_META_KEY]: { elicitation: {} } };
   return {
     mcpReq: {
       id: 1,
@@ -226,12 +233,39 @@ describe('Server Context', () => {
       expect(result).toEqual({ allowed: false, reason: 'declined' });
     });
 
-    it('refuses as declined when the user cancels', async () => {
+    // A cancel is the client dropping the question; a decline is a person
+    // answering it. Collapsing the two told a tester they had declined a run
+    // deletion they were never shown — so they stay apart, here and in the
+    // message the caller reads.
+    it('separates a cancelled prompt from a declined one', async () => {
       const result = await requestContextStorage.run(answered('cancel', 'qase_case_delete'), () =>
         confirmDestructiveAction('qase_case_delete', { code: 'TEST', id: 1 }),
       );
 
-      expect(result).toEqual({ allowed: false, reason: 'declined' });
+      expect(result).toEqual({ allowed: false, reason: 'cancelled' });
+    });
+
+    it('refuses a 2026-era client whose envelope declares no elicitation', async () => {
+      const ctx = fakeCtx({ envelope: { [CLIENT_CAPABILITIES_META_KEY]: {} } });
+
+      const result = await requestContextStorage.run(ctx, () =>
+        confirmDestructiveAction('qase_case_delete', { code: 'TEST', id: 1 }),
+      );
+
+      // Not `unsupported`: the era is right, the client simply never said it
+      // could show a form. The SDK throws on such a send, so the check has to
+      // happen before the request is minted.
+      expect(result).toEqual({ allowed: false, reason: 'incapable' });
+    });
+
+    it('tells a cancelled prompt and a declined one apart in words too', () => {
+      expect(describeRefusal('qase_run_delete', 'declined')).toContain('declined by the user');
+
+      const cancelled = describeRefusal('qase_run_delete', 'cancelled');
+      expect(cancelled).toContain('cancelled the confirmation request');
+      expect(cancelled).not.toContain('declined');
+      // The reader of this message saw no prompt; say where it went.
+      expect(cancelled).toContain('never shown a prompt');
     });
 
     // Accepting the prompt IS the confirmation — the client's own accept

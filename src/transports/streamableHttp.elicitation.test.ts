@@ -169,13 +169,20 @@ describe('the destructive gate on the 2026-07-28 era', () => {
     expect(result.content?.[0].text).toContain('Nothing was deleted');
   });
 
-  it('deletes nothing when the user cancels the prompt', async () => {
+  // (d) The client drops the prompt. Nothing is deleted either way, but it
+  // must not be reported as a refusal: a cancel can reach here without any
+  // person having seen the prompt, and calling that "declined by the user"
+  // tells somebody they answered a question they were never asked.
+  it('deletes nothing when the client cancels the prompt, and does not call it a decline', async () => {
     const client = await connect(true, 'cancel');
 
     const result = await callDelete(client);
+    const text = result.content?.[0].text as string;
 
     expect(deleteCase).not.toHaveBeenCalled();
-    expect(result.content?.[0].text).toContain('declined');
+    expect(text).toContain('cancelled the confirmation request');
+    expect(text).toContain('Nothing was deleted');
+    expect(text).not.toContain('declined');
   });
 });
 

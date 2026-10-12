@@ -12,7 +12,11 @@
  */
 
 import { AsyncLocalStorage } from 'async_hooks';
-import { inputRequired, inputResponse } from '@modelcontextprotocol/server';
+import {
+  CLIENT_CAPABILITIES_META_KEY,
+  inputRequired,
+  inputResponse,
+} from '@modelcontextprotocol/server';
 import type { InputRequiredResult, Server, ServerContext } from '@modelcontextprotocol/server';
 import { digestArguments, getRequestStateCodec, type ConfirmationState } from './request-state.js';
 
@@ -62,17 +66,42 @@ export class InputRequiredSignal extends Error {
 
 /** Why a destructive action was refused. */
 export type RefusalReason =
-  /** The client cannot be shown a confirmation prompt at all. */
+  /** The client speaks an era on which this server cannot ask at all. */
   | 'unsupported'
+  /** The client speaks the right era but never said it can show a prompt. */
+  | 'incapable'
   /** The prompt was sent but no usable answer came back for this action. */
   | 'undeliverable'
   /** The human saw the prompt and said no. */
-  | 'declined';
+  | 'declined'
+  /**
+   * The client dropped the prompt instead of answering it.
+   *
+   * Kept apart from `declined` deliberately. Reporting a cancel as a refusal
+   * tells somebody they said no to a question they were never shown — which
+   * is exactly how this reached us: a tester was told they had declined a run
+   * deletion they had never been asked about.
+   */
+  | 'cancelled';
 
 /** Outcome of the destructive-action gate. */
 export type DestructiveConfirmation = { allowed: true } | { allowed: false; reason: RefusalReason };
 
 const REFUSED_UNSUPPORTED = { allowed: false, reason: 'unsupported' } as const;
+const REFUSED_INCAPABLE = { allowed: false, reason: 'incapable' } as const;
+
+/**
+ * Whether a 2026 request's own envelope says the client can be shown a form.
+ *
+ * The capability is per request, not per connection: the SDK refuses to send
+ * an input request a client never declared it can handle, and does so by
+ * throwing. Reading the same declaration ourselves turns that into an answer
+ * the caller can act on instead of an exception from inside the transport.
+ */
+function clientCanBeAsked(envelope: Record<string, unknown>): boolean {
+  const declared = envelope[CLIENT_CAPABILITIES_META_KEY] as { elicitation?: unknown } | undefined;
+  return declared?.elicitation !== undefined;
+}
 
 /**
  * Ask the user to confirm a destructive action, across a round trip.
@@ -120,7 +149,10 @@ export async function confirmDestructiveAction(
       // — and nobody said yes either. Unconfirmed, nothing deleted.
       return { allowed: false, reason: 'undeliverable' };
     }
-    return answer.action === 'accept' ? { allowed: true } : { allowed: false, reason: 'declined' };
+    if (answer.action === 'accept') return { allowed: true };
+    // `cancel` is the client dropping the question, `decline` is a person
+    // answering it. Only one of them is somebody saying no.
+    return { allowed: false, reason: answer.action === 'cancel' ? 'cancelled' : 'declined' };
   }
 
   // Round one. A 2025-era request carries no per-request envelope. On a
@@ -134,8 +166,11 @@ export async function confirmDestructiveAction(
   // input-required return by sending a real `elicitation/create` on it and
   // re-entering this handler with the answer. Declared capabilities are what
   // the shim's gate consults, so they are what decides here too.
-  if (ctx.mcpReq.envelope === undefined && !getServer()?.getClientCapabilities()?.elicitation) {
-    return REFUSED_UNSUPPORTED;
+  const envelope = ctx.mcpReq.envelope;
+  if (envelope === undefined) {
+    if (!getServer()?.getClientCapabilities()?.elicitation) return REFUSED_UNSUPPORTED;
+  } else if (!clientCanBeAsked(envelope)) {
+    return REFUSED_INCAPABLE;
   }
 
   const argsPreview = Object.entries(args)
@@ -178,7 +213,20 @@ export function describeRefusal(toolName: string, reason: RefusalReason): string
         `Refused "${toolName}": the confirmation prompt was not answered, so the action ` +
         `was not confirmed. Nothing was deleted. Retry and answer the prompt.`
       );
+    case 'incapable':
+      return (
+        `Refused "${toolName}": destructive actions need confirmation, and this client did not ` +
+        `declare that it can show one, so there is nowhere to ask. Use a client that supports ` +
+        `confirmation prompts, or delete it in the Qase UI.`
+      );
     case 'declined':
       return `Action "${toolName}" declined by the user. Nothing was deleted.`;
+    case 'cancelled':
+      return (
+        `Action "${toolName}" was not confirmed: the client cancelled the confirmation request ` +
+        `instead of answering it. Nothing was deleted. If you were never shown a prompt, the ` +
+        `client received the request and dropped it — check that it supports confirmation ` +
+        `prompts, or delete it in the Qase UI.`
+      );
   }
 }

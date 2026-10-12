@@ -9,6 +9,7 @@ Issues are grouped by how you're connecting: the [hosted connector](connect.md) 
 This means the server is running locally (self-run) and rejected the token it was given.
 
 **Solution**:
+
 1. Verify your API token is correct: https://app.qase.io/user/api/token
 2. Ensure `QASE_API_TOKEN` is set in your environment or MCP client config's `env` section
 3. Check for extra spaces or stray quotes around the token value
@@ -40,6 +41,7 @@ If that instance is served without TLS, also set `QASE_API_PROTOCOL=http` — se
 ### Connector doesn't appear, or won't connect
 
 **Solution**:
+
 1. Confirm the server URL is exactly `https://mcp.qase.io/mcp` — no trailing slash variations, no surrounding quotes (see the clean-URL footgun below)
 2. Confirm your MCP client supports remote (HTTP) servers with OAuth 2.1 — older clients or stdio-only integrations can't connect to a hosted URL
 3. Restart your MCP client completely (close and reopen) after adding the server
@@ -50,6 +52,7 @@ If that instance is served without TLS, also set `QASE_API_PROTOCOL=http` — se
 If you completed the browser sign-in but the client still reports the connector needs authorization, or shows zero tools:
 
 **Solution**:
+
 1. Make sure you actually completed the sign-in flow in the browser tab/window it opened — some clients silently fail if that tab is closed early
 2. Try disconnecting and reconnecting the connector (not just refreshing the client)
 3. If reconnecting doesn't help, follow the full remove-and-re-add steps below — a stale or partially-completed OAuth session is a common cause
@@ -64,6 +67,7 @@ That stray character poisons the OAuth callback — it changes the client's regi
 **This is not fixable by editing the URL in place.** Once a client has registered or cached an OAuth session against the bad URL, editing the field to remove the quote isn't enough — the client may still replay the old (poisoned) auth request from its cache.
 
 **Solution**:
+
 1. Fully **remove** the server entry from your MCP client (don't just edit it)
 2. Re-**add** it as a new entry
 3. Type the URL by hand: `https://mcp.qase.io/mcp` — no surrounding quotes, no extra characters
@@ -84,6 +88,7 @@ An active hosted-connector session stays valid for **7 days**. As long as you us
 **Error**: `Network error` or `ECONNREFUSED`
 
 **Solution**:
+
 1. Check your internet connection
 2. Verify the API domain is correct (especially for enterprise customers)
 3. Check if Qase is accessible: https://api.qase.io/v1/
@@ -93,6 +98,7 @@ An active hosted-connector session stays valid for **7 days**. As long as you us
 **Error**: `unable to get local issuer certificate`
 
 This error typically occurs in corporate environments with:
+
 - SSL-intercepting proxy servers
 - Self-signed certificates
 - Internal Certificate Authorities (CA)
@@ -115,6 +121,7 @@ This error typically occurs in corporate environments with:
 ```
 
 To find your certificate:
+
 - **Corporate environments**: Contact your IT department for the CA certificate
 - **macOS**: Export from Keychain Access (System Roots → your CA → Export as .pem)
 - **Windows**: Export from Certificate Manager (certmgr.msc)
@@ -125,6 +132,7 @@ To find your certificate:
 **Error**: `Invalid domain` or connection errors with custom domain
 
 **Solution**:
+
 1. Ensure `QASE_API_DOMAIN` is set to just the domain (e.g., `api-company.qase.io`)
 2. Don't include `https://` or `/v1` in the domain — the scheme goes in `QASE_API_PROTOCOL` instead (see below), and the API version is appended by the server
 3. A non-default port does belong in the domain: `api-company.qase.io:8080`
@@ -148,6 +156,7 @@ Only `http` and `https` are recognised; any other value falls back to `https`, s
 **Error**: MCP client shows "no tools, prompts or resources" or 0 tools available
 
 **Solution**:
+
 1. Verify your MCP configuration has the correct command and arguments (self-run) or the correct URL (hosted)
 2. For self-run: check that `QASE_API_TOKEN` is set in the `env` section
 3. For the hosted connector: check the [Hosted Connector / OAuth](#hosted-connector--oauth) section above, especially the clean-URL footgun
@@ -162,6 +171,7 @@ Only `http` and `https` are recognised; any other value falls back to `https`, s
 **Cause**: the agent did not see `qase_attachment_upload`. Before 2.2.0 it was a discoverable tool, hidden from the tool list until `qase_discover_tools` was called, so the agent fell back to the `qase_api` escape hatch — which genuinely cannot send `multipart/form-data`.
 
 **Solution**:
+
 1. Update to 2.2.0 or later, where the upload tool is always listed: `npm update -g @qase/mcp-server` (the hosted connector always runs the latest version)
 2. On an older version, ask the agent to run `qase_discover_tools` with `"attachment"` first
 3. Pass the file as `file_base64`. `file_path` only works when the server runs on the same machine as the file — the hosted connector cannot read your filesystem
@@ -172,6 +182,7 @@ Only `http` and `https` are recognised; any other value falls back to `https`, s
 **Symptom**: `qase_review_*` tools are missing, or every call fails.
 
 **Solution**:
+
 1. Since 3.0.0 the review tools are listed from the start; on an older version ask the agent to run `qase_discover_tools` with `"review"`
 2. Enable **Test case review** in the project settings; without it every review endpoint rejects the request
 3. Approving, requesting changes, merging, and declining are **UI-only** — the public API has no endpoints for them, so no tool can perform them
@@ -185,11 +196,25 @@ Only `http` and `https` are recognised; any other value falls back to `https`, s
 
 **Solution**: update to 3.0.0 or later (self-run: `npm update -g @qase/mcp-server`; the hosted connector always runs the latest version), then reconnect so the client re-reads `tools/list`. On an older version, call the same REST endpoint through `qase_api`, which was always listed.
 
+## A deletion says it was declined or cancelled, but nothing asked me
+
+**Symptom**: deleting something answers `Action "qase_run_delete" declined by the user` or `the client cancelled the confirmation request`, and no confirmation prompt was ever shown.
+
+**Cause**: destructive tools do not delete on the first call. The server answers it with a request for input — a confirmation prompt carrying the tool name and the exact arguments — and deletes only when the client sends back an acceptance. The server cannot draw that prompt; the client does. A client that receives the request and drops it instead of showing it produces a refusal the person never had a say in. Up to 3.0.0 a cancelled prompt was reported as "declined by the user", which read as though somebody had refused; a cancel now says it was cancelled.
+
+**Solution**:
+
+1. Check that your client supports confirmation prompts (MCP elicitation) and that none of its settings suppress them. A client that never declares the capability gets a refusal saying so instead of a prompt
+2. If the prompt appears but times out, answer it sooner — a confirmation stays answerable for 10 minutes, and an unanswered one refuses the call
+3. Running more than one replica, self-hosted? Set `QASE_MCP_REQUEST_STATE_KEY` to the same value on all of them — see [self-run.md](self-run.md#environment-variables). Without it the answer is verified by a different replica than the one that asked, and the deletion is refused
+4. Either way nothing was deleted. Retry and answer the prompt, or delete it in the Qase UI
+
 ## Tool Not Found
 
 **Error**: `Unknown tool: tool_name`
 
 **Solution**:
+
 1. Ensure you're using the latest version: `npm update -g @qase/mcp-server` (self-run) — the hosted connector always runs the latest version
 2. If upgrading from v1, tool names have changed — see [docs/migration.md](migration.md)
 3. Restart your MCP client after updating

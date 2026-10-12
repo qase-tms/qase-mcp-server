@@ -203,10 +203,17 @@ export async function confirmDestructiveAction(
 export function describeRefusal(toolName: string, reason: RefusalReason): string {
   switch (reason) {
     case 'unsupported':
+      // Two ways out, not one. A 2025-era client CAN be asked — over a
+      // long-lived connection, through elicitation — but only if it says it
+      // supports it; naming just the protocol upgrade sends people looking
+      // for a new client when a capability would do. Claude Desktop, measured
+      // on the wire, offers neither: it negotiates 2025-11-25 and declares no
+      // elicitation, so for it the UI really is the answer.
       return (
-        `Refused "${toolName}": destructive actions need confirmation, and this client speaks an ` +
-        `older revision of the MCP protocol (2025-11-25), on which this server cannot ask for it. ` +
-        `Update the client to one that negotiates 2026-07-28, or delete in the Qase UI.`
+        `Refused "${toolName}": destructive actions need confirmation, and this client cannot be ` +
+        `asked for one — it speaks MCP 2025-11-25 and does not support elicitation. Use a client ` +
+        `that negotiates 2026-07-28, or one that supports elicitation over stdio, or delete it ` +
+        `in the Qase UI.`
       );
     case 'undeliverable':
       return (

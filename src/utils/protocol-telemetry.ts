@@ -95,6 +95,31 @@ export function protocolLabels(
   };
 }
 
+/**
+ * Who made this request, for a log line.
+ *
+ * Unlike the metric labels this is uncapped and keeps the client's version:
+ * a log has no cardinality problem, and when a refusal has to be explained
+ * the exact client build is the thing worth knowing. Reading a refusal
+ * without it leaves "some client declined" and no way to tell whose.
+ */
+export function describeCaller(ctx: TelemetryContext): string {
+  const envelope = ctx.mcpReq?.envelope;
+
+  if (!envelope) {
+    const legacy = getServer()?.getClientVersion();
+    return `${legacy?.name ?? 'unknown'}${legacy?.version ? ` ${legacy.version}` : ''} @ ${LEGACY_PROTOCOL}`;
+  }
+
+  const version = envelope[PROTOCOL_VERSION_META_KEY];
+  const info = envelope[CLIENT_INFO_META_KEY] as { name?: unknown; version?: unknown } | undefined;
+  const name = typeof info?.name === 'string' && info.name ? info.name : 'unknown';
+  const build = typeof info?.version === 'string' && info.version ? ` ${info.version}` : '';
+  const revision = typeof version === 'string' && version ? version : UNKNOWN_PROTOCOL;
+
+  return `${name}${build} @ ${revision}`;
+}
+
 /** One labeller per process, so the cap bounds the process and not one request. */
 const processLabeller = new ClientLabeller();
 

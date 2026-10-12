@@ -24,7 +24,7 @@ import { extractCallMarkers } from './utils/call-markers.js';
 import { parseProducerMarker } from './utils/producer-marker.js';
 import { producerStorage } from './utils/producer-context.js';
 import { callIntegrationStorage } from './utils/integration-context.js';
-import { recordProtocolRequest } from './utils/protocol-telemetry.js';
+import { describeCaller, recordProtocolRequest } from './utils/protocol-telemetry.js';
 import { VERSION } from './version.js';
 import { listPrompts, getPrompt } from './prompts/index.js';
 import { SERVER_INSTRUCTIONS } from './server-instructions.js';
@@ -167,8 +167,13 @@ export function createServer(): Server {
             if (toolDef?.annotations?.destructiveHint === true) {
               const confirmation = await confirmDestructiveAction(name, args || {});
               if (!confirmation.allowed) {
+                // The client is named because the reason alone does not say
+                // whose client behaved this way, and `declined` vs `cancelled`
+                // is the difference between a person saying no and a client
+                // dropping the question — which is what has to be chased.
                 console.error(
-                  `[Server] Refused destructive tool '${name}': ${confirmation.reason}`,
+                  `[Server] Refused destructive tool '${name}': ${confirmation.reason} ` +
+                    `(client: ${describeCaller(ctx)})`,
                 );
                 return {
                   content: [

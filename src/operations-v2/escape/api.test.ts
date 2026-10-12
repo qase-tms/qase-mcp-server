@@ -168,12 +168,13 @@ describe('DELETE', () => {
   it('throws instead of deleting when the client cannot be asked', async () => {
     mockConfirm.mockResolvedValue({ allowed: false, reason: 'unsupported' });
 
-    // The wording moved with the mechanism: the reason a client cannot be
-    // asked is now the protocol revision it speaks, not a missing elicitation
-    // capability. What is asserted is unchanged — the refusal is thrown, and
-    // it explains itself.
+    // What is asserted has not changed — the refusal is thrown and explains
+    // itself — but it names BOTH ways a client can become askable, the
+    // protocol revision and the elicitation capability. Measured on the wire,
+    // Claude Desktop has neither, and a message naming only the revision sent
+    // people hunting for a new client when a capability would have done.
     await expect(invoke({ method: 'DELETE', path: '/v1/project/DEMO' })).rejects.toThrow(
-      /older revision of the MCP protocol/,
+      /speaks MCP 2025-11-25 and does not support elicitation/,
     );
     expect(mockRequest).not.toHaveBeenCalled();
   });

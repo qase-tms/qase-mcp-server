@@ -1,0 +1,23 @@
+src/utils/registry.wire.test.ts
+  s_fef725799cacdb::t_d67c56393f973f 1-45
+src/server.ts
+  s_fef725799cacdb::t_9b516cd337301d 216-224
+src/utils/registry.ts
+  s_fef725799cacdb::t_9b516cd337301d 57-89,180-181,201
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "6bb2b009facb5e8e707f2f0c8502098dd423214e",
+  "prompts": {},
+  "sessions": {
+    "s_fef725799cacdb": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b943b4b3-61be-47d6-8bb1-ad338faf9ede",
+        "model": "claude-fable-5-1"
+      },
+      "human_author": "Dmitrii Gridnev <dgridnev@qase.io>"
+    }
+  }
+}

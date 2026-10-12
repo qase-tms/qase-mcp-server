@@ -193,10 +193,6 @@ export function setupStreamableHttpTransport(
   // streamable-HTTP transport the hand-wired code did, minus the session.
   const mcpHandler = createMcpHandler(() => createServer(), {
     legacy: 'stateless',
-    // The process-wide bus `subscriptions/listen` streams subscribe to, and the
-    // one tool activation publishes onto (src/tools/event-bus.ts). Passing it
-    // explicitly is what lets a change made deep inside a tool handler reach a
-    // stream opened by an entirely different request.
     // Without this the SDK caps bodies at its own 4 MiB default and silently
     // undoes the 10 MB limit configured for attachment uploads.
     maxRequestBodySize: bodyLimitBytes(),

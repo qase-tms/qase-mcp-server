@@ -56,6 +56,8 @@ toolRegistry.register({
   name: 'qase_milestone_upsert',
   title: 'Create or update milestone',
   description:
+    'Create or update a milestone — a dated marker, typically a release, that runs and cases are grouped under. With `id` it updates, without it creates. Existing milestones come back from qase_project_context. Cost: one API call, about 0.5s.',
+  help:
     'Create or update a milestone — a dated marker that runs and cases can be grouped under, ' +
     'typically a release. Without `id` it creates, with `id` it updates. Use the milestone ID ' +
     'when opening a run to tie that execution to the release, which is what makes "is this ' +
@@ -71,6 +73,8 @@ toolRegistry.register({
   name: 'qase_milestone_delete',
   title: 'Delete milestone',
   description:
+    'Delete a milestone by project code and ID. Runs and cases keep existing but lose the association, so release reporting built on it stops working; this cannot be undone. Asks the user for confirmation first. Cost: one API call, about 0.4s.',
+  help:
     'Delete a milestone by project code and milestone ID. The milestone disappears and runs and ' +
     'cases that referenced it lose the association, though they are not deleted themselves — ' +
     'release reporting built on that milestone stops working. This cannot be undone. Deletion ' +

@@ -114,6 +114,8 @@ toolRegistry.register({
   name: 'qase_external_issue_link',
   title: 'Link external issue',
   description:
+    'Link or unlink test cases and runs to issues in Jira Cloud or Jira Server — the only trackers supported. A case may link several issues; a run holds one, and a new link replaces it. Read links back with qase_get. Cost: one API call for the whole set of links, about 0.5s.',
+  help:
     'Link or unlink test cases and test runs to issues in an external tracker — Jira Cloud or ' +
     'Jira Server, the only two supported. Use `entity` to choose between cases and runs and ' +
     '`action` to attach or detach. A test case can be linked to several issues; a test run can ' +

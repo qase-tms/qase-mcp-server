@@ -431,6 +431,8 @@ toolRegistry.register({
   name: 'qase_review_create',
   title: 'Create case review',
   description:
+    'Open a test case review — the pull-request flow for cases. Pass `case_id` to propose changes to an existing case (send only the fields that change), or omit it to propose a new one. Several at once? Use qase_review_bulk_create. The API has no endpoints for approving, merging or declining — those are UI-only; read status with qase_review_list. Cost: one API call, about 0.5s.',
+  help:
     'Open a test case review — the pull-request flow for test cases. Pass `case_id` to propose ' +
     'changes to an existing case (an "edit" review; send only the fields that change), or omit ' +
     'it to propose a brand-new case (a "create" review, where `title` is required). Case fields ' +
@@ -449,6 +451,8 @@ toolRegistry.register({
   name: 'qase_review_update',
   title: 'Update case review',
   description:
+    'Update an open review: the proposed case fields, the reviewers, or both, by review ID. IMPORTANT: changing the proposal RESETS every approval already given; updating only `reviewers` keeps them. The API has no endpoints for approving, merging or declining — those are UI-only; read status with qase_review_list. Cost: one API call, about 0.5s.',
+  help:
     'Update an open review: change the proposed case fields, reassign reviewers, or both. ' +
     'Addressed by review ID; case fields follow the same naming and enum handling as ' +
     'qase_case_upsert. IMPORTANT: changing the proposal RESETS every approval already given, ' +
@@ -465,6 +469,8 @@ toolRegistry.register({
   name: 'qase_review_list',
   title: 'List case reviews',
   description:
+    "List a project's reviews with their current state — the only way to learn what happened to a review you opened, since the API has no endpoints for approving or merging — those are UI-only. Filter by status to see what is still open. For one review by ID, qase_get is cheaper. Cost: one API call, about 0.5s.",
+  help:
     'List the reviews in a project, with their current state, so you can see what is waiting on a ' +
     'human. Filter by status to find what is still open. Use this rather than guessing whether a ' +
     'proposal went through: since approving and merging are UI-only, the state here is the only ' +
@@ -482,6 +488,8 @@ toolRegistry.register({
   name: 'qase_review_delete',
   title: 'Delete case review',
   description:
+    'Delete a review by ID. This removes the proposal entirely — it does not decline it, and declining is UI-only — and merged reviews cannot be deleted; the referenced case is untouched. Cannot be undone; asks the user for confirmation first. Cost: one API call, about 0.4s.',
+  help:
     'Delete a review by ID. This removes the proposal entirely — it does not decline it, and ' +
     'declining is UI-only, so deleting is not a way to reject a change while keeping the record ' +
     'of it. Merged reviews cannot be deleted. The proposed case content goes with the review; the ' +
@@ -497,6 +505,8 @@ toolRegistry.register({
   name: 'qase_review_bulk_create',
   title: 'Bulk create case reviews',
   description:
+    'Open several test case reviews in one request — the batch form of qase_review_create, for proposing more than one change. Same fields as qase_review_create; `case_id` for an edit review, omitted for a create review. The API has no endpoints for approving, merging or declining — those are UI-only; read status with qase_review_list. Cost: one API call regardless of batch size.',
+  help:
     'Open several test case reviews in one request — the batch form of qase_review_create, and ' +
     'the right tool when proposing more than one change. The batch is validated as a whole, so ' +
     'if any item is invalid nothing is created, and each item is then processed and reported ' +

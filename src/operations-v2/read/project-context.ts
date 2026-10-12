@@ -264,6 +264,8 @@ toolRegistry.register({
   name: 'qase_project_context',
   title: 'Project context',
   description:
+    'Seed everything about a project in one call: details, the full suite tree, milestones, environments, custom fields and users — make it first when starting on a project. Each collection returns its first 100; check `coverage` and pass `full: true` to page. For one record by ID qase_get is cheaper; for filtered questions use qql_search. Cost: six API calls behind one, 0.5-1.3s cold, cached 5 minutes.',
+  help:
     'Seed everything about a project in one call: project details, the full suite tree, ' +
     'milestones, environments, custom fields, and users. This is the first call to make when ' +
     'starting work on a project — it replaces six separate list calls and gives the model the ' +

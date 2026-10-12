@@ -263,6 +263,8 @@ toolRegistry.register({
   name: 'qase_attachment_upload',
   title: 'Upload attachment',
   description:
+    'Upload files and get back the hashes other tools reference them by. Pass `file_base64` plus `filename` for one file, or `files` for several in one request; `file_path` only works when the server runs on the same machine as the file — never on the hosted connector. The hash must then be passed in an `attachments` field; uploading alone attaches nothing. This is the only tool that sends multipart/form-data, which is why qase_api cannot send files. Cost: one API call per request, dominated by size.',
+  help:
     'Upload files and get back the hashes that other tools reference them by — screenshots, ' +
     'logs, HAR files, videos. For one file pass `file_base64` with the base64-encoded bytes, ' +
     'or `file_path` with an absolute path, plus `filename` with its extension. For several, ' +
@@ -291,6 +293,8 @@ toolRegistry.register({
   name: 'qase_attachment_delete',
   title: 'Delete attachment',
   description:
+    'Delete an attachment by its hash (from qase_attachment_upload). Anything referencing it keeps the reference but the file is gone; this cannot be undone. Asks the user for confirmation first. Cost: one API call, about 0.4s.',
+  help:
     'Delete an attachment by its hash. Anything referencing it — a case, a result, a defect — ' +
     'keeps the reference but the file is gone, so screenshots and logs attached to a failure ' +
     'disappear from the evidence trail. This cannot be undone. Attachments are addressed by hash, ' +

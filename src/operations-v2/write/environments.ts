@@ -56,6 +56,8 @@ toolRegistry.register({
   name: 'qase_environment_upsert',
   title: 'Create or update environment',
   description:
+    'Create or update an environment — a named target such as staging or production that runs are attributed to. With `id` it updates, without it creates. Existing environments come back from qase_project_context. Cost: one API call, about 0.5s.',
+  help:
     'Create or update an environment — a named target that runs can be attributed to, such as ' +
     'staging or production. Without `id` it creates, with `id` it updates; `slug` and `host` are ' +
     'optional. Attach the environment ID when opening a run so results can later be filtered by ' +
@@ -72,6 +74,8 @@ toolRegistry.register({
   name: 'qase_environment_delete',
   title: 'Delete environment',
   description:
+    'Delete an environment by project code and ID. Runs that referenced it lose the attribution, so filtering history by that environment stops working; this cannot be undone. Asks the user for confirmation first. Cost: one API call, about 0.4s.',
+  help:
     'Delete an environment by project code and environment ID. Runs that referenced it are not ' +
     'deleted but lose the attribution, so "where did this run" becomes unanswerable for that ' +
     'history, and queries filtering by that environment stop matching. This cannot be undone. ' +

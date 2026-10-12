@@ -55,6 +55,8 @@ toolRegistry.register({
   name: 'qase_plan_upsert',
   title: 'Create or update test plan',
   description:
+    'Create or update a test plan — a named, reusable set of case IDs such as a smoke or regression pack. With `id` it updates, without it creates. qase_regression_run turns a plan into a run in one call. Cost: one API call, about 0.5s, growing with the number of cases.',
+  help:
     'Create or update a test plan — a named, reusable set of cases to run together, such as a ' +
     'smoke or regression pack. Without `id` it creates, with `id` it updates, and the case list ' +
     'is given explicitly. Once a plan exists, qase_regression_run turns it into a run in one ' +
@@ -71,6 +73,8 @@ toolRegistry.register({
   name: 'qase_plan_delete',
   title: 'Delete test plan',
   description:
+    'Delete a test plan by project code and ID. Only the plan goes — its cases and the runs made from it stay — but anything launching it by ID breaks; this cannot be undone. To change its cases use qase_plan_upsert instead. Asks the user for confirmation first. Cost: one API call, about 0.4s.',
+  help:
     'Delete a test plan by project code and plan ID. Only the plan is removed — the cases it ' +
     'referenced stay, and runs already created from it are untouched — but anything that launches ' +
     'this plan by ID stops working. This cannot be undone. To change which cases a plan holds, ' +

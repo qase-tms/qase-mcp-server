@@ -111,6 +111,8 @@ toolRegistry.register({
   name: 'qase_defect_upsert',
   title: 'Create or update defect',
   description:
+    'Create or update a defect: with `id` it updates, without it creates, and then `title`, `actual_result` and `severity` are required. Severity and status are labels ("blocker", "open"…), mapped for you. For a defect born from a specific test failure use qase_triage_defect; search with qql_search before filing a duplicate. Cost: one API call, about 0.5s.',
+  help:
     'Create or update a defect — a tracked problem found by testing. Without `id` it creates, ' +
     'with `id` it updates. Creating one requires `title`, `actual_result` and `severity`; the ' +
     'API rejects a defect missing any of the three. Severity is given as a label ("blocker", ' +
@@ -131,6 +133,8 @@ toolRegistry.register({
   name: 'qase_defect_delete',
   title: 'Delete defect',
   description:
+    'Delete a defect by project code and ID; its links to results go with it and this cannot be undone. Usually resolving it through qase_defect_upsert with `id` is the right move, so the record survives. Asks the user for confirmation first. Cost: one API call, about 0.4s.',
+  help:
     'Delete a defect by project code and defect ID. The defect and its links to results ' +
     'disappear, and the failure history stops pointing anywhere. This cannot be undone. Usually ' +
     'the right move is to resolve or reopen the defect through qase_defect_upsert with its `id` ' +

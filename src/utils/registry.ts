@@ -50,6 +50,15 @@ export interface ToolDefinition<T extends z.ZodType = z.ZodType> {
   annotations?: ToolAnnotations;
   /** JSON Schema describing the tool's output — enables clients to process results programmatically */
   outputSchema?: OutputSchema;
+  /**
+   * The long documentation, read on demand through qase_tool_help.
+   *
+   * `description` is sent to the model on every request, so it says what the
+   * tool is for and what it costs and stops. Everything else an agent needs
+   * before its first call — the traps, the limits, the field semantics — goes
+   * here, where it costs nothing until it is asked for.
+   */
+  help?: string;
   /** Tool visibility: 'core' tools are always listed, 'discoverable' tools require activation via qase_discover_tools */
   visibility?: 'core' | 'discoverable';
 }
@@ -95,6 +104,7 @@ export class ToolRegistry {
   private tools: Map<string, Tool> = new Map();
   private handlers: Map<string, ToolHandler> = new Map();
   private toolVisibility: Map<string, 'core' | 'discoverable'> = new Map();
+  private help: Map<string, string> = new Map();
 
   /**
    * Register a new tool with the registry
@@ -114,7 +124,8 @@ export class ToolRegistry {
    * ```
    */
   register<T extends z.ZodType>(definition: ToolDefinition<T>): void {
-    const { name, title, description, schema, handler, annotations, outputSchema } = definition;
+    const { name, title, description, schema, handler, annotations, outputSchema, help } =
+      definition;
     const visibility = definition.visibility ?? 'core';
 
     // Convert Zod schema to JSON Schema for MCP protocol
@@ -161,6 +172,7 @@ export class ToolRegistry {
 
     // Store handler function
     this.handlers.set(name, handler);
+    if (help) this.help.set(name, help);
 
     // Track visibility
     this.toolVisibility.set(name, visibility);
@@ -191,6 +203,11 @@ export class ToolRegistry {
    */
   isDiscoverable(name: string): boolean {
     return this.toolVisibility.get(name) === 'discoverable';
+  }
+
+  /** The long documentation of a tool, or undefined when it has none. */
+  getHelp(name: string): string | undefined {
+    return this.help.get(name);
   }
 
   /**

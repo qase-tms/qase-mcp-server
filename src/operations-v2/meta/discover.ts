@@ -147,6 +147,8 @@ toolRegistry.register({
   name: 'qase_discover_tools',
   title: 'Discover more tools',
   description:
+    'Find and switch on tools that are hidden by default — deletes, plans, milestones, environments, shared steps, external issues, reviews, project and custom-field management. Search by what you are trying to do, two or three words. If an activated tool still does not appear in your list, your client was not told the list changed: call the same endpoint through qase_api, which asks for confirmation on DELETE just like the dedicated tools. Cost: no API call, about 3ms.',
+  help:
     'Find and switch on tools that are hidden by default. Only core tools appear in the tool ' +
     'list; deletes, test plans, milestones, environments, shared steps and parameters, external ' +
     'issue links, case reviews, and project and custom-field management all exist but stay ' +

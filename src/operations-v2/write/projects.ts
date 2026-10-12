@@ -63,6 +63,8 @@ toolRegistry.register({
   name: 'qase_project_create',
   title: 'Create project',
   description:
+    'Create a project. The code must be unique and letters only, and there is no update endpoint afterwards — title, code and access cannot be changed through the API, so choose them deliberately. Read an existing project with qase_project_context. Cost: one API call, about 1.5s.',
+  help:
     'Create a new project. The code must be unique in the workspace and may contain letters only ' +
     '— no digits or special characters — and it is what every other tool takes as `code`. ' +
     'Optional: description, access level ("all", "group" with a group hash, or "none"), and ' +
@@ -80,6 +82,8 @@ toolRegistry.register({
   name: 'qase_project_delete',
   title: 'Delete project',
   description:
+    'Delete an entire project by code — every case, suite, run, result, defect and milestone in it, with no trash to recover from; this cannot be undone. The most destructive call in the API; confirm the code with qase_project_context first. Asks the user for confirmation and does not proceed without it. Cost: one API call, about 0.5s.',
+  help:
     'Delete an entire project by its code. This removes every test case, suite, run, result, ' +
     'defect and milestone it holds, and cannot be undone — it is the most destructive call in the ' +
     'API, and there is no export or trash to recover from. Confirm the code names the project you ' +

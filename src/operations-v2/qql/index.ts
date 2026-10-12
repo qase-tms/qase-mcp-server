@@ -314,6 +314,8 @@ toolRegistry.register({
   name: 'qql_search',
   title: 'Search with QQL',
   description:
+    'Search any entity with Qase Query Language — filtering, cross-project, sorting, aggregation — and the right way to fetch many records at once instead of looping over qase_get. Call qql_help first for syntax, fields and enum values. Use qase_get when you already know the one ID you want. Cost: one API call, 0.5-0.9s per page; ten records here cost 1.2s against 5.3s as ten qase_get calls.',
+  help:
     'Search any entity with Qase Query Language: filtering, cross-project queries, sorting, and ' +
     'aggregation. This is the right tool for every question that is not "give me this one record ' +
     'by ID" — "cases without automation", "results that failed this week", "open blockers across ' +
@@ -334,6 +336,8 @@ toolRegistry.register({
   name: 'qql_help',
   title: 'QQL syntax help',
   description:
+    'Read the QQL reference before writing a query. Pass a `topic`: overview, syntax, entities, operators, functions, examples, aggregation or enumValues. Field names differ per entity and from the write tools, and a query naming an unknown attribute is rejected — read `entities` first. Cost: no API call, about 2ms; cheaper than one rejected qql_search.',
+  help:
     'Read the QQL reference before writing a query. Pass a `topic`: overview, syntax, entities, ' +
     'operators, functions, examples, aggregation, or enumValues. `entities` lists the fields each ' +
     'entity actually exposes, and `enumValues` gives the accepted values for status, priority, ' +

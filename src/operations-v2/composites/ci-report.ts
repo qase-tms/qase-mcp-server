@@ -183,6 +183,8 @@ toolRegistry.register({
   name: 'qase_ci_report',
   title: 'Report CI results',
   description:
+    'Report a whole finished CI run in one call: creates the run, records every result, completes it. Use qase_result_record instead when the run already exists and results arrive in stages. Each result needs a numeric `case_id` and a status; batches over 200 are split for you, up to 2000. Cost: three API operations behind one call, about 0.7s for a small run.',
+  help:
     'Report a whole CI run in one call: creates the run, records every result, and completes it. ' +
     'This is the tool for a pipeline that has just finished — it replaces qase_run_upsert, then ' +
     'qase_result_record, then qase_run_complete, and leaves no half-open run behind if the agent ' +

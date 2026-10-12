@@ -77,6 +77,8 @@ toolRegistry.register({
   name: 'qase_triage_defect',
   title: 'Triage failure into defect',
   description:
+    'Create a defect from a test failure with the context written into it; `title`, `actual_result` and `severity` are required. The API has no way to attach runs or results to a defect — reference them in actual_result. For a defect unrelated to a failure use qase_defect_upsert. Cost: one API call, about 0.5s; file one defect per distinct cause.',
+  help:
     'Create a defect from a test failure, with the failure context written into it. Requires ' +
     'title, actual_result and severity — the API rejects a defect missing any of the three. ' +
     'Note: the API offers no way to attach existing runs or results to a defect. The runs and ' +

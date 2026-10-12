@@ -68,6 +68,8 @@ toolRegistry.register({
   name: 'qase_shared_step_upsert',
   title: 'Create or update shared step',
   description:
+    "Create or update a shared step — a block of steps written once and reused across cases. With `hash` it updates, without it creates; shared steps are identified by hash, which qase_case_upsert takes in a step's `shared` field. Updating changes every referencing case. Cost: one API call, about 0.5s.",
+  help:
     'Create or update a shared step — a block of steps written once and reused across many cases, ' +
     'so a change to a login flow is made in one place. Without `hash` it creates, with `hash` it ' +
     'updates. Shared steps are identified by hash, not by numeric ID, and that hash is what ' +
@@ -83,6 +85,8 @@ toolRegistry.register({
   name: 'qase_shared_step_delete',
   title: 'Delete shared step',
   description:
+    'Delete a shared step by project code and hash. Every case referencing it loses those steps, so the reach is far wider than one record; check references first. Cannot be undone; to change content use qase_shared_step_upsert instead. Asks the user for confirmation first. Cost: one API call, about 0.4s.',
+  help:
     'Delete a shared step by project code and hash. Every case that referenced it loses those ' +
     'steps, so the deletion reaches much further than the one record named here — check what ' +
     'references it before calling. This cannot be undone. To change the content instead, use ' +

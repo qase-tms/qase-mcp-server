@@ -57,6 +57,8 @@ toolRegistry.register({
   name: 'qase_case_upsert',
   title: 'Create or update test case',
   description:
+    'Create or update a single test case: with `id` it updates, without it creates. Enum fields accept a label such as "high" or the project\'s numeric ID. Writing more than one case? Use qase_case_bulk_create — one request instead of one per case. If the project has "Test case review" enabled, writes may need a review — run qase_discover_tools with "review". Cost: one API call, about 0.6s to create, 0.4s to update.',
+  help:
     'Create or update a single test case. With `id` it updates that case, without `id` it creates ' +
     'a new one. Enum fields (priority, severity, type, layer, behavior, automation, is_flaky) ' +
     'accept either a label such as "high" or "blocker" or the project\'s numeric ID — the server ' +
@@ -76,6 +78,8 @@ toolRegistry.register({
   name: 'qase_case_delete',
   title: 'Delete test case',
   description:
+    'Delete a test case by project code and ID. Its execution history goes with it and this cannot be undone; consider marking it deprecated through qase_case_upsert instead. No bulk delete — one call each, each asking the user for confirmation. Cost: one API call, about 0.4s.',
+  help:
     'Delete a test case by project code and case ID. The case goes, and so does its execution ' +
     'history — every result recorded against it stops being reachable. This cannot be undone. ' +
     'Before deleting a case that has simply become obsolete, consider marking it deprecated ' +

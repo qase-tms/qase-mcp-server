@@ -89,6 +89,8 @@ toolRegistry.register({
   name: 'qase_api',
   title: 'Call Qase API',
   description:
+    'Call any Qase REST endpoint directly, for the few things no dedicated tool covers: method, a /v1/… path on the configured host, optional body or query. Prefer a dedicated tool where one exists — they normalize enums and validate before spending a call. JSON only; uploads go through qase_attachment_upload. A DELETE asks for confirmation like the dedicated delete tools. Cost: one API call, 0.3-1.5s.',
+  help:
     'Call any Qase REST endpoint directly, for the few things no dedicated tool covers. Pass the ' +
     'HTTP method, a path starting with a version segment such as /v1/, and an optional body or ' +
     'query. The path must be an ' +

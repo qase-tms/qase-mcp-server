@@ -16,7 +16,7 @@ setTestEnv();
 import './index.js';
 import type { Tool } from "@modelcontextprotocol/server";
 import { toolRegistry } from '../utils/registry.js';
-const MIN = 250;
+const MIN = 140; // what, when not, and the cost — the rest lives in help
 const MAX = 2000; // what Claude reads; past this the tail is wasted
 
 let tools: Tool[];

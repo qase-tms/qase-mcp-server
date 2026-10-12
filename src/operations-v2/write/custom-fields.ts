@@ -254,6 +254,8 @@ toolRegistry.register({
   name: 'qase_custom_field_upsert',
   title: 'Create or update custom field',
   description:
+    'Create or update a custom field. On create, `entity` (case, run, defect) and `type` are required and fixed forever — the update endpoint cannot change them. Fields are workspace-wide; scope with `projects_codes` or is_enabled_for_all_projects. Read existing fields with qase_project_context or qase_get. Cost: one call to create, two to update, 0.5-0.9s.',
+  help:
     'Create or update a custom field. With `id` it updates that field, without `id` it creates ' +
     'one, and `entity` ("case", "run" or "defect") and `type` ("number", "string", "text", ' +
     '"selectbox", "checkbox", "radio", "multiselect", "url", "user", "datetime") are then ' +
@@ -275,6 +277,8 @@ toolRegistry.register({
   name: 'qase_custom_field_delete',
   title: 'Delete custom field',
   description:
+    'Delete a custom field by ID. Reach is workspace-wide: it disappears from every project, with the values entered for it, and this cannot be undone. To remove it from one project only, edit `projects_codes` with qase_custom_field_upsert. Asks the user for confirmation first. Cost: one API call, about 0.4s.',
+  help:
     'Delete a custom field by ID. The field disappears from every project it applies to, and the ' +
     'values entered for it on cases, runs or defects go with it — the reach is workspace-wide, ' +
     'not project-wide. This cannot be undone. To take a field out of one project only, use ' +

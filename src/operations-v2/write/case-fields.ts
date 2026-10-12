@@ -37,12 +37,27 @@ const stepFields = {
     ),
 };
 
+/**
+ * The same fields with the prose removed, for the nested level.
+ *
+ * Tool schemas are inlined — the registry builds them with
+ * `$refStrategy: 'none'` — so this object is emitted again inside every step,
+ * and its descriptions would be a second verbatim copy of the ones one level
+ * up. That copy is sent to the model on every request and teaches it nothing:
+ * by the time it reads a substep it has already read the parent step's fields.
+ * Structure and enums stay, because a caller builds the request from those;
+ * only the repeated explanation goes.
+ */
+const nestedStepFields = Object.fromEntries(
+  Object.entries(stepFields).map(([name, field]) => [name, field.describe('')]),
+) as typeof stepFields;
+
 export const TestStepSchema = z.object({
   ...stepFields,
   steps: z
-    .array(z.object(stepFields).passthrough())
+    .array(z.object(nestedStepFields).passthrough())
     .optional()
-    .describe('Nested substeps. Same structure as parent steps, supports further nesting.'),
+    .describe('Nested substeps. Same fields as the step above, nesting further if needed.'),
 });
 
 export const CaseFieldsSchema = z.object({

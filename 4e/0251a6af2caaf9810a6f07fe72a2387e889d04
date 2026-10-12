@@ -1,0 +1,129 @@
+src/operations-v2/write/cases.ts
+  s_fef725799cacdb::t_6c2b7a4b93da44 82
+  s_fef725799cacdb::t_1a25ae7880ebda 61
+  s_911ec75c31b4fb::t_a355bfa4d48e7e 60,81
+src/operations-v2/write/attachments.ts
+  s_fef725799cacdb::t_6c2b7a4b93da44 297
+  s_fef725799cacdb::t_8be30d3749327a 266
+  s_fef725799cacdb::t_1a25ae7880ebda 267
+  s_fef725799cacdb::t_82be3582a30e5f 296
+src/operations-v2/write/external-issues.ts
+  s_fef725799cacdb::t_1a25ae7880ebda 118
+  s_911ec75c31b4fb::t_3517a1dddb6d1e 117
+src/operations-v2/composites/regression-run.ts
+  s_fef725799cacdb::t_1a25ae7880ebda 122
+  s_911ec75c31b4fb::t_e0859c7051ab25 121
+src/operations-v2/write/environments.ts
+  s_fef725799cacdb::t_1a25ae7880ebda 60
+  s_fef725799cacdb::t_6c2b7a4b93da44 78
+  s_911ec75c31b4fb::t_a28d4eff4494a5 59,77
+src/operations-v2/write/projects.ts
+  s_fef725799cacdb::t_8be30d3749327a 85
+  s_fef725799cacdb::t_1a25ae7880ebda 67
+  s_fef725799cacdb::t_6c2b7a4b93da44 86
+  s_fef725799cacdb::t_decfb4593cfe53 66
+src/operations-v2/write/shared-steps.ts
+  s_fef725799cacdb::t_1a25ae7880ebda 71-72
+  s_fef725799cacdb::t_6c2b7a4b93da44 89
+  s_911ec75c31b4fb::t_145c8295e69563 88
+src/server-instructions.ts
+  s_fef725799cacdb::t_1a25ae7880ebda 12
+src/operations-v2/read/get.ts
+  s_fef725799cacdb::t_1a25ae7880ebda 133
+  s_911ec75c31b4fb::t_90663940b37be3 132
+src/operations-v2/write/results.ts
+  s_fef725799cacdb::t_1a25ae7880ebda 118
+  s_fef725799cacdb::t_6c2b7a4b93da44 141
+  s_911ec75c31b4fb::t_9e2a1dff42669d 117,140
+src/operations-v2/write/suites.ts
+  s_fef725799cacdb::t_6c2b7a4b93da44 93
+  s_fef725799cacdb::t_1a25ae7880ebda 75
+  s_911ec75c31b4fb::t_837df366406381 74,92
+src/operations-v2/qql/index.ts
+  s_fef725799cacdb::t_1a25ae7880ebda 318
+  s_fef725799cacdb::t_6c2b7a4b93da44 340
+  s_911ec75c31b4fb::t_c898973c66d879 317,339
+src/operations-v2/composites/ci-report.ts
+  s_fef725799cacdb::t_1a25ae7880ebda 187
+  s_911ec75c31b4fb::t_2df2d3384444e0 186
+src/operations-v2/write/runs.ts
+  s_fef725799cacdb::t_1a25ae7880ebda 111
+  s_fef725799cacdb::t_6c2b7a4b93da44 129,149
+  s_911ec75c31b4fb::t_524ff359cd06fe 110,128,148
+src/operations-v2/escape/api.ts
+  s_fef725799cacdb::t_1a25ae7880ebda 93
+  s_911ec75c31b4fb::t_ab1448ad472619 92
+src/operations-v2/meta/discover.ts
+  s_fef725799cacdb::t_1a25ae7880ebda 151
+  s_911ec75c31b4fb::t_e376d5bf1998ff 150
+src/operations-v2/meta/tool-help.test.ts
+  s_fef725799cacdb::t_e20fad7f1c196a 40-41
+  s_fef725799cacdb::t_66155cc08785ca 1-39,42-48
+src/operations-v2/composites/triage-defect.ts
+  s_fef725799cacdb::t_8be30d3749327a 80
+  s_fef725799cacdb::t_1a25ae7880ebda 81
+src/operations-v2/index.ts
+  s_fef725799cacdb::t_e75ff5fefd07b0 32
+src/operations-v2/write/custom-fields.ts
+  s_fef725799cacdb::t_6c2b7a4b93da44 281
+  s_fef725799cacdb::t_1a25ae7880ebda 258
+  s_911ec75c31b4fb::t_160c6b17ab2299 257,280
+src/operations-v2/write/plans.ts
+  s_fef725799cacdb::t_6c2b7a4b93da44 77
+  s_fef725799cacdb::t_1a25ae7880ebda 59
+  s_911ec75c31b4fb::t_abf5265a0aa6ba 58,76
+src/operations-v2/read/project-context.ts
+  s_fef725799cacdb::t_1a25ae7880ebda 268
+  s_911ec75c31b4fb::t_7779b7031f0189 267
+src/operations-v2/write/reviews.ts
+  s_fef725799cacdb::t_6c2b7a4b93da44 455,473,492,509
+  s_fef725799cacdb::t_8be30d3749327a 434,454,472,491,508
+  s_fef725799cacdb::t_1a25ae7880ebda 435
+CHANGELOG.md
+  s_fef725799cacdb::t_e20fad7f1c196a 51
+  s_911ec75c31b4fb::t_11a046eced9141 50
+src/utils/registry.ts
+  s_fef725799cacdb::t_e75ff5fefd07b0 53-61,107,127-128,175,208-210
+  s_fef725799cacdb::t_77fec75f024b6f 211-212
+src/operations-v2/meta/tool-help.ts
+  s_fef725799cacdb::t_6c2b7a4b93da44 41-42
+  s_fef725799cacdb::t_e75ff5fefd07b0 1-40,44-48
+  s_911ec75c31b4fb::t_db85ee1a0446ba 43
+src/operations-v2/write/cases-bulk.ts
+  s_fef725799cacdb::t_1a25ae7880ebda 66
+  s_911ec75c31b4fb::t_b87e49d10b0044 65
+src/operations-v2/write/milestones.ts
+  s_fef725799cacdb::t_1a25ae7880ebda 60
+  s_fef725799cacdb::t_6c2b7a4b93da44 77
+  s_911ec75c31b4fb::t_3532592be077ef 59,76
+src/operations-v2/write/defects.ts
+  s_fef725799cacdb::t_1a25ae7880ebda 115
+  s_fef725799cacdb::t_6c2b7a4b93da44 137
+  s_911ec75c31b4fb::t_418e4ba98de5ff 114,136
+src/operations-v2/descriptions.test.ts
+  s_fef725799cacdb::t_1a25ae7880ebda 19
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "4e0251a6af2caaf9810a6f07fe72a2387e889d04",
+  "prompts": {},
+  "sessions": {
+    "s_911ec75c31b4fb": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "39c5b213-c54e-4a8e-8bc2-8033f6b6ffc7",
+        "model": "claude-fable-5-1"
+      },
+      "human_author": "Dmitrii Gridnev <dgridnev@qase.io>"
+    },
+    "s_fef725799cacdb": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b943b4b3-61be-47d6-8bb1-ad338faf9ede",
+        "model": "claude-fable-5-1"
+      },
+      "human_author": "Dmitrii Gridnev <dgridnev@qase.io>"
+    }
+  }
+}

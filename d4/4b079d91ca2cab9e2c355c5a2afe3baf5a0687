@@ -1,0 +1,86 @@
+mcpscore.toml
+  s_fef725799cacdb::t_11906de7055cdb 18-21
+docs/self-run.md
+  s_fef725799cacdb::t_6f86f34923dcae 90,100,383
+CHANGELOG.md
+  s_fef725799cacdb::t_29b90bdd4d2ce7 20,32
+src/utils/registry.ts
+  s_fef725799cacdb::t_11906de7055cdb 9,109,173,177-179,181-182
+src/operations-v2/descriptions.test.ts
+  s_fef725799cacdb::t_99d59d83a01f0d 17
+src/server.ts
+  s_fef725799cacdb::t_99d59d83a01f0d 139-149,151-152,154-159,161-172,175,177-179,181-182,184-186,188-196,198-226,231,238-259,261-264
+  s_fef725799cacdb::t_11906de7055cdb 72,105
+docs/tools.md
+  s_fef725799cacdb::t_6f86f34923dcae 3,5,7,13-16,20-23,30-51,53-54,66-72,82-86,90-92,96-97
+  s_911ec75c31b4fb::t_333abb17d272b2 98-99
+docs/troubleshooting.md
+  s_fef725799cacdb::t_6f86f34923dcae 180,182,184,186
+  s_911ec75c31b4fb::t_197d8a549c8bfd 175
+src/utils/registry.wire.test.ts
+  s_fef725799cacdb::t_85bf4ab4aa6177 18
+src/utils/tool-metrics.test.ts
+  s_fef725799cacdb::t_410486b72492a2 23,25-26
+  s_fef725799cacdb::t_46fe01fb2b7095 16,21
+src/operations-v2/meta/discover.test.ts
+  s_fef725799cacdb::t_6f86f34923dcae 17,31-32,35,37-39,42-43,45-46
+src/utils/registry.test.ts
+  s_fef725799cacdb::t_6f86f34923dcae 356-362
+  s_fef725799cacdb::t_85bf4ab4aa6177 326,329,335-336,350
+  s_fef725799cacdb::t_2a017cd03a4e25 263,266,363-364
+README.md
+  s_fef725799cacdb::t_f5d23416a72587 108
+  s_fef725799cacdb::t_be3b344b9c1ba1 36,97,106
+src/server-instructions.ts
+  s_fef725799cacdb::t_6f86f34923dcae 14,16,18
+src/smoke.test.ts
+  s_fef725799cacdb::t_85bf4ab4aa6177 425-426,429
+  s_fef725799cacdb::t_29b90bdd4d2ce7 402-404,420-421
+src/operations-v2/meta/discover.ts
+  s_fef725799cacdb::t_99d59d83a01f0d 69,71
+  s_fef725799cacdb::t_6f86f34923dcae 2,4-7,72-76
+src/operations-v2/write/custom-fields.test.ts
+  s_911ec75c31b4fb::t_ffd3c3fc1921dc 48-50,54,56-57
+src/operations-v2/write/custom-fields.ts
+  s_911ec75c31b4fb::t_f6cbcf6baa68af 45-53
+src/operations-v2/write/environments.ts
+  s_911ec75c31b4fb::t_bf8caaf41ca5ff 11
+src/operations-v2/write/external-issues.test.ts
+  s_911ec75c31b4fb::t_6547a5a23bec6d 38-39
+src/operations-v2/write/milestones.ts
+  s_911ec75c31b4fb::t_2f303540548627 11-12
+src/operations-v2/write/plans.ts
+  s_911ec75c31b4fb::t_92b19cfb47bdaa 11
+src/operations-v2/write/projects.test.ts
+  s_911ec75c31b4fb::t_d312c608ad3457 39,41-42
+src/operations-v2/write/projects.ts
+  s_911ec75c31b4fb::t_964033f927baf8 13
+src/operations-v2/write/reviews.test.ts
+  s_911ec75c31b4fb::t_2b9ad994207ebd 78-80,437-439
+src/operations-v2/write/reviews.ts
+  s_911ec75c31b4fb::t_eea2239e01b4ad 208,218
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "d44b079d91ca2cab9e2c355c5a2afe3baf5a0687",
+  "prompts": {},
+  "sessions": {
+    "s_911ec75c31b4fb": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "39c5b213-c54e-4a8e-8bc2-8033f6b6ffc7",
+        "model": "claude-fable-5-1"
+      },
+      "human_author": "Dmitrii Gridnev <dgridnev@qase.io>"
+    },
+    "s_fef725799cacdb": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b943b4b3-61be-47d6-8bb1-ad338faf9ede",
+        "model": "claude-fable-5-1"
+      },
+      "human_author": "Dmitrii Gridnev <dgridnev@qase.io>"
+    }
+  }
+}

@@ -1,0 +1,42 @@
+src/operations-v2/meta/discover.test.ts
+  s_fef725799cacdb::t_5dcf41bd269cb4 54,56-59,62-80,83-85,88-89,91-93,96-100,102-108,111-112,114
+  s_fef725799cacdb::t_8bbea71773cbf5 17-20,52-53,55,60-61,81-82,86-87,90,94-95,101,109-110,113,115
+  s_fef725799cacdb::t_ae301b98e7600d 116
+src/operations-v2/read/get.test.ts
+  s_fef725799cacdb::t_cd030ca1007c46 44
+src/operations-v2/descriptions.test.ts
+  s_fef725799cacdb::t_cd030ca1007c46 25
+src/utils/registry.wire.test.ts
+  s_fef725799cacdb::t_cd030ca1007c46 43-56
+src/operations-v2/meta/discover.ts
+  s_fef725799cacdb::t_bb0a22d00ed83f 30
+src/operations-v2/meta/tool-help.test.ts
+  s_fef725799cacdb::t_cd030ca1007c46 39
+src/utils/registry.ts
+  s_fef725799cacdb::t_bb0a22d00ed83f 212-221
+  s_fef725799cacdb::t_c71c710715ecc3 203,223-224,239
+src/utils/registry.test.ts
+  s_fef725799cacdb::t_cd030ca1007c46 330,351,360
+src/operations-v2/write/case-fields.test.ts
+  s_fef725799cacdb::t_cd030ca1007c46 56
+src/smoke.test.ts
+  s_fef725799cacdb::t_cd030ca1007c46 59,64,315,319,429,482
+src/operations-v2/meta/tool-help.ts
+  s_fef725799cacdb::t_bb0a22d00ed83f 24
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "1a53c343c0084a8e4ec084ddeb456de56a55a06c",
+  "prompts": {},
+  "sessions": {
+    "s_fef725799cacdb": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b943b4b3-61be-47d6-8bb1-ad338faf9ede",
+        "model": "claude-opus-5"
+      },
+      "human_author": "Dmitrii Gridnev <dgridnev@qase.io>"
+    }
+  }
+}

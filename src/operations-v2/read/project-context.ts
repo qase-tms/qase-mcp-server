@@ -24,11 +24,9 @@ const Schema = z.object({
     .boolean()
     .optional()
     .describe(
-      'Page through every suite, milestone, environment, custom field, and user instead of ' +
-        `fetching only the first ${PAGE_SIZE} of each (default: false). Use this when a ` +
-        'collection is reported as truncated and you need the complete set — it costs one API ' +
-        'call per 100 entities and can return thousands of items, so prefer the targeted list ' +
-        'tools or qql_search when you only need a subset.',
+      `Page through every collection instead of the first ${PAGE_SIZE} of each ` +
+        '(default: false). Use it when `coverage` reports one truncated; see qase_tool_help ' +
+        'for what it costs.',
     ),
 });
 

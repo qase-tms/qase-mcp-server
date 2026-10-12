@@ -37,8 +37,8 @@ const Schema = z.object({
   path: PathSchema.describe(
     'API path starting with a version segment (e.g., "/v1/project/DEMO/run")',
   ),
-  body: z.record(z.any()).optional().describe('Request body for POST/PUT/PATCH'),
-  query: z.record(z.string()).optional().describe('Query parameters'),
+  body: z.record(z.string(), z.any()).optional().describe('Request body for POST/PUT/PATCH'),
+  query: z.record(z.string(), z.string()).optional().describe('Query parameters'),
 });
 
 async function handler(args: z.infer<typeof Schema>) {

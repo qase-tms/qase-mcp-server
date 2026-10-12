@@ -39,7 +39,10 @@ const NO_WORKFLOW_ACTIONS =
   'those actions are only available in the Qase UI, so this tool cannot perform them. ' +
   'Use qase_review_list or qase_get to read the current status.';
 
-const REVIEW_MUST_BE_ENABLED = 'Requires "Test case review" to be enabled in the project settings.';
+const REVIEW_MUST_BE_ENABLED =
+  'Requires "Test case review" to be enabled in the project settings. A review is authored by ' +
+  'the owner of the API token, and an author cannot review their own review — so that person ' +
+  'cannot appear in `reviewers`.';
 
 /**
  * Case fields a review may propose. The names match qase_case_upsert, so a
@@ -53,11 +56,9 @@ const ReviewersSchema = z
   .array(z.string())
   .optional()
   .describe(
-    'Reviewers, as author UUIDs (see qase_get { entity: "author" }) or email addresses, ' +
-      'which are resolved to UUIDs. Note these are AUTHOR uuids, not user IDs. The review ' +
-      'author cannot review their own review: since the review is created by whoever owns the ' +
-      'API token, listing that person here fails with "cannot be a reviewer of their own ' +
-      'review". Leave the list empty to assign reviewers later in the UI.',
+    'Reviewers: AUTHOR UUIDs (see qase_get { entity: "author" }) or emails, which resolve to ' +
+      'them. Not user IDs. The token owner authors the review and cannot review their own ' +
+      'review. Omit to assign them later in the UI.',
   );
 
 /**

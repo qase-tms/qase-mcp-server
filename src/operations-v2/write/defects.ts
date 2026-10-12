@@ -28,14 +28,11 @@ const DefectFieldsSchema = z.object({
     .optional()
     .describe('Set to "resolved" to resolve the defect'),
   tags: z.array(z.string()).optional().describe('Tag names, e.g. ["regression", "payments"]'),
-  attachments: z
-    .array(z.string())
-    .optional()
-    .describe('Attachment hashes from qase_attachment_upload'),
+  attachments: z.array(z.string()).optional().describe('Hashes from qase_attachment_upload'),
   custom_field: z
-    .record(z.any())
+    .record(z.string(), z.any())
     .optional()
-    .describe('Custom field values keyed by field ID, e.g. { "12": "value" }'),
+    .describe('Custom fields by ID, e.g. { "12": "value" }'),
 });
 
 const UpsertSchema = z.object({

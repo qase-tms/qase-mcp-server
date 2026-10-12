@@ -42,7 +42,7 @@ export const ProjectCodeSchema = z
     /^[A-Z0-9_]+$/,
     'Project code must contain only uppercase letters, numbers, or underscores',
   )
-  .describe('Project code (2-10 uppercase letters, numbers, or underscores)');
+  .describe('Project code, e.g. DEMO');
 
 /**
  * Schema for search query strings
@@ -52,7 +52,7 @@ export const SearchSchema = z.string().min(1).max(255).optional().describe('Sear
 /**
  * Schema for entity IDs (positive integers)
  */
-export const IdSchema = z.number().int().positive().describe('Entity ID (positive integer)');
+export const IdSchema = z.number().int().positive().describe('Entity ID');
 
 /**
  * Schema for hash identifiers (used by some entities like shared steps)

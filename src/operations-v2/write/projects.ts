@@ -16,7 +16,7 @@ const CreateSchema = z
       .optional()
       .describe('Who can access the project: everyone, a team group, or nobody but the owner'),
     group: z.string().optional().describe('Team group hash — required when access is "group"'),
-    settings: z.record(z.any()).optional().describe('Additional project settings'),
+    settings: z.record(z.string(), z.any()).optional().describe('Additional project settings'),
   })
   .refine((v) => v.access !== 'group' || !!v.group, {
     message: 'A group hash is required when access is "group"',

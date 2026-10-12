@@ -10,7 +10,6 @@
  */
 import { Tool, ToolAnnotations } from '@modelcontextprotocol/server';
 import { z } from 'zod';
-import { zodToJsonSchema } from 'zod-to-json-schema';
 
 /**
  * Tool handler function type
@@ -23,6 +22,33 @@ export type ToolHandler<T = any, R = any> = (args: T) => Promise<R>;
  * Tool definition for registration
  * Contains all information needed to register a tool with the MCP server
  */
+/**
+ * `Number.MAX_SAFE_INTEGER`, which zod emits as the bound of every integer.
+ *
+ * It is true — a JSON number above it loses precision in JavaScript — but it
+ * is true of every integer everywhere, so repeating it on all 55 integer
+ * fields spends bytes in every tool list to tell the model something that
+ * never changes and that no caller of ours is anywhere near. Our integers are
+ * record IDs and page sizes.
+ */
+const SAFE_INTEGER_BOUND = 9007199254740991;
+
+/** Drop that bound wherever zod attached it, in place. */
+function stripSafeIntegerBounds(node: unknown): void {
+  if (Array.isArray(node)) {
+    for (const item of node) stripSafeIntegerBounds(item);
+    return;
+  }
+  if (node === null || typeof node !== 'object') return;
+
+  const record = node as Record<string, unknown>;
+  if (record.type === 'integer') {
+    if (record.maximum === SAFE_INTEGER_BOUND) delete record.maximum;
+    if (record.minimum === -SAFE_INTEGER_BOUND) delete record.minimum;
+  }
+  for (const value of Object.values(record)) stripSafeIntegerBounds(value);
+}
+
 /**
  * Sort by `name`, comparing code units rather than by locale: ListTools and
  * ListPrompts must come back in the same order on every host.
@@ -123,37 +149,34 @@ export class ToolRegistry {
     const { name, title, description, schema, handler, annotations, outputSchema, help } =
       definition;
 
-    // Convert Zod schema to JSON Schema for MCP protocol
-    // Using explicit type assertion to avoid TypeScript's deep type inference issues
-    // The zodToJsonSchema function can cause "excessively deep" type errors with complex schemas
-    // We cast both the input and output to avoid deep type inference
+    // Convert the Zod schema to JSON Schema for the MCP protocol.
+    //
+    // `io: 'input'` is what the client is being described: a field with a
+    // default is optional on the way in, and a `z.preprocess` is advertised by
+    // what it accepts rather than by what it produces.
+    //
+    // zod emits `$defs` + `$ref` for a schema that refers to itself (the test
+    // step tree). That is the only way to express recursion in JSON Schema at
+    // all, and the pointers are same-document, which every JSON Schema
+    // implementation resolves.
+    //
+    // Cast through `unknown`: the conversion is value-level, and letting
+    // TypeScript infer it across our deepest schemas trips "excessively deep".
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const jsonSchema = (zodToJsonSchema as any)(schema, {
-      name: `${name}Input`,
-      $refStrategy: 'none', // Inline all definitions
-    });
+    const converted = z.toJSONSchema(schema as any, { io: 'input' }) as Record<string, unknown>;
 
-    // Extract the actual schema from definitions if present
-    // zodToJsonSchema sometimes wraps the schema in a $ref even with $refStrategy: 'none'
-    let inputSchema: { type: 'object'; [key: string]: unknown };
+    // `$schema` says which dialect the document is written in. The tool list
+    // repeats it in all 42 schemas and no client reads it, so it is dropped —
+    // the MCP spec already fixes the dialect for `inputSchema`.
+    const { $schema: _dialect, ...body } = converted;
+    void _dialect;
 
-    if (jsonSchema.$ref && jsonSchema.definitions) {
-      // Extract from definitions
-      const definitionKey = Object.keys(jsonSchema.definitions)[0];
-      inputSchema = jsonSchema.definitions[definitionKey] as {
-        type: 'object';
-        [key: string]: unknown;
-      };
-    } else if (jsonSchema.type === 'object') {
-      // Use directly
-      inputSchema = jsonSchema;
-    } else {
-      // Fallback: create minimal object schema
-      inputSchema = {
-        type: 'object',
-        properties: {},
-      };
-    }
+    stripSafeIntegerBounds(body);
+
+    const inputSchema: { type: 'object'; [key: string]: unknown } =
+      body.type === 'object'
+        ? (body as { type: 'object'; [key: string]: unknown })
+        : { type: 'object', properties: {} };
 
     // Store tool definition
     this.tools.set(name, {

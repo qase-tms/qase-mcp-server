@@ -34,9 +34,9 @@ const RunFieldsSchema = z.object({
   start_time: z.string().optional().describe('RFC3339 start time'),
   end_time: z.string().optional().describe('RFC3339 end time'),
   custom_field: z
-    .record(z.any())
+    .record(z.string(), z.any())
     .optional()
-    .describe('Custom field values keyed by field ID, e.g. { "12": "value" }'),
+    .describe('Custom fields by ID, e.g. { "12": "value" }'),
 });
 
 const UpsertSchema = z.object({

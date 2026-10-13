@@ -18,14 +18,11 @@ const Schema = z.object({
   actual_result: z.string().describe('Observed behavior. Required by the API'),
   description: z.string().optional().describe('Extra context beyond the observed behavior'),
   tags: z.array(z.string()).optional().describe('Tag names, e.g. ["regression", "payments"]'),
-  attachments: z
-    .array(z.string())
-    .optional()
-    .describe('Attachment hashes from qase_attachment_upload'),
+  attachments: z.array(z.string()).optional().describe('Hashes from qase_attachment_upload'),
   custom_field: z
-    .record(z.any())
+    .record(z.string(), z.any())
     .optional()
-    .describe('Custom field values keyed by field ID, e.g. { "12": "value" }'),
+    .describe('Custom fields by ID, e.g. { "12": "value" }'),
 });
 
 async function handler(args: z.infer<typeof Schema>) {
@@ -77,6 +74,8 @@ toolRegistry.register({
   name: 'qase_triage_defect',
   title: 'Triage failure into defect',
   description:
+    'Create a defect from a test failure with the context written into it; `title`, `actual_result` and `severity` are required. The API has no way to attach runs or results to a defect — reference them in actual_result. For a defect unrelated to a failure use qase_defect_upsert. Cost: one API call, about 0.5s; file one defect per distinct cause.',
+  help:
     'Create a defect from a test failure, with the failure context written into it. Requires ' +
     'title, actual_result and severity — the API rejects a defect missing any of the three. ' +
     'Note: the API offers no way to attach existing runs or results to a defect. The runs and ' +

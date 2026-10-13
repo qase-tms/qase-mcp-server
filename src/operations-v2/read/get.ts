@@ -129,6 +129,8 @@ toolRegistry.register({
   name: 'qase_get',
   title: 'Get record',
   description:
+    'Fetch one known record by type and ID — case, suite, run, result, plan, defect, milestone, environment, shared_step, review, custom_field and more. Use it only when you already have the ID and want that one record; for several, anything filtered, or a loop over IDs, use qql_search — one search returns the whole page. Cost: one API call, 0.3-0.5s; ten in sequence measured 5.3s against 1.2s for one qql_search.',
+  help:
     'Fetch one known record by type and ID: case, suite, run, result, plan, defect, milestone, ' +
     'environment, shared_step, shared_parameter, configuration, attachment, author, user, review, ' +
     'or custom_field. `code` is required for project-scoped entities and can be omitted for ' +

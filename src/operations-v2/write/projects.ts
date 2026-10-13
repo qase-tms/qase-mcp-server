@@ -10,13 +10,13 @@ const CreateSchema = z
     code: ProjectCodeSchema.describe(
       'Project code — unique per workspace, letters only (no digits or special characters)',
     ),
-    description: z.string().optional(),
+    description: z.string().optional().describe('Free-form description of the project'),
     access: z
       .enum(['all', 'group', 'none'])
       .optional()
       .describe('Who can access the project: everyone, a team group, or nobody but the owner'),
     group: z.string().optional().describe('Team group hash — required when access is "group"'),
-    settings: z.record(z.any()).optional().describe('Additional project settings'),
+    settings: z.record(z.string(), z.any()).optional().describe('Additional project settings'),
   })
   .refine((v) => v.access !== 'group' || !!v.group, {
     message: 'A group hash is required when access is "group"',
@@ -63,6 +63,8 @@ toolRegistry.register({
   name: 'qase_project_create',
   title: 'Create project',
   description:
+    'Create a project. The code must be unique and letters only, and there is no update endpoint afterwards — title, code and access cannot be changed through the API, so choose them deliberately. Read an existing project with qase_project_context. Cost: one API call, about 1.5s.',
+  help:
     'Create a new project. The code must be unique in the workspace and may contain letters only ' +
     '— no digits or special characters — and it is what every other tool takes as `code`. ' +
     'Optional: description, access level ("all", "group" with a group hash, or "none"), and ' +
@@ -73,13 +75,14 @@ toolRegistry.register({
   schema: CreateSchema,
   handler: create,
   annotations: CreateAnnotation,
-  visibility: 'discoverable',
 });
 
 toolRegistry.register({
   name: 'qase_project_delete',
   title: 'Delete project',
   description:
+    'Delete an entire project by code — every case, suite, run, result, defect and milestone in it, with no trash to recover from; this cannot be undone. The most destructive call in the API; confirm the code with qase_project_context first. Asks the user for confirmation and does not proceed without it. Cost: one API call, about 0.5s.',
+  help:
     'Delete an entire project by its code. This removes every test case, suite, run, result, ' +
     'defect and milestone it holds, and cannot be undone — it is the most destructive call in the ' +
     'API, and there is no export or trash to recover from. Confirm the code names the project you ' +
@@ -91,5 +94,4 @@ toolRegistry.register({
   schema: DeleteSchema,
   handler: del,
   annotations: DeleteAnnotation,
-  visibility: 'discoverable',
 });

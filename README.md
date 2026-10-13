@@ -33,7 +33,7 @@ The Qase MCP Server lets AI assistants (Claude, Cursor, Codex, and any other MCP
 - **QQL support** — Qase Query Language for advanced searches across cases, runs, results, defects, and plans
 - **Project context bootstrap** — one call returns full project structure (suites, milestones, environments, users, custom fields)
 - **Test case review** — propose new cases or changes for review, assign reviewers, and track status (approving and merging remain UI-only)
-- **Tool discovery** — secondary tools stay hidden until needed, keeping the default tool list small
+- **Short descriptions, documentation on demand** — every tool is listed from the first request; `qase_tool_help` returns a tool's full documentation when the agent first reaches for it, and `qase_discover_tools` searches the catalogue by task
 - **Hosted or self-run** — connect to `https://mcp.qase.io/mcp` with just your Qase login, or run the server locally with your own API token
 - **Tenant-safe caching & HTTP resilience** — two-tier cache (in-memory + optional Redis), connection pooling, retry with backoff
 - **Escape hatch** — direct REST API access for any endpoint via `qase_api`
@@ -94,7 +94,7 @@ v2 consolidated 83 v1 tools into **29 task-oriented tools** (30 total, including
 
 ## Tools
 
-41 tools across 6 groups (40 task-oriented tools plus `qase_discover_tools` for on-demand activation of secondary tools). 17 are listed from the start; the rest stay hidden until `qase_discover_tools` activates them:
+42 tools across 6 groups (40 task-oriented tools plus two meta tools: `qase_discover_tools` to search the catalogue and `qase_tool_help` to read a tool's full documentation). All of them are listed from the first request:
 
 | Group | Count | Description |
 | --- | --- | --- |
@@ -103,9 +103,9 @@ v2 consolidated 83 v1 tools into **29 task-oriented tools** (30 total, including
 | Write | 32 | Create, update, and delete cases (single or up to 100 at once), runs, results, defects, suites, milestones, plans, shared steps, environments, and attachments; link cases and runs to Jira issues; propose and manage test case reviews |
 | Composite | 3 | Multi-step workflows in one call: CI reporting, defect triage, regression run setup |
 | Escape hatch | 1 | Direct REST API access for any endpoint not covered by the tools above |
-| Meta | 1 | `qase_discover_tools` — find and activate secondary tools on demand |
+| Meta | 2 | `qase_discover_tools` — search the catalogue by what you are trying to do; `qase_tool_help` — the full documentation of one tool, on demand |
 
-Full tool-by-tool reference with parameters and the discovery model: **[docs/tools.md](docs/tools.md)**.
+Full tool-by-tool reference with parameters: **[docs/tools.md](docs/tools.md)**.
 
 ## Documentation
 

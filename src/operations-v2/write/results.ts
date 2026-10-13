@@ -19,10 +19,7 @@ const ResultStepSchema = z.object({
   position: z.number().int().min(0),
   status: z.enum(['passed', 'failed', 'blocked', 'skipped']),
   comment: z.string().optional(),
-  attachments: z
-    .array(z.string())
-    .optional()
-    .describe('Attachment hashes from qase_attachment_upload'),
+  attachments: z.array(z.string()).optional().describe('Hashes from qase_attachment_upload'),
 });
 
 const SingleResultSchema = z.object({
@@ -33,11 +30,8 @@ const SingleResultSchema = z.object({
   time_ms: z.number().int().min(0).optional(),
   defect: z.boolean().optional(),
   steps: z.array(ResultStepSchema).optional(),
-  attachments: z
-    .array(z.string())
-    .optional()
-    .describe('Attachment hashes from qase_attachment_upload'),
-  custom_field: z.record(z.any()).optional(),
+  attachments: z.array(z.string()).optional().describe('Hashes from qase_attachment_upload'),
+  custom_field: z.record(z.string(), z.any()).optional(),
 });
 
 const RecordSchema = z.object({
@@ -114,6 +108,8 @@ toolRegistry.register({
   name: 'qase_result_record',
   title: 'Record test results',
   description:
+    'Record up to 200 results into an existing run — status, duration, comment, stacktrace, attachments — in one call, not one per test. Status is a label only: passed, failed, blocked, skipped, invalid. If the run does not exist yet and the job is finished, qase_ci_report creates, records and completes in one call. Cost: one API call for the whole list, about 0.5s.',
+  help:
     `Record up to ${MAX_RESULTS} results into an existing run. A case says what should be tested; ` +
     'a result says what happened when it ran — status, duration, comment, stacktrace, ' +
     'attachments — so a result always needs a run to live in. Pass several results in one call ' +
@@ -135,6 +131,8 @@ toolRegistry.register({
   name: 'qase_result_delete',
   title: 'Delete test result',
   description:
+    'Delete one result from a run, by run ID and result hash. The case and the rest of the run are untouched; pass rates shift and this cannot be undone. To discard a whole run use qase_run_delete. Asks the user for confirmation first. Cost: one API call, about 0.4s.',
+  help:
     'Delete a single result from a run, addressed by run ID and result hash. Use it to remove one ' +
     'wrong or duplicated execution record; the case itself and the rest of the run are untouched. ' +
     'This cannot be undone, and pass rates and any trend built on that run shift accordingly. ' +
@@ -144,5 +142,4 @@ toolRegistry.register({
   schema: DeleteSchema,
   handler: del,
   annotations: DeleteAnnotation,
-  visibility: 'discoverable',
 });

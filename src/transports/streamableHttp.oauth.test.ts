@@ -2,7 +2,7 @@
 import { describe, it, expect, beforeAll } from '@jest/globals';
 import request from 'supertest';
 import { generateKeyPair, exportJWK, SignJWT, createLocalJWKSet } from 'jose';
-import { Server } from "@modelcontextprotocol/server";
+import { Server } from '@modelcontextprotocol/server';
 import type { JWTVerifyGetKey } from 'jose';
 import { setupStreamableHttpTransport } from './streamableHttp.js';
 import { createJwksVerifier } from '../auth/jwks-verifier.js';
@@ -17,6 +17,13 @@ let app: ReturnType<typeof setupStreamableHttpTransport>;
 let validJwt: string;
 
 beforeAll(async () => {
+  // This file is the one that needs OAuth ON. Another test file in the same
+  // jest worker may have left QASE_OAUTH_ENABLED=false behind (several set it
+  // at module scope), and getOAuthConfig() reads it — with it off, the PRM
+  // routes and the guard below are never mounted and every assertion here
+  // fails for a reason that has nothing to do with OAuth.
+  delete process.env.QASE_OAUTH_ENABLED;
+
   const kp = await generateKeyPair('RS256');
   const jwk = await exportJWK(kp.publicKey);
   jwk.kid = 'k1';
@@ -34,10 +41,14 @@ beforeAll(async () => {
     .sign(kp.privateKey as CryptoKey);
 
   // port 0 → ephemeral; we only drive the app via supertest.
-  app = setupStreamableHttpTransport(makeServer, { port: 0, host: '127.0.0.1', endpoint: '/mcp' }, {
-    config,
-    verifier,
-  });
+  app = setupStreamableHttpTransport(
+    makeServer,
+    { port: 0, host: '127.0.0.1', endpoint: '/mcp' },
+    {
+      config,
+      verifier,
+    },
+  );
 });
 
 describe('streamable-http OAuth wiring', () => {
@@ -104,7 +115,12 @@ describe('streamable-http OAuth wiring', () => {
         },
       });
     expect(res.status).toBe(200);
-    expect(res.headers['mcp-session-id']).toBeDefined();
+    // What this guards is that a valid JWT gets PAST the guard — it used to be
+    // asserted through the session header the transport handed back. Serving is
+    // per-request now and no session is ever created, so the proof is the
+    // answer itself: an initialize result rather than a 401.
+    expect(res.headers['mcp-session-id']).toBeUndefined();
+    expect(res.text).toContain('protocolVersion');
   });
 
   it('proxies /authorize to auth.qase.io echoing the requested redirect_uri', async () => {
@@ -122,13 +138,17 @@ describe('streamable-http OAuth wiring', () => {
     expect(loc).toContain('redirect_uri=https%3A%2F%2Fclient.example%2Fcallback');
   });
 
-  it('returns 404 (not 400) for an unknown session id so the client re-initializes', async () => {
+  // The 404-for-an-unknown-session rule is gone with the sessions themselves:
+  // there is no session to be unknown, so a request carrying a stale header
+  // from a pre-upgrade client is simply served, and the client never has to
+  // re-initialize. That is the point of the era change, not a regression.
+  it('serves a request that still carries a stale session id instead of rejecting it', async () => {
     const res = await request(app)
       .post('/mcp')
       .set('Authorization', `Bearer ${validJwt}`)
       .set('Accept', 'application/json, text/event-stream')
       .set('mcp-session-id', 'nonexistent-session-id')
       .send({ jsonrpc: '2.0', id: 2, method: 'tools/list', params: {} });
-    expect(res.status).toBe(404);
+    expect(res.status).toBe(200);
   });
 });

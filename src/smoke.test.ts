@@ -56,12 +56,12 @@ import { toolRegistry } from './utils/registry.js';
 
 // Helper to extract JSON schema properties from a registered tool (searches ALL tools)
 function getSchemaProperties(toolName: string): Record<string, any> {
-  const tool = toolRegistry.getAllTools().find((t) => t.name === toolName);
+  const tool = toolRegistry.getDefinitions().find((t) => t.name === toolName);
   return (tool?.inputSchema as any)?.properties ?? {};
 }
 
 function getSchemaRequired(toolName: string): string[] {
-  const tool = toolRegistry.getAllTools().find((t) => t.name === toolName);
+  const tool = toolRegistry.getDefinitions().find((t) => t.name === toolName);
   return (tool?.inputSchema as any)?.required ?? [];
 }
 
@@ -113,9 +113,7 @@ describe('Schema-API Contract Tests', () => {
   });
 
   describe('qase_case_upsert — steps_type field', () => {
-    assertFieldsExist([
-      ['qase_case_upsert', 'steps_type'],
-    ]);
+    assertFieldsExist([['qase_case_upsert', 'steps_type']]);
   });
 
   // ── qase_attachment_upload ────────────────────────────────────────────
@@ -206,37 +204,27 @@ describe('Schema-API Contract Tests', () => {
 
   // ── qase_milestone_upsert ─────────────────────────────────────────────
   describe('qase_milestone_upsert — field types', () => {
-    assertFieldsExist([
-      ['qase_milestone_upsert', 'title'],
-    ]);
+    assertFieldsExist([['qase_milestone_upsert', 'title']]);
   });
 
   // ── qase_suite_upsert ─────────────────────────────────────────────────
   describe('qase_suite_upsert — field types', () => {
-    assertFieldsExist([
-      ['qase_suite_upsert', 'title'],
-    ]);
+    assertFieldsExist([['qase_suite_upsert', 'title']]);
   });
 
   // ── qase_environment_upsert ───────────────────────────────────────────
   describe('qase_environment_upsert — field types', () => {
-    assertFieldsExist([
-      ['qase_environment_upsert', 'title'],
-    ]);
+    assertFieldsExist([['qase_environment_upsert', 'title']]);
   });
 
   // ── qase_plan_upsert ──────────────────────────────────────────────────
   describe('qase_plan_upsert — field types', () => {
-    assertFieldsExist([
-      ['qase_plan_upsert', 'title'],
-    ]);
+    assertFieldsExist([['qase_plan_upsert', 'title']]);
   });
 
   // ── qase_shared_step_upsert ───────────────────────────────────────────
   describe('qase_shared_step_upsert — field types', () => {
-    assertFieldsExist([
-      ['qase_shared_step_upsert', 'title'],
-    ]);
+    assertFieldsExist([['qase_shared_step_upsert', 'title']]);
   });
 
   // ── qase_get ──────────────────────────────────────────────────────────
@@ -324,18 +312,20 @@ describe('Schema-API Contract Tests', () => {
 });
 
 describe('Tool Smoke Tests', () => {
-  let allTools: ReturnType<typeof toolRegistry.getAllTools>;
+  let allTools: ReturnType<typeof toolRegistry.getDefinitions>;
   let allToolNames: string[];
 
   beforeAll(() => {
-    allTools = toolRegistry.getAllTools();
+    allTools = toolRegistry.getDefinitions();
     allToolNames = allTools.map((t) => t.name);
   });
 
   it('should have ~40 tools registered (v2 tool set + reviews + projects + custom fields + discover)', () => {
     expect(allTools.length).toBeGreaterThanOrEqual(25);
     expect(allTools.length).toBeLessThanOrEqual(45);
-    console.error(`[Smoke] Found ${allTools.length} registered tools (${toolRegistry.getTools().length} core)`);
+    console.error(
+      `[Smoke] Found ${allTools.length} registered tools (${toolRegistry.getTools().length} core)`,
+    );
   });
 
   it('all expected v2 tool names are present', () => {
@@ -409,9 +399,9 @@ describe('Tool Smoke Tests', () => {
     }
   });
 
-  it('discoverable tools are NOT in getTools() by default', () => {
-    const coreTools = toolRegistry.getTools().map((t) => t.name);
-    const discoverableTools = [
+  it('lists the tools that used to be hidden behind discovery', () => {
+    const listed = toolRegistry.getTools().map((t) => t.name);
+    for (const name of [
       'qase_case_delete',
       'qase_suite_delete',
       'qase_milestone_upsert',
@@ -427,20 +417,16 @@ describe('Tool Smoke Tests', () => {
       'qase_defect_delete',
       'qase_attachment_delete',
       'qase_external_issue_link',
-    ];
-    for (const name of discoverableTools) {
-      expect(coreTools).not.toContain(name);
+    ]) {
+      expect(listed).toContain(name);
     }
   });
 
-  it('discoverable tools become visible after activation', () => {
-    const activated = toolRegistry.activateTools(['qase_case_delete', 'qase_milestone_upsert']);
-    expect(activated).toContain('qase_case_delete');
-    expect(activated).toContain('qase_milestone_upsert');
-
-    const coreTools = toolRegistry.getTools().map((t) => t.name);
-    expect(coreTools).toContain('qase_case_delete');
-    expect(coreTools).toContain('qase_milestone_upsert');
+  it('lists every tool from the start — nothing is hidden behind discovery', () => {
+    const visibleTools = toolRegistry.getTools().map((t) => t.name);
+    expect(visibleTools).toContain('qase_case_delete');
+    expect(visibleTools).toContain('qase_milestone_upsert');
+    expect(visibleTools).toHaveLength(toolRegistry.getDefinitions().length);
   });
 
   it('no v1 tool names are present', () => {
@@ -493,7 +479,7 @@ describe('Tool Smoke Tests', () => {
   it.each(
     // Test ALL tools (including discoverable) — handlers should all be callable
     (() => {
-      const tools = toolRegistry.getAllTools();
+      const tools = toolRegistry.getDefinitions();
       return tools.map((t) => t.name);
     })(),
   )('tool "%s" handler is callable', async (toolName) => {

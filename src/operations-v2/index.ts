@@ -29,6 +29,7 @@ import './composites/regression-run.js';
 
 // Meta tools
 import './meta/discover.js';
+import './meta/tool-help.js';
 
 // Escape hatch
 import './escape/api.js';

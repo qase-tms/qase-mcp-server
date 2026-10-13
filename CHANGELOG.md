@@ -5,6 +5,52 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.0]
+
+### Required deployment step
+
+- **Set `QASE_MCP_REQUEST_STATE_KEY` before deploying more than one replica.** It is the HMAC key that signs a pending destructive-action confirmation, it must be at least 32 bytes, and it must be identical on every replica. There are no sessions any more, so the request that asks for confirmation and the request that carries the answer can land on different replicas; without a shared key the second replica cannot verify what the first one minted, and the deletion is refused. Nothing is ever deleted unconfirmed as a result — but destructive tools stop working until the key is set. A single replica needs nothing: one is generated at startup.
+
+### Changed
+
+- **The server speaks the 2026-07-28 revision of MCP, and still serves clients on 2025-11-25.** The endpoint is now built by the SDK's `createMcpHandler`, which is per-request by construction: a client that negotiates the new revision is served it, and a client that has not moved is served the old one through the handler's stateless legacy path. Byte-for-byte dumps of both handshakes, both tool lists, the prompt list and every error surface were taken against the previous release and compared: every tool's input schema, output schema and annotations are identical, and the only differences are two pieces of text this release rewrote on purpose.
+
+- **Sessions are gone, and with them `mcp-session-id`.** The server no longer issues a session id, and `GET` and `DELETE` on the MCP endpoint — the two session operations of the old revision — answer `405`. `mcp-session-id` is still accepted as a request header, so a client that still sends one is not broken by a CORS preflight; it is simply ignored. `Access-Control-Allow-Methods` no longer advertises `DELETE` either, for the same reason: it was the session-end operation, and there is no session left to end.
+
+- **Every tool is listed from the first request — nothing is hidden behind discovery any more.** Twenty-four tools used to stay out of the tool list until `qase_discover_tools` switched them on, to keep the list small; on a stateless connection there is no way to tell a client that its list changed, so the switched-on tool was callable server-side and absent client-side until the client happened to reconnect. With the list itself now a third smaller than the old core-only one, hiding no longer pays for the confusion it caused: the full catalogue is sent every time, the list never changes while the server runs, and `qase_discover_tools` stays as a search over it. The per-caller activation store, its Redis use and the `tools/list_changed` announcements went with it.
+
+- **The integration marker is read per request on the Streamable HTTP transport.** It used to be captured once when a session opened and remembered for that session's lifetime. `X-Qase-Integration` and `?integration=` are now read on the request that carries them, and never attributed to the next one. The SSE transport keeps a long-lived stream and is unchanged: it still reads the marker when the stream opens and remembers it for that stream.
+
+- **Destructive actions are confirmed through a multi-round-trip request.** The old flow called `elicitInput` and waited inside the call for an answer, which only a stateful connection can deliver. The handler now returns a request for input and reads the answer when the client retries. The state that travels through the client is HMAC-signed, bound to the caller and the method, and bound to the arguments it was shown for — so a confirmation for one deletion cannot be replayed against another. It expires after ten minutes, a human's pace rather than the protocol's minute. A client that drops the prompt rather than answering it is reported as a cancellation, not as a refusal — saying "declined by the user" about a prompt nobody was shown told testers they had refused deletions they were never asked about. A client that never declares it can show a prompt is refused by name before the request is sent, instead of failing with a protocol error from inside the SDK.
+
+- **`tools/list` is marked uncacheable and `prompts/list` cacheable.** The tool list now depends on who is asking, so it is emitted as `private` with a zero lifetime. The prompt catalogue is the same for everyone and never changes while the server runs, so a shared cache may hold it for five minutes. Responses to 2025-era clients carry no cache metadata at all — that revision has no place to put it.
+
+- **The handler is given an explicit request-body bound.** `createMcpHandler` and its Node adapter default to 4 MiB, which would have silently undone the 10 MB attachment limit 2.7.5 shipped. Both are now fed from the same `QASE_MCP_BODY_LIMIT_MB`-derived value `express.json()` already used, so the two caps cannot drift apart.
+
+### Added
+
+- **Two counters on `/metrics`:** `qase_mcp_tool_calls_total` by tool name, and `qase_mcp_requests_total` by protocol revision and client name.
+
+- **`qase_mcp_requests_total` answers who is still on the old revision.** This release serves two protocol revisions at once, and the decision to stop serving the older one cannot be read out of the code — only out of traffic. On 2026-07-28 every request carries a `_meta` envelope naming the revision and identifying the client, so both labels come from the request itself; a 2025-era request carries no envelope and is counted as `protocol="legacy"`, with the client named only where an `initialize` established it (stdio, SSE) and `unknown` on a stateless HTTP leg — which is precisely the traffic a modern-only endpoint would refuse. The client label is normalised and capped at 20 distinct values per process, because it arrives from the wire and every distinct value would otherwise be a series nothing evicts.
+
+### Removed
+
+- **`QASE_MCP_SESSION_TTL_MINUTES`.** It tuned how long an idle HTTP session was kept in memory before eviction. There are no sessions left to evict (above), so it is read nowhere any more. An operator with it set in a deployment can drop it whenever convenient — leaving it in place is harmless, it is simply ignored.
+
+- **`qase_discover_tools` no longer counts tools that were already visible.** It reported every match as activated, core tools included — so a search that turned nothing on could still answer `activated: 5`, inflate the activation counter, and announce `tools/list_changed` for a list that had not changed. It now records only the matches that were actually hidden from that caller, which is what the number was always meant to mean. `found` still reports everything that matched.
+
+### Fixed
+
+- **`qql_help` said that results have no run-ID field.** QQL has filtered results by `runId` since September 2026. The value is the run number from the run URL, so `/run/DEMO/dashboard/42` is `runId = 42`. The help told the model the opposite and sent it to `qase_api` with `filters[run]`, so it never wrote the direct query. The result entry now lists `runId` and says that run numbers restart in every project: without `project = "CODE"`, `runId = 42` matches run 42 of every project, and `GROUP BY runId` merges them into one group. The aggregation examples gain a per-run status breakdown.
+
+- **`isManual` was missing from the result fields.** The entry lists it now, with the values it takes: `"Manual"` or `"Automated"` with `=` or `!=`. A boolean does not work there: `isManual = true` selects only the "to be automated" cases.
+
+- **Tool descriptions are short, and the long documentation moved behind `qase_tool_help`.** Every byte of a tool's description is sent to the model on every request, and the forty-one descriptions had grown to 28 KB of traps, limits and field semantics — all of it read on every turn whether or not the tool was about to be called. Each description now says what the tool is for, when not to use it, and what it costs; the rest is kept word for word as the tool's `help`, served by the new `qase_tool_help` tool when an agent first reaches for it. The server instructions tell the agent to read it before a first call. Measured on a running server, the full tool list went from 79,628 to 66,285 bytes.
+
+### Breaking
+
+- **A 2025-era client on a stateless HTTP connection can no longer confirm a deletion, and so cannot delete.** Confirmation on that revision needs the capabilities a client declares during `initialize`, and a stateless request never sent one. Such a call is refused with an explanation naming the reason and the two ways out: use a client that negotiates 2026-07-28, or delete in the Qase UI. This affects the HTTP transports only. Over stdio and SSE the connection is long-lived and the client's capabilities are known, so a 2025-era client confirms there exactly as before — but a **stdio** client that itself negotiates 2026-07-28 does not: it gets the same input-required result an HTTP client gets and must retry the call carrying the answer, rather than the old single round-trip push.
+
 ## [2.7.5]
 
 ### Fixed

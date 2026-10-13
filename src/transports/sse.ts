@@ -121,7 +121,7 @@ export function setupSSETransport(createServer: () => Server, config: SSETranspo
     console.error(`[SSE] Health check: http://${host}:${config.port}/health`);
     console.error(
       '[SSE] WARNING: the SSE transport is deprecated (MCP spec 2025-03-26) and will be ' +
-        'removed in 3.0. Use --transport streamable-http instead.',
+        'removed in a future release. Use --transport streamable-http instead.',
     );
   });
 

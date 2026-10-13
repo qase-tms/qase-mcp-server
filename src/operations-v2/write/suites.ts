@@ -71,6 +71,8 @@ toolRegistry.register({
   name: 'qase_suite_upsert',
   title: 'Create or update suite',
   description:
+    'Create or update a test suite — the folder cases live in. With `id` it updates, without it creates; nest with `parent_id`. The existing tree comes back from qase_project_context, so read it rather than guess parent IDs. Cost: one API call, about 0.5s.',
+  help:
     'Create or update a test suite — the folder cases live in. Without `id` it creates, with `id` ' +
     'it updates. Nest a suite by passing `parent_id`; the whole existing tree comes back from ' +
     'qase_project_context, so read that first rather than guessing at parent IDs. Building a deep ' +
@@ -87,6 +89,8 @@ toolRegistry.register({
   name: 'qase_suite_delete',
   title: 'Delete suite',
   description:
+    'Delete a test suite by project code and ID. WARNING: the cases inside, and any child suites, are deleted with it along with their history, and `delete_cases` currently has no effect. Read the tree from qase_project_context and move what matters first. Asks the user for confirmation. Cost: one API call, about 0.4s.',
+  help:
     'Delete a test suite by project code and suite ID. WARNING: the cases inside are deleted with ' +
     'it, along with their history, and this cannot be undone. Deleting a suite with children ' +
     'takes the whole subtree and everything in it, so read the tree from qase_project_context and ' +
@@ -100,5 +104,4 @@ toolRegistry.register({
   schema: DeleteSchema,
   handler: del,
   annotations: DeleteAnnotation,
-  visibility: 'discoverable',
 });

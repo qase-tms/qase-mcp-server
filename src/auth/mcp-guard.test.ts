@@ -1,7 +1,8 @@
 // src/auth/mcp-guard.test.ts
 import { describe, it, expect } from '@jest/globals';
-import express from 'express';
+import express, { type Request } from 'express';
 import request from 'supertest';
+import type { AuthInfo } from '@modelcontextprotocol/server';
 import { createMcpGuard } from './mcp-guard.js';
 import type { JwksVerifier } from './jwks-verifier.js';
 import type { OAuthConfig } from './oauth-config.js';
@@ -67,6 +68,29 @@ describe('createMcpGuard', () => {
     const res = await request(app).post('/mcp').send({});
     expect(res.status).toBe(401);
     expect(res.headers['www-authenticate']).toContain(`resource_metadata="${EXPECTED_RESOURCE}"`);
+  });
+
+  it('puts the verified token info on the request', async () => {
+    const verifier: JwksVerifier = {
+      verifyJwt: async () => ({
+        token: 't',
+        clientId: 'c',
+        scopes: [],
+        resource: new URL('https://mcp.qase.io/'),
+        extra: { sub: 'user-42' },
+      }),
+    };
+    const app = express();
+    app.use(express.json());
+    app.post('/mcp', createMcpGuard(verifier, config), (req, res) => {
+      const auth = (req as Request & { auth?: AuthInfo }).auth;
+      res.status(200).json({ sub: auth?.extra?.sub });
+    });
+
+    const res = await request(app).post('/mcp').set('Authorization', 'Bearer aaa.bbb.ccc').send({});
+
+    expect(res.status).toBe(200);
+    expect(res.body.sub).toBe('user-42');
   });
 
   it('emits a path-aware metadata URL when resourceUrl carries a path (RFC 9728)', async () => {

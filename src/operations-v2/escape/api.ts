@@ -37,8 +37,8 @@ const Schema = z.object({
   path: PathSchema.describe(
     'API path starting with a version segment (e.g., "/v1/project/DEMO/run")',
   ),
-  body: z.record(z.any()).optional().describe('Request body for POST/PUT/PATCH'),
-  query: z.record(z.string()).optional().describe('Query parameters'),
+  body: z.record(z.string(), z.any()).optional().describe('Request body for POST/PUT/PATCH'),
+  query: z.record(z.string(), z.string()).optional().describe('Query parameters'),
 });
 
 async function handler(args: z.infer<typeof Schema>) {
@@ -61,7 +61,13 @@ async function handler(args: z.infer<typeof Schema>) {
   // gate, and a DELETE here reaches endpoints no dedicated tool covers, up to
   // removing a whole project. So ask on the method actually used.
   if (method === 'DELETE') {
-    const confirmation = await confirmDestructiveAction('qase_api', { method, path });
+    // Everything that decides WHAT this request removes goes into the
+    // confirmation, because the confirmation is pinned to exactly what it was
+    // shown. `path` is the obvious half; `query` and `body` are the other one
+    // — both reach the wire (`params` and `data` on the request below), and on
+    // endpoints that take a filter or a list of ids they are what selects the
+    // records. Confirming `DELETE /v1/x?id=1` must not authorise `?id=2`.
+    const confirmation = await confirmDestructiveAction('qase_api', { method, path, query, body });
     if (!confirmation.allowed) {
       const text = describeRefusal(`qase_api (DELETE ${path})`, confirmation.reason);
       // A decline is the user's decision, so it comes back as an ordinary
@@ -83,6 +89,8 @@ toolRegistry.register({
   name: 'qase_api',
   title: 'Call Qase API',
   description:
+    'Call any Qase REST endpoint directly, for the few things no dedicated tool covers: method, a /v1/… path on the configured host, optional body or query. Prefer a dedicated tool where one exists — they normalize enums and validate before spending a call. JSON only; uploads go through qase_attachment_upload. A DELETE asks for confirmation like the dedicated delete tools. Cost: one API call, 0.3-1.5s.',
+  help:
     'Call any Qase REST endpoint directly, for the few things no dedicated tool covers. Pass the ' +
     'HTTP method, a path starting with a version segment such as /v1/, and an optional body or ' +
     'query. The path must be an ' +

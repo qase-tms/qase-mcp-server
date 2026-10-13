@@ -24,11 +24,9 @@ const Schema = z.object({
     .boolean()
     .optional()
     .describe(
-      'Page through every suite, milestone, environment, custom field, and user instead of ' +
-        `fetching only the first ${PAGE_SIZE} of each (default: false). Use this when a ` +
-        'collection is reported as truncated and you need the complete set — it costs one API ' +
-        'call per 100 entities and can return thousands of items, so prefer the targeted list ' +
-        'tools or qql_search when you only need a subset.',
+      `Page through every collection instead of the first ${PAGE_SIZE} of each ` +
+        '(default: false). Use it when `coverage` reports one truncated; see qase_tool_help ' +
+        'for what it costs.',
     ),
 });
 
@@ -264,6 +262,8 @@ toolRegistry.register({
   name: 'qase_project_context',
   title: 'Project context',
   description:
+    'Seed everything about a project in one call: details, the full suite tree, milestones, environments, custom fields and users — make it first when starting on a project. Each collection returns its first 100; check `coverage` and pass `full: true` to page. For one record by ID qase_get is cheaper; for filtered questions use qql_search. Cost: six API calls behind one, 0.5-1.3s cold, cached 5 minutes.',
+  help:
     'Seed everything about a project in one call: project details, the full suite tree, ' +
     'milestones, environments, custom fields, and users. This is the first call to make when ' +
     'starting work on a project — it replaces six separate list calls and gives the model the ' +

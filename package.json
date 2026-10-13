@@ -1,6 +1,6 @@
 {
   "name": "@qase/mcp-server",
-  "version": "2.7.5",
+  "version": "3.0.0",
   "mcpName": "io.qase/mcp-server",
   "description": "Official MCP server for Qase Test Management Platform",
   "type": "module",
@@ -67,10 +67,10 @@
     ]
   },
   "dependencies": {
-    "@modelcontextprotocol/node": "^2.1.0",
-    "@modelcontextprotocol/server": "^2.2.0",
-    "@modelcontextprotocol/server-legacy": "^2.2.0",
-    "axios": "^1.13.5",
+    "@modelcontextprotocol/node": "^2.1.1",
+    "@modelcontextprotocol/server": "^2.3.1",
+    "@modelcontextprotocol/server-legacy": "^2.3.1",
+    "axios": "^1.20.0",
     "express": "^5.2.1",
     "express-rate-limit": "^8.7.0",
     "form-data": "^4.0.5",
@@ -78,12 +78,11 @@
     "lru-cache": "^11.3.5",
     "neverthrow": "^8.2.0",
     "qase-api-client": "^1.1.14",
-    "zod": "^3.24.2",
-    "zod-to-json-schema": "^3.24.3"
+    "zod": "^4.6.6"
   },
   "devDependencies": {
-    "@modelcontextprotocol/client": "^2.2.0",
-    "@modelcontextprotocol/core": "^2.2.0",
+    "@modelcontextprotocol/client": "^2.3.1",
+    "@modelcontextprotocol/core": "^2.3.1",
     "@types/express": "^4.17.21",
     "@types/jest": "^29.5.12",
     "@types/node": "^20.11.24",

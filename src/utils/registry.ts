@@ -6,11 +6,10 @@
  * - Convert Zod schemas to JSON Schema automatically
  * - Store and retrieve tool handlers
  * - Manage tool lifecycle
- * - Support tool discovery with core/discoverable visibility
+ * - Every registered tool is listed; qase_discover_tools is a search over the catalogue
  */
 import { Tool, ToolAnnotations } from '@modelcontextprotocol/server';
 import { z } from 'zod';
-import { zodToJsonSchema } from 'zod-to-json-schema';
 
 /**
  * Tool handler function type
@@ -23,6 +22,33 @@ export type ToolHandler<T = any, R = any> = (args: T) => Promise<R>;
  * Tool definition for registration
  * Contains all information needed to register a tool with the MCP server
  */
+/**
+ * `Number.MAX_SAFE_INTEGER`, which zod emits as the bound of every integer.
+ *
+ * It is true — a JSON number above it loses precision in JavaScript — but it
+ * is true of every integer everywhere, so repeating it on all 55 integer
+ * fields spends bytes in every tool list to tell the model something that
+ * never changes and that no caller of ours is anywhere near. Our integers are
+ * record IDs and page sizes.
+ */
+const SAFE_INTEGER_BOUND = 9007199254740991;
+
+/** Drop that bound wherever zod attached it, in place. */
+function stripSafeIntegerBounds(node: unknown): void {
+  if (Array.isArray(node)) {
+    for (const item of node) stripSafeIntegerBounds(item);
+    return;
+  }
+  if (node === null || typeof node !== 'object') return;
+
+  const record = node as Record<string, unknown>;
+  if (record.type === 'integer') {
+    if (record.maximum === SAFE_INTEGER_BOUND) delete record.maximum;
+    if (record.minimum === -SAFE_INTEGER_BOUND) delete record.minimum;
+  }
+  for (const value of Object.values(record)) stripSafeIntegerBounds(value);
+}
+
 /**
  * Sort by `name`, comparing code units rather than by locale: ListTools and
  * ListPrompts must come back in the same order on every host.
@@ -50,8 +76,47 @@ export interface ToolDefinition<T extends z.ZodType = z.ZodType> {
   annotations?: ToolAnnotations;
   /** JSON Schema describing the tool's output — enables clients to process results programmatically */
   outputSchema?: OutputSchema;
-  /** Tool visibility: 'core' tools are always listed, 'discoverable' tools require activation via qase_discover_tools */
-  visibility?: 'core' | 'discoverable';
+  /**
+   * The long documentation, read on demand through qase_tool_help.
+   *
+   * `description` is sent to the model on every request, so it says what the
+   * tool is for and what it costs and stops. Everything else an agent needs
+   * before its first call — the traps, the limits, the field semantics — goes
+   * here, where it costs nothing until it is asked for.
+   */
+  help?: string;
+}
+
+/**
+ * Annotation hints as the MCP spec defaults them when a tool says nothing.
+ * A hint equal to its default carries no information, so the wire projection
+ * leaves it out — the client reads exactly the same meaning either way.
+ */
+const SPEC_DEFAULT_HINTS: Readonly<Record<string, boolean>> = {
+  readOnlyHint: false,
+  destructiveHint: true,
+  idempotentHint: false,
+  openWorldHint: true,
+};
+
+/**
+ * The shape a tool takes on the wire, as opposed to the one the registry
+ * stores. Every byte of `tools/list` is sent to the model on every request:
+ *
+ *  - hints equal to the spec defaults are dropped (see SPEC_DEFAULT_HINTS);
+ *  - `outputSchema` is dropped: no client validates results against it, and
+ *    its one job here — deciding whether to attach `structuredContent` — is
+ *    now done for every object result (see server.ts).
+ *
+ * The stored definition keeps both, because handlers and tests read it.
+ */
+function toWire(tool: Tool): Tool {
+  const { outputSchema: _omitted, annotations, ...rest } = tool;
+  if (!annotations) return rest;
+  const kept = Object.fromEntries(
+    Object.entries(annotations).filter(([k, v]) => SPEC_DEFAULT_HINTS[k] !== v),
+  );
+  return Object.keys(kept).length ? { ...rest, annotations: kept } : rest;
 }
 
 /**
@@ -61,24 +126,12 @@ export interface ToolDefinition<T extends z.ZodType = z.ZodType> {
 export class ToolRegistry {
   private tools: Map<string, Tool> = new Map();
   private handlers: Map<string, ToolHandler> = new Map();
-  private activeTools: Set<string> = new Set();
-  private toolVisibility: Map<string, 'core' | 'discoverable'> = new Map();
-
-  /**
-   * Listeners invoked when the active tool set changes (each wired to one
-   * Server's sendToolListChanged).
-   *
-   * A set rather than a single slot because the registry is a process-wide
-   * singleton while every HTTP session gets its own Server: with one slot each
-   * new session overwrote the previous one's callback, so only the newest
-   * session ever heard that discovery had activated a tool.
-   */
-  private toolsChangedListeners: Set<() => void> = new Set();
+  private help: Map<string, string> = new Map();
 
   /**
    * Register a new tool with the registry
    *
-   * @param definition - Tool definition including name, description, schema, handler, and visibility
+   * @param definition - Tool definition including name, description, schema and handler
    *
    * @example
    * ```typescript
@@ -88,45 +141,40 @@ export class ToolRegistry {
    *   description: 'Get all projects',
    *   schema: z.object({ limit: z.number().optional() }),
    *   handler: async (args) => { ... },
-   *   visibility: 'discoverable', // hidden until discovered
    * });
    * ```
    */
   register<T extends z.ZodType>(definition: ToolDefinition<T>): void {
-    const { name, title, description, schema, handler, annotations, outputSchema } = definition;
-    const visibility = definition.visibility ?? 'core';
+    const { name, title, description, schema, handler, annotations, outputSchema, help } =
+      definition;
 
-    // Convert Zod schema to JSON Schema for MCP protocol
-    // Using explicit type assertion to avoid TypeScript's deep type inference issues
-    // The zodToJsonSchema function can cause "excessively deep" type errors with complex schemas
-    // We cast both the input and output to avoid deep type inference
+    // Convert the Zod schema to JSON Schema for the MCP protocol.
+    //
+    // `io: 'input'` is what the client is being described: a field with a
+    // default is optional on the way in, and a `z.preprocess` is advertised by
+    // what it accepts rather than by what it produces.
+    //
+    // zod emits `$defs` + `$ref` for a schema that refers to itself (the test
+    // step tree). That is the only way to express recursion in JSON Schema at
+    // all, and the pointers are same-document, which every JSON Schema
+    // implementation resolves.
+    //
+    // Cast through `unknown`: the conversion is value-level, and letting
+    // TypeScript infer it across our deepest schemas trips "excessively deep".
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const jsonSchema = (zodToJsonSchema as any)(schema, {
-      name: `${name}Input`,
-      $refStrategy: 'none', // Inline all definitions
-    });
+    const converted = z.toJSONSchema(schema as any, { io: 'input' }) as Record<string, unknown>;
 
-    // Extract the actual schema from definitions if present
-    // zodToJsonSchema sometimes wraps the schema in a $ref even with $refStrategy: 'none'
-    let inputSchema: { type: 'object'; [key: string]: unknown };
+    // `$schema` says which dialect the document is written in. The tool list
+    // repeats it in all 42 schemas and no client reads it, so it is dropped —
+    // the MCP spec already fixes the dialect for `inputSchema`.
+    const { $schema: _dialect, ...body } = converted;
 
-    if (jsonSchema.$ref && jsonSchema.definitions) {
-      // Extract from definitions
-      const definitionKey = Object.keys(jsonSchema.definitions)[0];
-      inputSchema = jsonSchema.definitions[definitionKey] as {
-        type: 'object';
-        [key: string]: unknown;
-      };
-    } else if (jsonSchema.type === 'object') {
-      // Use directly
-      inputSchema = jsonSchema;
-    } else {
-      // Fallback: create minimal object schema
-      inputSchema = {
-        type: 'object',
-        properties: {},
-      };
-    }
+    stripSafeIntegerBounds(body);
+
+    const inputSchema: { type: 'object'; [key: string]: unknown } =
+      body.type === 'object'
+        ? (body as { type: 'object'; [key: string]: unknown })
+        : { type: 'object', properties: {} };
 
     // Store tool definition
     this.tools.set(name, {
@@ -140,32 +188,39 @@ export class ToolRegistry {
 
     // Store handler function
     this.handlers.set(name, handler);
-
-    // Track visibility and activation
-    this.toolVisibility.set(name, visibility);
-    if (visibility === 'core') {
-      this.activeTools.add(name);
-    }
+    if (help) this.help.set(name, help);
 
     // Log registration for debugging (to stderr)
-    console.error(`[Registry] Registered tool: ${name} (${visibility})`);
+    console.error(`[Registry] Registered tool: ${name}`);
   }
 
   /**
-   * Get active tools only (core + activated discoverable)
-   * Used by the ListToolsRequestSchema handler
+   * Every tool, in the shape it takes on the wire. Nothing is hidden: the
+   * full list is what a client needs to call any of them, and a client cannot
+   * be told about a list that changed on a stateless connection anyway.
    */
   getTools(): Tool[] {
-    return Array.from(this.tools.values())
-      .filter((t) => this.activeTools.has(t.name))
-      .sort(byName);
+    return this.getDefinitions().map(toWire);
+  }
+
+  /** The long documentation of a tool, or undefined when it has none. */
+  getHelp(name: string): string | undefined {
+    return this.help.get(name);
   }
 
   /**
-   * Get ALL registered tools regardless of activation status.
-   * Used for discovery search and testing.
+   * Every tool as it was registered, with nothing projected away.
+   *
+   * This is what code INSIDE the server reads — search, the category filter,
+   * the help index. `getTools()` is for the wire and drops annotation hints
+   * that match the spec's own defaults, and one of those defaults is
+   * `destructiveHint: true`. Reading the wire shape internally therefore said
+   * no tool was destructive: `qase_discover_tools` answered `category:
+   * "delete"` with nothing and reported `destructive: false` for every
+   * deletion it listed. The two shapes are kept apart by name so that cannot
+   * be reintroduced by reaching for whichever accessor is nearest.
    */
-  getAllTools(): Tool[] {
+  getDefinitions(): Tool[] {
     return Array.from(this.tools.values()).sort(byName);
   }
 
@@ -181,49 +236,10 @@ export class ToolRegistry {
     const words = query.toLowerCase().split(/\s+/).filter(Boolean);
     if (words.length === 0) return [];
 
-    return this.getAllTools().filter((t) => {
+    return this.getDefinitions().filter((t) => {
       const haystack = `${t.name} ${t.description ?? ''}`.toLowerCase();
       return words.every((word) => haystack.includes(word));
     });
-  }
-
-  /**
-   * Subscribe to active-tool-set changes. Returns an unsubscribe function the
-   * caller must invoke when its session ends, or the listener — and the Server
-   * it closes over — outlives the connection.
-   */
-  subscribeToolsChanged(listener: () => void): () => void {
-    this.toolsChangedListeners.add(listener);
-    return () => {
-      this.toolsChangedListeners.delete(listener);
-    };
-  }
-
-  /**
-   * Activate tools by name, making them visible in getTools().
-   * Returns the list of newly activated tool names.
-   * Notifies every subscriber if any tools were activated.
-   */
-  activateTools(names: string[]): string[] {
-    const newlyActivated: string[] = [];
-    for (const name of names) {
-      if (this.tools.has(name) && !this.activeTools.has(name)) {
-        this.activeTools.add(name);
-        newlyActivated.push(name);
-      }
-    }
-    if (newlyActivated.length > 0) {
-      for (const listener of this.toolsChangedListeners) {
-        // One dead session's transport must not swallow the notification for
-        // every session subscribed after it.
-        try {
-          listener();
-        } catch (err) {
-          console.error('[Registry] Tool-list-changed listener failed:', err);
-        }
-      }
-    }
-    return newlyActivated;
   }
 
   /**
@@ -270,8 +286,6 @@ export class ToolRegistry {
   unregister(name: string): boolean {
     const hadTool = this.tools.delete(name);
     this.handlers.delete(name);
-    this.activeTools.delete(name);
-    this.toolVisibility.delete(name);
     return hadTool;
   }
 
@@ -283,9 +297,6 @@ export class ToolRegistry {
   clear(): void {
     this.tools.clear();
     this.handlers.clear();
-    this.activeTools.clear();
-    this.toolVisibility.clear();
-    this.toolsChangedListeners.clear();
   }
 }
 

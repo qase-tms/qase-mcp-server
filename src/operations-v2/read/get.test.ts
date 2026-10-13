@@ -41,7 +41,7 @@ beforeEach(() => {
 
 describe('qase_get — include parameter', () => {
   it('exposes an `include` field in its schema', () => {
-    const tool = toolRegistry.getAllTools().find((t) => t.name === 'qase_get');
+    const tool = toolRegistry.getDefinitions().find((t) => t.name === 'qase_get');
     const props = (tool?.inputSchema as any)?.properties ?? {};
     expect(props.include).toBeDefined();
   });

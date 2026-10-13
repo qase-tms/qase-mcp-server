@@ -1,9 +1,10 @@
 /**
- * Tool Discovery Meta-Tool
+ * Tool search meta-tool.
  *
- * Searches and activates additional Qase tools on demand.
- * By default, only core tools are visible to reduce context token usage.
- * This tool lets the agent discover and activate tools for specific needs.
+ * Every tool is listed from the start; this searches the catalogue by what
+ * the agent is trying to do and returns the matching tools with their
+ * descriptions, so a model that does not know the name of the right tool can
+ * find it without reading the whole list again.
  */
 
 import { z } from 'zod';
@@ -22,20 +23,11 @@ const Schema = z.object({
     .enum(['read', 'write', 'delete', 'composite', 'all'])
     .optional()
     .describe('Filter by tool category'),
-  activate: z
-    .boolean()
-    .optional()
-    .default(true)
-    .describe('If true (default), found tools are activated and become available for use'),
 });
 
 async function handler(args: z.infer<typeof Schema>) {
   const { query, category } = args;
-  // Handlers receive raw MCP arguments, so the schema default never runs —
-  // apply it here or discovery silently stops activating anything.
-  const activate = args.activate ?? true;
-
-  let matches = query ? toolRegistry.searchTools(query) : toolRegistry.getAllTools();
+  let matches = query ? toolRegistry.searchTools(query) : toolRegistry.getDefinitions();
 
   // Filter by category based on tool annotations
   if (category && category !== 'all') {
@@ -60,16 +52,8 @@ async function handler(args: z.infer<typeof Schema>) {
     });
   }
 
-  // Activate matched tools if requested
-  const activated: string[] = [];
-  if (activate) {
-    const names = matches.map((t) => t.name);
-    activated.push(...toolRegistry.activateTools(names));
-  }
-
   return {
     found: matches.length,
-    activated: activated.length,
     tools: matches.map((t) => ({
       name: t.name,
       description: t.description,
@@ -82,18 +66,14 @@ toolRegistry.register({
   name: 'qase_discover_tools',
   title: 'Discover more tools',
   description:
-    'Find and switch on tools that are hidden by default. Only core tools appear in the tool ' +
-    'list; deletes, test plans, milestones, environments, shared steps and parameters, external ' +
-    'issue links, case reviews, and project and custom-field management all exist but stay ' +
-    'hidden until discovered. Search by what you are trying to do — "delete", "milestone", ' +
-    '"plan", "review", "custom field" — and matching tools are activated and become callable. ' +
-    "Every word in the query must appear in a tool's name or description, so prefer two or three " +
-    'words over a sentence. Activation is announced to your client with ' +
-    'notifications/tools/list_changed: if a tool listed as activated here is still absent from ' +
-    'your tool list, your client did not act on that notification — call the same endpoint ' +
-    'through qase_api rather than reporting the capability as missing. Never conclude a ' +
-    'capability is missing without searching here first. Cost: no API call, matching happens in ' +
-    'memory, about 3ms. Free to call as often as needed.',
+    'Search the tool catalogue by what you are trying to do — "delete", "milestone", "review", "custom field" — and get back the matching tools with their descriptions. Every tool is already listed and callable; use this when you do not know which one fits, rather than re-reading the whole list. Cost: no API call, matching happens in memory, about 3ms.',
+  help:
+    "Searches tool names and descriptions. Every word in the query must appear in a tool's name " +
+    'or description, so prefer two or three words over a sentence. `category` narrows the result ' +
+    'to read, write, delete or composite tools. Since 3.0.0 nothing is hidden: the full catalogue ' +
+    'is in your tool list from the first request, so a match here is callable at once — there is ' +
+    'no activation step and no notification to wait for. Read qase_tool_help for the full ' +
+    'documentation of a tool before calling it for the first time.',
   schema: Schema,
   handler,
   annotations: ReadAnnotation,

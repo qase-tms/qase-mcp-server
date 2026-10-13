@@ -45,15 +45,16 @@ beforeEach(() => {
   // real failure behind a green test.
   mockGet
     .mockReset()
-    .mockResolvedValue({ data: { status: true, result: { id: 7, entity: 'case', type: 'string' } } });
+    .mockResolvedValue({
+      data: { status: true, result: { id: 7, entity: 'case', type: 'string' } },
+    });
 });
 
 describe('registration', () => {
-  it('registers both tools as discoverable', () => {
-    expect(toolRegistry.hasTool('qase_custom_field_upsert')).toBe(true);
-    expect(toolRegistry.hasTool('qase_custom_field_delete')).toBe(true);
+  it('registers both tools, listed from the start', () => {
     const listed = toolRegistry.getTools().map((t) => t.name);
-    expect(listed).not.toContain('qase_custom_field_upsert');
+    expect(listed).toContain('qase_custom_field_upsert');
+    expect(listed).toContain('qase_custom_field_delete');
   });
 
   it('marks deletion destructive so the confirmation gate covers it', () => {

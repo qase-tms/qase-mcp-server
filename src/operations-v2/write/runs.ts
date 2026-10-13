@@ -34,9 +34,9 @@ const RunFieldsSchema = z.object({
   start_time: z.string().optional().describe('RFC3339 start time'),
   end_time: z.string().optional().describe('RFC3339 end time'),
   custom_field: z
-    .record(z.any())
+    .record(z.string(), z.any())
     .optional()
-    .describe('Custom field values keyed by field ID, e.g. { "12": "value" }'),
+    .describe('Custom fields by ID, e.g. { "12": "value" }'),
 });
 
 const UpsertSchema = z.object({
@@ -107,6 +107,8 @@ toolRegistry.register({
   name: 'qase_run_upsert',
   title: 'Create or update test run',
   description:
+    'Create or update a test run — the container results are recorded into, so open it before qase_result_record. Scope it to a milestone, environment, plan or case list. To build one from a suite or plan use qase_regression_run; for a finished CI job use qase_ci_report, which opens, records and closes in one call. Cost: one API call, about 0.5s.',
+  help:
     'Create or update a test run. Without `id` it opens a new run; with `id` it updates that one. ' +
     'A run is the container results are recorded into, so open it before calling ' +
     'qase_result_record. Optionally scope it to a milestone, an environment, a plan, or an ' +
@@ -123,6 +125,8 @@ toolRegistry.register({
   name: 'qase_run_complete',
   title: 'Complete test run',
   description:
+    'Mark a test run complete so it reports as finished. It is a reporting state, not a lock — results recorded afterwards still land and change its counts. If all results are in hand at once, qase_ci_report does this as its final step. Cost: one API call, about 0.4s.',
+  help:
     'Mark a test run as complete so it reports as finished rather than in progress. Call it once ' +
     'the results are in; a run left open keeps showing as running and skews dashboards and any ' +
     '"is the release ready" question asked later. Note that completing does not seal the run: the ' +
@@ -141,6 +145,8 @@ toolRegistry.register({
   name: 'qase_run_delete',
   title: 'Delete test run',
   description:
+    'Delete a test run by project code and ID, together with every result in it; this cannot be undone. Rarely what you want: to stop accepting results use qase_run_complete, to fix one result use qase_result_delete. Asks the user for confirmation first. Cost: one API call, about 0.4s.',
+  help:
     'Delete a test run by project code and run ID. This removes the run together with every ' +
     'result recorded into it, and cannot be undone — the execution history for those cases goes ' +
     'with it. Deleting is rarely what you want: to stop a run from accepting results use ' +
@@ -150,5 +156,4 @@ toolRegistry.register({
   schema: DeleteSchema,
   handler: del,
   annotations: DeleteAnnotation,
-  visibility: 'discoverable',
 });

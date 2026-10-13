@@ -3,7 +3,25 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from '@jest/globals';
-import { ToolRegistry } from './registry.js';
+import { setTestEnv } from './test-helpers.js';
+
+// Set env before any operation module imports trigger getApiClient()
+setTestEnv();
+
+// The operation modules build an API client on import; stub it away, same as
+// smoke.test.ts, so importing the real catalog below has no network side effects.
+jest.mock('../client/index.js', () => ({
+  getApiClient: jest.fn().mockReturnValue({}),
+  apiRequest: jest.fn().mockResolvedValue({ status: true, result: {} }),
+  resetClientInstance: jest.fn(),
+}));
+
+// Import the real operation modules so the singleton `toolRegistry` below is
+// populated with the production catalog (core/discoverable tools) rather than
+// only the fixtures this file registers on its own local instances.
+import '../operations-v2/index.js';
+
+import { ToolRegistry, toolRegistry } from './registry.js';
 import { z } from 'zod';
 
 describe('ToolRegistry', () => {
@@ -178,7 +196,13 @@ describe('ToolRegistry', () => {
   describe('getTool', () => {
     it('returns the tool definition by name', () => {
       const schema = z.object({});
-      registry.register({ name: 'my_tool', title: 'My tool', description: 'desc', schema, handler: jest.fn() });
+      registry.register({
+        name: 'my_tool',
+        title: 'My tool',
+        description: 'desc',
+        schema,
+        handler: jest.fn(),
+      });
 
       const tool = registry.getTool('my_tool');
       expect(tool).toBeDefined();
@@ -191,239 +215,39 @@ describe('ToolRegistry', () => {
     });
   });
 
-  describe('visibility and discovery', () => {
-    const schema = z.object({});
-    const handler = jest.fn();
-
-    it('core tools (default) are active and in getTools()', () => {
-      registry.register({ name: 'core_tool', title: 'Core tool', description: 'core', schema, handler });
-
-      expect(registry.getTools().map((t) => t.name)).toContain('core_tool');
-    });
-
-    it('explicit core visibility is active', () => {
-      registry.register({
-        name: 'explicit_core',
-        title: 'Explicit core',
-        description: 'core',
-        schema,
-        handler,
-        visibility: 'core',
-      });
-
-      expect(registry.getTools().map((t) => t.name)).toContain('explicit_core');
-    });
-
-    it('discoverable tools are NOT in getTools() by default', () => {
-      registry.register({
-        name: 'hidden_tool',
-        title: 'Hidden tool',
-        description: 'hidden',
-        schema,
-        handler,
-        visibility: 'discoverable',
-      });
-
-      expect(registry.getTools().map((t) => t.name)).not.toContain('hidden_tool');
-    });
-
-    it('discoverable tools ARE in getAllTools()', () => {
-      registry.register({
-        name: 'hidden_tool',
-        title: 'Hidden tool',
-        description: 'hidden',
-        schema,
-        handler,
-        visibility: 'discoverable',
-      });
-
-      expect(registry.getAllTools().map((t) => t.name)).toContain('hidden_tool');
-    });
-
-    it('discoverable tools have a handler even when inactive', () => {
-      registry.register({
-        name: 'hidden_tool',
-        title: 'Hidden tool',
-        description: 'hidden',
-        schema,
-        handler,
-        visibility: 'discoverable',
-      });
-
-      expect(registry.getHandler('hidden_tool')).toBe(handler);
-    });
-
-    it('mixed core and discoverable tools', () => {
-      registry.register({ name: 'core_a', title: 'Core a', description: 'a', schema, handler });
-      registry.register({
-        name: 'disc_b',
-        title: 'Disc b',
-        description: 'b',
-        schema,
-        handler,
-        visibility: 'discoverable',
-      });
-      registry.register({ name: 'core_c', title: 'Core c', description: 'c', schema, handler });
-
-      const active = registry.getTools().map((t) => t.name);
-      expect(active).toEqual(['core_a', 'core_c']);
-
-      const all = registry.getAllTools().map((t) => t.name);
-      expect(all).toEqual(['core_a', 'core_c', 'disc_b']);
-    });
-  });
-
-  describe('activateTools', () => {
-    const schema = z.object({});
-    const handler = jest.fn();
-
-    it('activates discoverable tools and returns newly activated names', () => {
-      registry.register({
-        name: 'hidden',
-        title: 'Hidden',
-        description: 'h',
-        schema,
-        handler,
-        visibility: 'discoverable',
-      });
-
-      const activated = registry.activateTools(['hidden']);
-      expect(activated).toEqual(['hidden']);
-      expect(registry.getTools().map((t) => t.name)).toContain('hidden');
-    });
-
-    it('returns empty array for already-active tools', () => {
-      registry.register({ name: 'core_tool', title: 'Core tool', description: 'c', schema, handler });
-
-      const activated = registry.activateTools(['core_tool']);
-      expect(activated).toEqual([]);
-    });
-
-    it('ignores non-existent tool names', () => {
-      const activated = registry.activateTools(['nonexistent']);
-      expect(activated).toEqual([]);
-    });
-
-    it('notifies a subscriber when tools are activated', () => {
-      registry.register({
-        name: 'hidden',
-        title: 'Hidden',
-        description: 'h',
-        schema,
-        handler,
-        visibility: 'discoverable',
-      });
-      const callback = jest.fn();
-      registry.subscribeToolsChanged(callback);
-
-      registry.activateTools(['hidden']);
-
-      expect(callback).toHaveBeenCalledTimes(1);
-    });
-
-    // The registry is a process-wide singleton but every HTTP session gets its
-    // own Server instance. A single callback slot meant each new session
-    // overwrote the previous one's, so only the newest session was ever told
-    // that a tool had been activated — every older session kept serving a stale
-    // tools/list and its client could not call what discovery had just switched
-    // on.
-    it('notifies every subscriber, not just the most recent one', () => {
-      registry.register({
-        name: 'hidden',
-        title: 'Hidden',
-        description: 'h',
-        schema,
-        handler,
-        visibility: 'discoverable',
-      });
-      const sessionA = jest.fn();
-      const sessionB = jest.fn();
-      registry.subscribeToolsChanged(sessionA);
-      registry.subscribeToolsChanged(sessionB);
-
-      registry.activateTools(['hidden']);
-
-      expect(sessionA).toHaveBeenCalledTimes(1);
-      expect(sessionB).toHaveBeenCalledTimes(1);
-    });
-
-    it('stops notifying a subscriber that unsubscribed', () => {
-      registry.register({
-        name: 'hidden',
-        title: 'Hidden',
-        description: 'h',
-        schema,
-        handler,
-        visibility: 'discoverable',
-      });
-      const closed = jest.fn();
-      const open = jest.fn();
-      const unsubscribe = registry.subscribeToolsChanged(closed);
-      registry.subscribeToolsChanged(open);
-
-      unsubscribe();
-      registry.activateTools(['hidden']);
-
-      expect(closed).not.toHaveBeenCalled();
-      expect(open).toHaveBeenCalledTimes(1);
-    });
-
-    // One dead session's transport throwing must not swallow the notification
-    // for every other session subscribed after it.
-    it('keeps notifying the remaining subscribers when one throws', () => {
-      registry.register({
-        name: 'hidden',
-        title: 'Hidden',
-        description: 'h',
-        schema,
-        handler,
-        visibility: 'discoverable',
-      });
-      const broken = jest.fn(() => {
-        throw new Error('transport closed');
-      });
-      const healthy = jest.fn();
-      registry.subscribeToolsChanged(broken);
-      registry.subscribeToolsChanged(healthy);
-
-      expect(() => registry.activateTools(['hidden'])).not.toThrow();
-      expect(healthy).toHaveBeenCalledTimes(1);
-    });
-
-    it('does NOT notify when no new tools activated', () => {
-      registry.register({ name: 'core_tool', title: 'Core tool', description: 'c', schema, handler });
-      const callback = jest.fn();
-      registry.subscribeToolsChanged(callback);
-
-      registry.activateTools(['core_tool']);
-
-      expect(callback).not.toHaveBeenCalled();
-    });
-
-    it('does NOT throw when nobody is subscribed', () => {
-      registry.register({
-        name: 'hidden',
-        title: 'Hidden',
-        description: 'h',
-        schema,
-        handler,
-        visibility: 'discoverable',
-      });
-
-      // Should not throw
-      expect(() => registry.activateTools(['hidden'])).not.toThrow();
-    });
-  });
-
   describe('searchTools', () => {
     const schema = z.object({});
     const handler = jest.fn();
 
     beforeEach(() => {
-      registry.register({ name: 'qase_case_delete', title: 'Qase case delete', description: 'Delete a test case', schema, handler, visibility: 'discoverable' });
-      registry.register({ name: 'qase_case_upsert', title: 'Qase case upsert', description: 'Create or update a test case', schema, handler });
-      registry.register({ name: 'qase_run_delete', title: 'Qase run delete', description: 'Delete a test run', schema, handler, visibility: 'discoverable' });
-      registry.register({ name: 'qql_search', title: 'Qql search', description: 'Search entities using QQL', schema, handler });
+      registry.register({
+        name: 'qase_case_delete',
+        title: 'Qase case delete',
+        description: 'Delete a test case',
+        schema,
+        handler,
+      });
+      registry.register({
+        name: 'qase_case_upsert',
+        title: 'Qase case upsert',
+        description: 'Create or update a test case',
+        schema,
+        handler,
+      });
+      registry.register({
+        name: 'qase_run_delete',
+        title: 'Qase run delete',
+        description: 'Delete a test run',
+        schema,
+        handler,
+      });
+      registry.register({
+        name: 'qql_search',
+        title: 'Qql search',
+        description: 'Search entities using QQL',
+        schema,
+        handler,
+      });
     });
 
     it('searches by tool name (case-insensitive)', () => {
@@ -436,11 +260,10 @@ describe('ToolRegistry', () => {
       expect(results.map((t) => t.name)).toEqual(['qase_case_delete', 'qase_case_upsert']);
     });
 
-    it('includes inactive (discoverable) tools in results', () => {
+    it('searches the whole catalogue, and every hit is already listed', () => {
       const results = registry.searchTools('delete');
       expect(results).toHaveLength(2);
-      // These are discoverable and inactive
-      expect(registry.getTools().map((t) => t.name)).not.toContain('qase_case_delete');
+      expect(registry.getTools().map((t) => t.name)).toContain('qase_case_delete');
     });
 
     it('returns empty array for no matches', () => {
@@ -463,9 +286,7 @@ describe('ToolRegistry', () => {
     });
 
     it('requires every word to match, so unrelated words narrow the result', () => {
-      expect(registry.searchTools('delete case').map((t) => t.name)).toEqual([
-        'qase_case_delete',
-      ]);
+      expect(registry.searchTools('delete case').map((t) => t.name)).toEqual(['qase_case_delete']);
       expect(registry.searchTools('delete unicorn')).toEqual([]);
     });
 
@@ -500,32 +321,44 @@ describe('ToolRegistry', () => {
         description: 'x',
         schema,
         handler: jest.fn(),
-        visibility: 'discoverable',
       });
 
-      registry.activateTools(['to_remove']);
       expect(registry.getTools().map((t) => t.name)).toContain('to_remove');
 
       registry.unregister('to_remove');
       expect(registry.getTools().map((t) => t.name)).not.toContain('to_remove');
-      expect(registry.getAllTools().map((t) => t.name)).not.toContain('to_remove');
+      expect(registry.getDefinitions().map((t) => t.name)).not.toContain('to_remove');
       expect(registry.getHandler('to_remove')).toBeUndefined();
     });
   });
 
-  describe('clear with visibility', () => {
-    it('clears all tools and activation state', () => {
+  describe('clear', () => {
+    it('clears every tool', () => {
       const schema = z.object({});
       const handler = jest.fn();
       registry.register({ name: 'a', title: 'A', description: 'a', schema, handler });
-      registry.register({ name: 'b', title: 'B', description: 'b', schema, handler, visibility: 'discoverable' });
-      registry.activateTools(['b']);
+      registry.register({
+        name: 'b',
+        title: 'B',
+        description: 'b',
+        schema,
+        handler,
+      });
 
       registry.clear();
 
       expect(registry.getTools()).toHaveLength(0);
-      expect(registry.getAllTools()).toHaveLength(0);
+      expect(registry.getDefinitions()).toHaveLength(0);
       expect(registry.getToolCount()).toBe(0);
     });
+  });
+});
+
+describe('getTools() — the real catalogue', () => {
+  it('lists every registered tool, nothing hidden', () => {
+    const listed = toolRegistry.getTools().map((t) => t.name);
+    for (const t of toolRegistry.getDefinitions()) expect(listed).toContain(t.name);
+    expect(listed).toContain('qase_case_delete');
+    expect(listed).toContain('qase_review_create');
   });
 });

@@ -33,37 +33,29 @@ const UploadSchema = z.object({
     .max(MAX_FILES_PER_REQUEST)
     .optional()
     .describe(
-      'Several files in one request — each entry carries its own filename and either ' +
-        'file_base64 or file_path. Qase accepts at most 20 files, 32 MB per file and 128 MB ' +
-        'in total per request. Those are Qase limits; on a network transport the request body ' +
-        'itself caps out at 10 MB by default, so base64 content has to fit in that. Prefer ' +
-        'this over one call per file: it is a single round trip and returns the hashes in the ' +
-        'same order.',
+      'Several files in one request, each entry with its own filename plus file_base64 or ' +
+        'file_path. One round trip, hashes returned in the same order. Limits and sizing are ' +
+        'in qase_tool_help.',
     ),
   file_base64: z
     .string()
     .optional()
     .describe(
-      'Single-file form. File content, base64 encoded. Use this whenever the server is not ' +
-        'on the same machine as the file — including the hosted connector, where it is the ' +
-        'only option. Base64 grows a file by a third and the whole request body is capped at ' +
-        '10 MB by default, so this form carries roughly 7 MB of file; larger ones need a ' +
-        'local stdio server and file_path.',
+      'Single-file form. File content, base64 encoded. Use this unless the server runs on ' +
+        'the same machine as the file.',
     ),
   file_path: z
     .string()
     .optional()
     .describe(
-      'Single-file form. Absolute path to a file on the machine running THIS server. Only ' +
-        'usable for a local stdio server; a remote server cannot see your filesystem — send ' +
-        'file_base64 instead.',
+      'Single-file form. Absolute path on the machine running THIS server; a remote server ' +
+        'cannot see it — send file_base64 instead.',
     ),
   file: z
     .string()
     .optional()
     .describe(
-      'Deprecated: prefer file_base64 or file_path, which say which one you mean. Accepts ' +
-        'either an absolute path to an existing file or base64 content.',
+      'Deprecated: use file_base64 or file_path. Accepts an absolute path or base64 content.',
     ),
   filename: z
     .string()
@@ -263,6 +255,8 @@ toolRegistry.register({
   name: 'qase_attachment_upload',
   title: 'Upload attachment',
   description:
+    'Upload files and get back the hashes other tools reference them by. Pass `file_base64` plus `filename` for one file, or `files` for several in one request; `file_path` only works when the server runs on the same machine as the file — never on the hosted connector. The hash must then be passed in an `attachments` field; uploading alone attaches nothing. This is the only tool that sends multipart/form-data, which is why qase_api cannot send files. Cost: one API call per request, dominated by size.',
+  help:
     'Upload files and get back the hashes that other tools reference them by — screenshots, ' +
     'logs, HAR files, videos. For one file pass `file_base64` with the base64-encoded bytes, ' +
     'or `file_path` with an absolute path, plus `filename` with its extension. For several, ' +
@@ -271,7 +265,10 @@ toolRegistry.register({
     'runs on the same machine as the file: a remote server, the hosted connector included, ' +
     'cannot see your filesystem, and `file_path` will simply not find the file. Qase accepts ' +
     'at most 20 files, 32 MB per file and 128 MB per request; a request over any of those is ' +
-    'refused here before anything is sent, so split it across calls. The returned hash is what ' +
+    'refused here before anything is sent, so split it across calls. On a network transport the ' +
+    'request body itself caps out at 10 MB by default, and base64 grows a file by a third, so ' +
+    '`file_base64` carries roughly 7 MB of file — anything larger needs a local stdio server ' +
+    'and `file_path`. The returned hash is what ' +
     'goes in the `attachments` field of qase_case_upsert, qase_result_record, ' +
     'qase_defect_upsert or qase_triage_defect — uploading alone attaches nothing, the hash has ' +
     'to be passed on. This is the only tool that sends multipart/form-data, which is why ' +
@@ -284,13 +281,14 @@ toolRegistry.register({
   annotations: CreateAnnotation,
   // Core, not discoverable: the `attachments` field on core tools is unusable
   // without it, and a hidden tool left agents concluding uploads were impossible.
-  visibility: 'core',
 });
 
 toolRegistry.register({
   name: 'qase_attachment_delete',
   title: 'Delete attachment',
   description:
+    'Delete an attachment by its hash (from qase_attachment_upload). Anything referencing it keeps the reference but the file is gone; this cannot be undone. Asks the user for confirmation first. Cost: one API call, about 0.4s.',
+  help:
     'Delete an attachment by its hash. Anything referencing it — a case, a result, a defect — ' +
     'keeps the reference but the file is gone, so screenshots and logs attached to a failure ' +
     'disappear from the evidence trail. This cannot be undone. Attachments are addressed by hash, ' +
@@ -299,5 +297,4 @@ toolRegistry.register({
   schema: DeleteSchema,
   handler: del,
   annotations: DeleteAnnotation,
-  visibility: 'discoverable',
 });

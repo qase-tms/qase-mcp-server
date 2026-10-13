@@ -118,6 +118,8 @@ toolRegistry.register({
   name: 'qase_regression_run',
   title: 'Build regression run',
   description:
+    'Build and start a test run from a suite, a plan, or an explicit list of case IDs, in one step — it resolves the cases itself. It opens a run, it does not close one: for a finished pipeline use qase_ci_report; to assemble a run by hand use qase_run_upsert. Cost: two API calls behind one, about 1s.',
+  help:
     'Build and start a test run from a suite, a test plan, or an explicit list of case IDs, in ' +
     'one step. Use it to launch a regression cycle without first querying for cases and then ' +
     'creating a run around them — give it the source and it resolves the cases itself. For a run ' +

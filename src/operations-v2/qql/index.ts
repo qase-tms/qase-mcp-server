@@ -196,13 +196,16 @@ async function getQqlHelp(args: z.infer<typeof GetQqlHelpSchema>) {
         'Note: no created/updated — use started/ended. status values: "In Progress", "Passed", ' +
         '"Failed", "Aborted" ("active" is not a status).',
       result:
-        'Test results — entity = "result". Fields: id, caseId, case, run, status, priority, ' +
-        'severity, type, layer, suite, tags, comment, timeSpent, ended, isEnded, deleted, ' +
-        'isDeleted, milestone, project, author, createdBy, assignee. Note: no created/updated ' +
-        '(only `ended`), no title/description, no custom fields, and no environment. Unlike ' +
-        'case.suite, result.suite is a numeric suite ID. There is no run-ID field — `run` ' +
-        'matches the run TITLE, so results cannot be tied to a specific run ID in QQL; use ' +
-        'GET /v1/result/{code}?filters[run]=ID via qase_api for that. status DOES have an ' +
+        'Test results — entity = "result". Fields: id, caseId, case, runId, run, status, ' +
+        'priority, severity, type, layer, isManual, suite, tags, comment, timeSpent, ended, ' +
+        'isEnded, deleted, isDeleted, milestone, project, author, createdBy, assignee. Note: no ' +
+        'created/updated (only `ended`), no title/description, no custom fields, and no ' +
+        'environment. Unlike case.suite, result.suite is a numeric suite ID. `runId` is the run ' +
+        'number from the run URL (/run/DEMO/dashboard/42 is runId = 42), while `run` matches ' +
+        'the run TITLE. Run numbers restart in every project, so pair runId with project = ' +
+        '"CODE": without it, runId = 42 matches run 42 of every project, and GROUP BY runId ' +
+        'merges them into one group. caseId works the same way. isManual takes "Manual" or ' +
+        '"Automated" with = or != (not true/false). status DOES have an ' +
         '"untested" value, but it is excluded by default — see enumValues. An untested result ' +
         'is a case nobody has run yet, so its execution fields come back empty (comment, ' +
         'stacktrace, steps, end_time null/[], timeSpent 0) — aggregates over timeSpent skip ' +
@@ -226,6 +229,7 @@ async function getQqlHelp(args: z.infer<typeof GetQqlHelpSchema>) {
       examples: [
         'SELECT (COUNT(id)) entity = "result" and project = "DEMO" and status = "failed"',
         'SELECT (status, COUNT(id)) entity = "result" and project = "DEMO" GROUP BY status',
+        'SELECT (status, COUNT(id)) entity = "result" and project = "DEMO" and runId = 42 GROUP BY status',
         'SELECT (COUNT(id)) entity = "case" and project = "DEMO" GROUP BY suite HAVING COUNT(id) > 10',
         'SELECT (AVG(timeSpent), MAX(timeSpent)) entity = "result" and project = "DEMO"',
       ],
@@ -310,6 +314,8 @@ toolRegistry.register({
   name: 'qql_search',
   title: 'Search with QQL',
   description:
+    'Search any entity with Qase Query Language — filtering, cross-project, sorting, aggregation — and the right way to fetch many records at once instead of looping over qase_get. Call qql_help first for syntax, fields and enum values. Use qase_get when you already know the one ID you want. Cost: one API call, 0.5-0.9s per page; ten records here cost 1.2s against 5.3s as ten qase_get calls.',
+  help:
     'Search any entity with Qase Query Language: filtering, cross-project queries, sorting, and ' +
     'aggregation. This is the right tool for every question that is not "give me this one record ' +
     'by ID" — "cases without automation", "results that failed this week", "open blockers across ' +
@@ -330,6 +336,8 @@ toolRegistry.register({
   name: 'qql_help',
   title: 'QQL syntax help',
   description:
+    'Read the QQL reference before writing a query. Pass a `topic`: overview, syntax, entities, operators, functions, examples, aggregation or enumValues. Field names differ per entity and from the write tools, and a query naming an unknown attribute is rejected — read `entities` first. Cost: no API call, about 2ms; cheaper than one rejected qql_search.',
+  help:
     'Read the QQL reference before writing a query. Pass a `topic`: overview, syntax, entities, ' +
     'operators, functions, examples, aggregation, or enumValues. `entities` lists the fields each ' +
     'entity actually exposes, and `enumValues` gives the accepted values for status, priority, ' +

@@ -17,33 +17,57 @@ const stepFields = {
   expected_result: z.string().optional().describe('Expected result'),
   data: z.string().optional().describe('Test data'),
   value: z.string().optional().describe('Gherkin scenario text (when steps_type is "gherkin")'),
-  attachments: z
-    .array(z.string())
-    .optional()
-    .describe('Attachment hashes from qase_attachment_upload'),
+  attachments: z.array(z.string()).optional().describe('Hashes from qase_attachment_upload'),
   shared: z
     .string()
     .optional()
-    .describe(
-      'Hash of an existing shared step to insert at this position, from `qase_shared_step_upsert`. ' +
-        'The step then reuses that shared step instead of defining its own content, so `action` ' +
-        'can be omitted. Reading the case back reports the link as `shared_step_hash`.',
-    ),
+    .describe('Hash from `qase_shared_step_upsert` to reuse here; then `action` is not needed.'),
   shared_step_hash: z
     .string()
     .optional()
-    .describe(
-      'Alias for `shared` — the name used when reading a case. Sent to the API as `shared`.',
-    ),
+    .describe('Alias for `shared`, the spelling a case reads back.'),
 };
 
-export const TestStepSchema = z.object({
+/**
+ * A step as the caller writes it.
+ *
+ * TypeScript cannot infer the type of a schema that refers to itself, so the
+ * shape is stated once here and the schema is annotated with it.
+ */
+export interface TestStep {
+  action?: string;
+  expected_result?: string;
+  data?: string;
+  value?: string;
+  attachments?: string[];
+  shared?: string;
+  shared_step_hash?: string;
+  steps?: TestStep[];
+}
+
+export const TestStepSchema: z.ZodType<TestStep> = z.object({
   ...stepFields,
-  steps: z
-    .array(z.object(stepFields).passthrough())
-    .optional()
-    .describe('Nested substeps. Same structure as parent steps, supports further nesting.'),
+  /**
+   * The step tree is recursive, and a getter is how zod expresses that: the
+   * property resolves when the schema is first walked, by which point
+   * `TestStepSchema` exists.
+   *
+   * This is also what lets the emitted JSON Schema carry the step definition
+   * ONCE, in `$defs`, with both levels pointing at it. The shape this replaces
+   * could not recurse at all — it spelled a second, deliberately terse copy of
+   * the fields by hand and stopped there, so a sub-sub-step had no schema.
+   */
+  get steps() {
+    return z
+      .array(TestStepSchema)
+      .optional()
+      .describe('Nested substeps, nesting further if needed.');
+  },
 });
+
+// Name the definition the step tree is hoisted into. Without this zod calls it
+// `__schema0`, which is what the model would read in `$defs`.
+z.globalRegistry.add(TestStepSchema, { id: 'step' });
 
 export const CaseFieldsSchema = z.object({
   title: z.string().min(1).max(255).describe('Test case title'),
@@ -61,18 +85,13 @@ export const CaseFieldsSchema = z.object({
   automation: z
     .string()
     .optional()
-    .describe(
-      'Automation status (label, slug, or numeric ID: 0=Manual / is-not-automated, 1=To be automated, 2=Automated)',
-    ),
+    .describe('Automation: 0=Manual, 1=To be automated, 2=Automated (label or ID)'),
   status: z.string().optional().describe('Status label or numeric ID'),
   // Declared as a string like the other dictionary fields, with a boolean
   // folded in first: the name invites `true`, which the API rejects outright.
   is_flaky: z.preprocess(
     coerceFlakyBoolean,
-    z
-      .string()
-      .optional()
-      .describe('Is flaky label or numeric ID (0=No, 1=Yes). A boolean is accepted too.'),
+    z.string().optional().describe('Is flaky: 0=No, 1=Yes; a boolean works too.'),
   ),
   suite_id: z.number().int().positive().optional().describe('ID of the suite that holds the case'),
   milestone_id: z
@@ -88,16 +107,13 @@ export const CaseFieldsSchema = z.object({
   steps_type: z
     .enum(['classic', 'gherkin'])
     .optional()
-    .describe('How steps are written: "classic" action/expected pairs, or "gherkin" scenario text'),
+    .describe('Step style: "classic" action/expected, or "gherkin" scenario text'),
   tags: z.array(z.string()).optional().describe('Tag names, e.g. ["smoke", "billing"]'),
-  attachments: z
-    .array(z.string())
-    .optional()
-    .describe('Attachment hashes from qase_attachment_upload'),
+  attachments: z.array(z.string()).optional().describe('Hashes from qase_attachment_upload'),
   custom_field: z
-    .record(z.any())
+    .record(z.string(), z.any())
     .optional()
-    .describe('Custom field values keyed by field ID, e.g. { "12": "value" }'),
+    .describe('Custom fields by ID, e.g. { "12": "value" }'),
 });
 
 /**

@@ -231,16 +231,16 @@ The API has always required both. They were optional in the tool schema, which m
 
 ## Tool mapping table
 
-All 83 v1 tools mapped to their v2 equivalents.
+All 83 v1 tools mapped to their equivalents in the **current** tool set, not the one v2.0.0 shipped with. Several rows that used to send you to the `qase_api` escape hatch now name a dedicated tool that has been added since — projects, external issue links and custom fields among them. Where a row still names `qase_api`, no dedicated tool covers that endpoint yet.
 
 ### Projects
 
 | v1 tool | v2 equivalent | Notes |
 |---|---|---|
 | `list_projects` | `qase_project_context` | Returns project + suites + milestones + envs + custom fields + users in one call |
-| `get_project` | `qase_get` with `entity="project"` | No `code` required; pass project code as `id` |
-| `create_project` | `qase_api` | Use escape hatch: `POST /project` |
-| `delete_project` | `qase_api` | Use escape hatch: `DELETE /project/{code}` |
+| `get_project` | `qase_project_context` | `qase_get` has no `project` entity. Context returns the project with its suites, milestones, environments, custom fields and users |
+| `create_project` | `qase_project_create` | Code must be unique and letters only; there is no update endpoint afterwards |
+| `delete_project` | `qase_project_delete` | Takes everything in the project with it, with no trash to recover from |
 | `grant_project_access` | `qase_api` | Use escape hatch: `POST /project/{code}/access` |
 | `revoke_project_access` | `qase_api` | Use escape hatch: `DELETE /project/{code}/access` |
 
@@ -254,8 +254,8 @@ All 83 v1 tools mapped to their v2 equivalents.
 | `update_case` | `qase_case_upsert` (include `id`) | Include `id` to update existing case |
 | `delete_case` | `qase_case_delete` | — |
 | `bulk_create_cases` | `qase_case_bulk_create` | Same shape: `cases` array, up to 100 per call |
-| `attach_external_issue` | `qase_api` | Use escape hatch: `POST /case/{code}/{id}/external-issues` |
-| `detach_external_issue` | `qase_api` | Use escape hatch: `DELETE /case/{code}/{id}/external-issues` |
+| `attach_external_issue` | `qase_external_issue_link` with `action="link"` | Jira Cloud and Jira Server only; works on cases and runs |
+| `detach_external_issue` | `qase_external_issue_link` with `action="unlink"` | Same tool, the other `action` |
 
 ### Test Suites
 
@@ -371,9 +371,9 @@ All 83 v1 tools mapped to their v2 equivalents.
 |---|---|---|
 | `list_custom_fields` | `qase_project_context` | Custom fields are included in context response |
 | `get_custom_field` | `qase_get` with `entity="custom_field"` | — |
-| `create_custom_field` | `qase_api` | Use escape hatch: `POST /custom-field` |
-| `update_custom_field` | `qase_api` | Use escape hatch: `PATCH /custom-field/{id}` |
-| `delete_custom_field` | `qase_api` | Use escape hatch: `DELETE /custom-field/{id}` |
+| `create_custom_field` | `qase_custom_field_upsert` (omit `id`) | `entity` and `type` are required on create and fixed forever |
+| `update_custom_field` | `qase_custom_field_upsert` (include `id`) | `entity` and `type` cannot be changed |
+| `delete_custom_field` | `qase_custom_field_delete` | Workspace-wide: it disappears from every project, with the values entered for it |
 
 ### System Fields
 

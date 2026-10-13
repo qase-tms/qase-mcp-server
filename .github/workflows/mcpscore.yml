@@ -45,14 +45,16 @@ jobs:
         with:
           # The action launches the built server itself and speaks stdio to it.
           target: ./build/index.js
-          # 91.6% at the time of writing (98/107). The floor leaves room for a
+          # 98.5% at the time of writing (130/132). The floor leaves room for a
           # rule or two to move without a red build, while still catching the
-          # slow erosion a severity gate alone would miss.
-          min-score: 90
+          # slow erosion a severity gate alone would miss. Raised from 90 with
+          # the 1.22.2 bump: the rule set grew from 107 points to 132, so the
+          # old floor had quietly widened from ~2 points of slack to ~13.
+          min-score: 95
           # Pinned: a new mcpscore release can add rules, and an audit tool that
           # fails the build on a day nobody touched the server teaches people to
-          # ignore it.
-          version: '1.20.0'
+          # ignore it. Bump deliberately, after a local run.
+          version: '1.22.2'
           # No QASE_API_TOKEN is set: the audit speaks protocol to the server
           # over stdio and never calls a tool, so nothing reaches the Qase API.
           # Adding --smoke here would change that and need a real token.

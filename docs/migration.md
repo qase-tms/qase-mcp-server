@@ -239,7 +239,7 @@ All 83 v1 tools mapped to their equivalents in the **current** tool set, not the
 |---|---|---|
 | `list_projects` | `qase_project_context` | Returns project + suites + milestones + envs + custom fields + users in one call |
 | `get_project` | `qase_project_context` | `qase_get` has no `project` entity. Context returns the project with its suites, milestones, environments, custom fields and users |
-| `create_project` | `qase_project_create` | Code must be unique and letters only; there is no update endpoint afterwards |
+| `create_project` | `qase_project_create` | Code must be unique in the workspace; there is no update endpoint afterwards |
 | `delete_project` | `qase_project_delete` | Takes everything in the project with it, with no trash to recover from |
 | `grant_project_access` | `qase_api` | Use escape hatch: `POST /project/{code}/access` |
 | `revoke_project_access` | `qase_api` | Use escape hatch: `DELETE /project/{code}/access` |

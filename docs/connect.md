@@ -1,13 +1,26 @@
 # Connect to the hosted Qase MCP
 
-The quickest way to use Qase — no install and no API token. Connect to the Qase-hosted MCP server at `https://mcp.qase.io/mcp` and sign in with your Qase account. Any MCP client that supports remote servers (OAuth 2.1) works; the client handles the OAuth flow for you — Claude, Cursor, Codex, and VS Code are shown below.
+The quickest way to use Qase — no install and no API token. Connect to the Qase-hosted MCP server and sign in with your Qase account. Any MCP client that supports remote servers (OAuth 2.1) works; the client handles the OAuth flow for you — Claude, Cursor, Codex, and VS Code are shown below.
 
-> **Availability:** The hosted Qase MCP requires the **Enterprise** plan *and* a workspace on Qase's main cloud (`qase.io`). Two situations call for [running the server yourself](self-run.md) instead:
+## Pick your endpoint
+
+Qase's cloud runs in two regions, each with its own hosted MCP server. **Use the one your workspace lives on** — they are separate deployments, each backed by its own data and its own accounts, so the wrong URL cannot reach your projects.
+
+| Your Qase workspace | MCP server URL |
+|---|---|
+| `app.qase.io` (main cloud) | `https://mcp.qase.io/mcp` |
+| `app-eu.qase.io` (EU cluster) | `https://mcp-eu.qase.io/mcp` |
+
+Every example below uses the main-cloud URL. On the EU cluster, substitute `https://mcp-eu.qase.io/mcp` and change nothing else: the setup, the OAuth flow and the tools are identical. Sign-in goes to that region's own identity provider — `auth.qase.io` or `auth-eu.qase.io` — so you authenticate against the region holding your data, and attachments you upload stay there too.
+
+A **dedicated instance** is not a region and has no hosted endpoint; [run the server yourself](self-run.md) and point it at your own domain.
+
+> **Availability:** The hosted Qase MCP requires the **Enterprise** plan, in either region. Two situations call for [running the server yourself](self-run.md) instead:
 >
 > - **Any other plan** — you can sign in, but tool calls are rejected with a plan error.
-> - **A dedicated instance** — the hosted server only talks to the main cloud, so it cannot reach a dedicated deployment whatever your plan. Self-run points at your own domain via `QASE_API_DOMAIN`.
+> - **A dedicated instance** — the hosted servers talk to Qase's own clouds, so neither can reach a dedicated deployment whatever your plan. Self-run points at your own domain via `QASE_API_DOMAIN`.
 >
-> Running the server yourself works on every plan and on both cloud and dedicated instances.
+> Running the server yourself works on every plan, in both regions, and on dedicated instances.
 
 Prefer to run the server yourself with your own `QASE_API_TOKEN`? See [Self-Run Guide (Local / stdio)](self-run.md).
 
@@ -17,6 +30,8 @@ Qase publishes an official **Qase Test Management** connector in Claude's direct
 
 1. In Claude, open **Settings → Connectors** and find **Qase Test Management**.
 2. Click **Connect** and complete the Qase sign-in when prompted.
+
+The directory connector points at the main cloud. On the EU cluster, add it by URL instead — **Settings → Connectors → Add custom connector** — with `https://mcp-eu.qase.io/mcp`.
 
 ## Cursor
 
@@ -69,10 +84,11 @@ Or run **MCP: Add Server** from the Command Palette (`⇧⌘P` / `Ctrl+Shift+P`)
 
 ## Other remote clients
 
-Any MCP client that supports remote (HTTP) servers with OAuth 2.1 can connect the same way — point it at:
+Any MCP client that supports remote (HTTP) servers with OAuth 2.1 can connect the same way — point it at the URL for your region:
 
 ```
-https://mcp.qase.io/mcp
+https://mcp.qase.io/mcp        # main cloud
+https://mcp-eu.qase.io/mcp     # EU cluster
 ```
 
 In every case the hosted server authenticates via your Qase login (OAuth) — no local installation or `QASE_API_TOKEN` needed.

@@ -1,6 +1,6 @@
 # Troubleshooting
 
-Issues are grouped by how you're connecting: the [hosted connector](connect.md) (OAuth, no local install) or a [self-run](self-run.md) server (your own `QASE_API_TOKEN`). If you're not sure which applies, most people using the hosted server at `https://mcp.qase.io/mcp` should look at the **Hosted Connector / OAuth** section first.
+Issues are grouped by how you're connecting: the [hosted connector](connect.md) (OAuth, no local install) or a [self-run](self-run.md) server (your own `QASE_API_TOKEN`). If you're not sure which applies, most people connecting to a hosted URL (`mcp.qase.io` or `mcp-eu.qase.io`) should look at the **Hosted Connector / OAuth** section first.
 
 ## Authentication Errors (Self-Run)
 
@@ -17,17 +17,23 @@ This means the server is running locally (self-run) and rejected the token it wa
 
 ## Hosted Connector / OAuth
 
-These apply when connecting to the Qase-hosted server (`https://mcp.qase.io/mcp`) — see [Connect to the hosted Qase MCP](connect.md). There's no `QASE_API_TOKEN` here; authentication is a browser-based OAuth sign-in to your Qase account.
+These apply when connecting to a Qase-hosted server — `https://mcp.qase.io/mcp` on the main cloud, `https://mcp-eu.qase.io/mcp` on the EU cluster; see [Connect to the hosted Qase MCP](connect.md). There's no `QASE_API_TOKEN` here; authentication is a browser-based OAuth sign-in to your Qase account.
 
 ### Access denied / Enterprise plan required
 
-The hosted Qase MCP requires the **Enterprise** plan. If your workspace is on another plan, requests are rejected with an access/plan error — the connector may sign in but tool calls fail with a plan-related message.
+The hosted Qase MCP requires the **Enterprise** plan, in either region. If your workspace is on another plan, requests are rejected with an access/plan error — the connector may sign in but tool calls fail with a plan-related message.
 
 **Solution**: upgrade to the Enterprise plan, or [run the server yourself](self-run.md) with your own `QASE_API_TOKEN` (works on any plan).
 
+### Connected to the wrong region
+
+Qase's cloud runs in two regions, each with its own hosted server: `https://mcp.qase.io/mcp` for the main cloud (`app.qase.io`) and `https://mcp-eu.qase.io/mcp` for the EU cluster (`app-eu.qase.io`). They are separate deployments with separate data and separate accounts, so a workspace on one is not reachable from the other.
+
+**Solution**: check which domain you sign in to Qase on, and point the client at that region's URL — see [Pick your endpoint](connect.md#pick-your-endpoint). Remove the server entry and re-add it with the right URL rather than editing it in place, so the stored OAuth grant for the old region is discarded.
+
 ### Dedicated instance can't use the hosted connector
 
-The hosted server at `https://mcp.qase.io/mcp` serves Qase's main cloud (`qase.io`) only. If your workspace lives on a dedicated instance, the connector cannot reach your data — an Enterprise plan does not change this, and the symptom is usually a sign-in that succeeds against the wrong place, or projects that simply aren't there.
+The hosted servers serve Qase's own clouds only. If your workspace lives on a dedicated instance, neither connector can reach your data — an Enterprise plan does not change this, and the symptom is usually a sign-in that succeeds against the wrong place, or projects that simply aren't there.
 
 **Solution**: [run the server yourself](self-run.md) and point it at your instance:
 
@@ -42,10 +48,10 @@ If that instance is served without TLS, also set `QASE_API_PROTOCOL=http` — se
 
 **Solution**:
 
-1. Confirm the server URL is exactly `https://mcp.qase.io/mcp` — no trailing slash variations, no surrounding quotes (see the clean-URL footgun below)
+1. Confirm the server URL is exactly `https://mcp.qase.io/mcp`, or `https://mcp-eu.qase.io/mcp` on the EU cluster — no trailing slash variations, no surrounding quotes (see the clean-URL footgun below)
 2. Confirm your MCP client supports remote (HTTP) servers with OAuth 2.1 — older clients or stdio-only integrations can't connect to a hosted URL
 3. Restart your MCP client completely (close and reopen) after adding the server
-4. Check that your network/firewall allows outbound HTTPS to `mcp.qase.io`
+4. Check that your network/firewall allows outbound HTTPS to the server's host (`mcp.qase.io` or `mcp-eu.qase.io`) and to its sign-in host (`auth.qase.io` or `auth-eu.qase.io`)
 
 ### "Auth required" or empty tool list after connecting
 

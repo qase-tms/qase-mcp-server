@@ -99,17 +99,23 @@ safe, but destructive tools stop working. A single replica needs nothing set.
 
 `QASE_MCP_REDIS_URL` is optional: it shares the response cache between replicas so a repeated read is served from Valkey rather than from Qase again.
 
-### Custom Domains (Enterprise)
+### Other Regions and Custom Domains
 
-If you're using Qase Enterprise with a custom domain:
+`QASE_API_DOMAIN` defaults to `api.qase.io`, which is Qase's main cloud. Point it elsewhere when your workspace is not there:
 
 ```bash
+# EU cluster — workspaces on app-eu.qase.io
+QASE_API_DOMAIN=api-eu.qase.io
+
+# Enterprise dedicated instance
 QASE_API_DOMAIN=api-yourcompany.qase.io
 ```
 
-`QASE_API_DOMAIN` takes the domain only — no scheme, no path. `https://api-yourcompany.qase.io` or `api-yourcompany.qase.io/v1` are rejected with an error.
+Issue the token from the workspace you are naming: a token is valid only in the region that minted it, and one from the main cloud will be rejected by the EU API. The EU token page is <https://app-eu.qase.io/user/api/token>.
 
-If your workspace is on a **dedicated instance**, self-run is the only option: the [hosted connector](connect.md) serves Qase's main cloud (`qase.io`) only, regardless of plan.
+`QASE_API_DOMAIN` takes the domain only — no scheme, no path. `https://api-eu.qase.io` or `api-eu.qase.io/v1` are rejected with an error.
+
+Both Qase clouds also offer a hosted connector, so self-run is a choice there rather than a requirement — see [Pick your endpoint](connect.md#pick-your-endpoint). On a **dedicated instance** self-run is the only option: the hosted servers serve Qase's own clouds only, regardless of plan.
 
 ### Self-Hosted Deployments over Plain HTTP
 

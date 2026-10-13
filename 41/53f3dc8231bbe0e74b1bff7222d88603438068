@@ -1,0 +1,20 @@
+docs/migration.md
+  s_fef725799cacdb::t_f66ac5b6278167 241-243,257-258,374-376
+  s_fef725799cacdb::t_4557f34ede070d 234
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "4153f3dc8231bbe0e74b1bff7222d88603438068",
+  "prompts": {},
+  "sessions": {
+    "s_fef725799cacdb": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b943b4b3-61be-47d6-8bb1-ad338faf9ede",
+        "model": "claude-opus-5"
+      },
+      "human_author": "Dmitrii Gridnev <dgridnev@qase.io>"
+    }
+  }
+}

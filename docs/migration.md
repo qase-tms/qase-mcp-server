@@ -1,6 +1,178 @@
 # Migration Guide
 
-Two migrations are covered here: the v1 → v2 tool rename (the bulk of this document), and the smaller [2.0.x → 2.1.0](#20x--210) change to `qase_triage_defect`.
+Three migrations are covered here: [2.x → 3.0.0](#2x--300) — the protocol, deployment and tool-API changes in the current release — the smaller [2.0.x → 2.1.0](#20x--210) change to `qase_triage_defect`, and the v1 → v2 tool rename (the bulk of this document).
+
+---
+
+## 2.x → 3.0.0
+
+3.0.0 changes the revision of MCP the server speaks and removes the sessions it used to keep. **No tool was renamed, and no tool argument changed** — prompts, workflows and automation that call tools by name keep working untouched. What changes is the protocol underneath, three response shapes, and one deployment requirement.
+
+Start with the row that describes you:
+
+| You | What you have to do |
+|---|---|
+| Use the hosted server at `mcp.qase.io` | Nothing. Read [What every user sees](#what-every-user-sees). |
+| Run the server over stdio (`npx @qase/mcp-server`) | Update the package. Nothing to configure. |
+| Self-host the HTTP server, one replica | Update the image. Nothing to configure. |
+| Self-host the HTTP server, more than one replica | **Set `QASE_MCP_REQUEST_STATE_KEY`** before deploying — see [Required for multiple replicas](#required-for-multiple-replicas). |
+| Build a product on top of the tool API | Read [Changes to the tool API](#changes-to-the-tool-api) — three shapes changed. |
+
+---
+
+### What every user sees
+
+#### Every tool is in your list from the first request
+
+Twenty-four tools used to stay out of the tool list until `qase_discover_tools` switched them on. That is gone: all 42 tools are listed immediately, and `qase_discover_tools` stays as a *search* over the catalogue for when the right tool's name is not known. There is no activation step and no `notifications/tools/list_changed` to wait for.
+
+Nothing to change on your side. If you had instructions in a prompt telling the agent to "run discovery first", you can delete them — though leaving them in is harmless, the search still works.
+
+Tool descriptions in the list are now deliberately short. The full documentation of a tool — argument semantics, limits, what cannot be undone — is served by the new **`qase_tool_help`** tool, which takes a single `tool` argument. Together with schemas generated natively by zod 4, this took the tool list from 19.9k to 14.3k tokens, so every request to the model carries about 28% less of it.
+
+#### Deleting takes two round trips
+
+A destructive tool (`qase_run_delete`, `qase_case_delete`, a `DELETE` through `qase_api`, and the rest) no longer waits inside the call for your answer. It returns a request for confirmation, your client shows the prompt, and the call is retried carrying the answer. Most MCP clients do this for you and you see only the prompt.
+
+The window is **ten minutes**, and the confirmation is bound to the caller, the tool, and the exact arguments it was shown for — so a confirmation for one deletion cannot be replayed against another.
+
+**If your client never shows you a prompt, it cannot delete.** This is not new in 3.0.0 — 2.x refused the same clients — but the explanation is now specific about which of the two requirements is missing:
+
+- the client negotiates MCP 2026-07-28, **or**
+- it declares the `elicitation` capability over a long-lived connection (stdio, SSE).
+
+Measured on the wire, **Claude Desktop has neither**: it negotiates 2025-11-25 and declares no elicitation. Deletions from Claude Desktop are refused with an explanation; use the Qase UI or a client such as Claude Code. Everything that is not a deletion works normally there.
+
+One message changed meaning. A client that receives the confirmation request and silently drops it is now reported as a **cancellation**, not a refusal. Saying "declined by the user" about a prompt nobody was ever shown sent testers looking for deletions they had never refused.
+
+#### What a 2025-era client loses over HTTP
+
+This is the one genuine regression. Confirming a deletion on the old revision needs the capabilities a client declares during `initialize`, and on the new stateless HTTP endpoint such a request never carried one. So:
+
+- **2025-era client over Streamable HTTP or SSE-over-HTTP → cannot delete.** The call is refused with an explanation; nothing is deleted. Reads and writes are unaffected.
+- **2025-era client over stdio or on an open SSE stream → unchanged.** The connection is long-lived, the client's capabilities are known, and confirmation works exactly as it did in 2.x.
+- **A stdio client that itself negotiates 2026-07-28** gets the two-round-trip flow above rather than the old single push.
+
+---
+
+### Required for multiple replicas
+
+**Set `QASE_MCP_REQUEST_STATE_KEY` before deploying more than one replica.**
+
+```bash
+QASE_MCP_REQUEST_STATE_KEY=<a shared random string of 32+ bytes>
+```
+
+It is the HMAC key that signs a pending confirmation. There are no sessions any more, so the request that asks for confirmation and the request that carries the answer can land on different replicas; without a shared key the second replica cannot verify what the first one minted, and the deletion is refused.
+
+- It must be **at least 32 bytes**, or the server refuses to start.
+- It must be **identical on every replica**.
+- **A single replica needs nothing** — one is generated at startup and logged as such.
+
+Nothing is ever deleted unconfirmed if you forget it. Destructive tools simply stop working until it is set. Generate one with `openssl rand -hex 32`.
+
+### The HTTP endpoint has no sessions
+
+| | 2.x | 3.0.0 |
+|---|---|---|
+| `mcp-session-id` response header | issued on initialize | never issued |
+| `mcp-session-id` request header | required on follow-ups | accepted and ignored |
+| `GET` on the MCP endpoint | opened the SSE stream | `405` |
+| `DELETE` on the MCP endpoint | ended the session | `405` |
+| `Access-Control-Allow-Methods` | `GET, POST, DELETE, OPTIONS` | `GET, POST, OPTIONS` |
+| Load-balancer session affinity | required | not needed |
+
+`mcp-session-id` is still accepted as a *request* header on purpose, so a client that still sends one is not broken by a CORS preflight.
+
+Two practical consequences:
+
+- **Turn off sticky sessions / session affinity** in front of the server. They are no longer needed, and spreading requests evenly is now strictly better.
+- **Check your health probes.** Anything that probed the MCP endpoint with `GET` now gets `405`. Use `/health` instead.
+
+The SSE transport is unchanged and still stateful: it keeps a long-lived stream, and the integration marker it captured when the stream opened is still reused for that stream.
+
+### Removed environment variable
+
+**`QASE_MCP_SESSION_TTL_MINUTES`** tuned how long an idle HTTP session was kept in memory before eviction. There are no sessions left to evict, so it is read nowhere. Leaving it in a deployment is harmless — it is simply ignored — but you can drop it whenever convenient.
+
+### Integration marker
+
+On **Streamable HTTP**, `X-Qase-Integration` and `?integration=` are now read on the request that carries them, and never attributed to the next one. In 2.x the marker was captured once when a session opened and reused for the session's lifetime, which meant a marker from one caller could be attributed to another's calls on a shared connection.
+
+Precedence is unchanged: request header → query parameter → `QASE_MCP_INTEGRATION`. On SSE, also unchanged: request header → the value captured when the stream opened → `QASE_MCP_INTEGRATION`.
+
+---
+
+### Changes to the tool API
+
+For anyone parsing `tools/list` or a tool's result rather than letting an agent read it.
+
+#### `qase_discover_tools` dropped `activated`
+
+Nothing is hidden any more, so there is nothing to activate.
+
+```diff
+ {
+   "found": 5,
+-  "activated": 5,
+   "tools": [{ "name": "...", "description": "...", "destructive": false }]
+ }
+```
+
+`found` and `tools` are unchanged. In 2.x the `activated` count was unreliable anyway — it counted tools that were already visible, so a search that turned nothing on could still report `activated: 5`.
+
+#### `outputSchema` is no longer sent in `tools/list`
+
+No client validated results against it, and its one internal job — deciding whether to attach `structuredContent` — is now done for every object result. So **`structuredContent` is attached more often than before**, not less. If you validated against the advertised `outputSchema`, that schema is gone; read the result instead.
+
+#### Annotations omit hints equal to the spec default
+
+The wire now carries only the annotation hints that *differ* from the MCP specification's defaults. The default for `destructiveHint` is **`true`**, so for a deletion tool the hint is now **absent**:
+
+```diff
+ // qase_run_delete
+-"annotations": { "readOnlyHint": false, "destructiveHint": true, "idempotentHint": true, "openWorldHint": true }
++"annotations": { "idempotentHint": true }
+```
+
+Per the specification, an absent `destructiveHint` means destructive. Code that tested `annotations.destructiveHint === true` to flag a dangerous tool will now treat every deletion as safe.
+
+```diff
+-const destructive = tool.annotations?.destructiveHint === true;
++const destructive = tool.annotations?.destructiveHint !== false;
+```
+
+The same applies to `openWorldHint` (default `true`, so absence means open-world) and, inverted, to `readOnlyHint` and `idempotentHint` (default `false`, so absence means not read-only / not idempotent).
+
+#### New tool: `qase_tool_help`
+
+```json
+{ "tool": "qase_case_upsert" }
+```
+
+Returns the full documentation of one tool. The text is the same documentation that used to live in the tool's `description`; it moved so that 28 KB of traps and field semantics stop being sent to the model on every single request.
+
+---
+
+### For client implementers
+
+If you wrote your own MCP client rather than using the SDK, the deletion flow is the only thing that needs code:
+
+1. Call the destructive tool as usual.
+2. The server answers with an **input-required** result carrying one elicitation request and an opaque `requestState`.
+3. Show the prompt. The message names the tool and every argument.
+4. Retry the same `tools/call`, carrying the user's `accept` / `decline` / `cancel` and echoing `requestState` back unchanged.
+
+The `requestState` is signed by the server and verified before the handler runs; it is opaque, and modifying it only gets the call refused. It expires ten minutes after it was minted.
+
+Declare the `elicitation` capability. A client that does not is refused *before* the request is sent, by name, rather than failing with a protocol error from inside the SDK.
+
+### New metrics
+
+Two counters on `/metrics`, for anyone running the server themselves:
+
+- `qase_mcp_tool_calls_total{tool}` — calls per tool.
+- `qase_mcp_requests_total{protocol,client}` — requests per protocol revision and client name. A 2025-era request is counted as `protocol="legacy"`, with the client named only where an `initialize` established it. The client label is normalised and capped at 20 distinct values per process.
 
 ---
 

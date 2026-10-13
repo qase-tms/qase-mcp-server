@@ -34,7 +34,7 @@ The Qase MCP Server lets AI assistants (Claude, Cursor, Codex, and any other MCP
 - **Project context bootstrap** — one call returns full project structure (suites, milestones, environments, users, custom fields)
 - **Test case review** — propose new cases or changes for review, assign reviewers, and track status (approving and merging remain UI-only)
 - **Short descriptions, documentation on demand** — every tool is listed from the first request; `qase_tool_help` returns a tool's full documentation when the agent first reaches for it, and `qase_discover_tools` searches the catalogue by task
-- **Hosted or self-run** — connect to `https://mcp.qase.io/mcp` with just your Qase login, or run the server locally with your own API token
+- **Hosted or self-run** — connect to `https://mcp.qase.io/mcp` (or `https://mcp-eu.qase.io/mcp` on the EU cluster) with just your Qase login, or run the server locally with your own API token
 - **Tenant-safe caching & HTTP resilience** — two-tier cache (in-memory + optional Redis), connection pooling, retry with backoff
 - **Escape hatch** — direct REST API access for any endpoint via `qase_api`
 
@@ -56,9 +56,11 @@ See [Tools](#tools) and [docs/tools.md](docs/tools.md) for the full reference.
 
 No install, no API token — connect to the Qase-hosted server and sign in with your Qase account.
 
-> **Note:** The hosted Qase MCP requires the **Enterprise** plan *and* a workspace on Qase's main cloud (`qase.io`). On another plan, or on a dedicated instance, [run the server yourself](#run-it-yourself) with your own API token — that works everywhere.
+> **Note:** The hosted Qase MCP requires the **Enterprise** plan. On another plan, or on a dedicated instance, [run the server yourself](#run-it-yourself) with your own API token — that works everywhere.
 
-- **Claude** — open **Settings → Connectors**, find **Qase Test Management**, click **Connect**.
+> **Pick the URL for your region:** `https://mcp.qase.io/mcp` for the main cloud (`app.qase.io`), `https://mcp-eu.qase.io/mcp` for the EU cluster (`app-eu.qase.io`). The examples below use the main cloud; on the EU cluster substitute the EU URL and change nothing else.
+
+- **Claude** — open **Settings → Connectors**, find **Qase Test Management**, click **Connect**. (The directory connector is main-cloud; on the EU cluster add `https://mcp-eu.qase.io/mcp` as a custom connector.)
 - **Cursor** — add `{"mcpServers": {"qase": {"url": "https://mcp.qase.io/mcp"}}}` to `.cursor/mcp.json`.
 - **Codex** — add the URL `https://mcp.qase.io/mcp` in **Settings → MCPs → Add server**, or configure `~/.codex/config.toml` for the CLI.
 - **VS Code** — add `{"servers": {"qase": {"type": "http", "url": "https://mcp.qase.io/mcp"}}}` to `.vscode/mcp.json`, or run **MCP: Add Server**.

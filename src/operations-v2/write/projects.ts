@@ -8,7 +8,7 @@ const CreateSchema = z
   .object({
     title: z.string().min(1).max(255).describe('Project title'),
     code: ProjectCodeSchema.describe(
-      'Project code — unique per workspace, letters only (no digits or special characters)',
+      'Project code — unique per workspace, 2 to 10 characters of uppercase letters, digits or underscores',
     ),
     description: z.string().optional().describe('Free-form description of the project'),
     access: z
@@ -63,10 +63,11 @@ toolRegistry.register({
   name: 'qase_project_create',
   title: 'Create project',
   description:
-    'Create a project. The code must be unique and letters only, and there is no update endpoint afterwards — title, code and access cannot be changed through the API, so choose them deliberately. Read an existing project with qase_project_context. Cost: one API call, about 1.5s.',
+    'Create a project. The code must be unique in the workspace, and there is no update endpoint afterwards — title, code and access cannot be changed through the API, so choose them deliberately. Read an existing project with qase_project_context. Cost: one API call, about 1.5s.',
   help:
-    'Create a new project. The code must be unique in the workspace and may contain letters only ' +
-    '— no digits or special characters — and it is what every other tool takes as `code`. ' +
+    'Create a new project. The code is what every other tool takes as `code`: 2 to 10 characters ' +
+    'of uppercase letters, digits or underscores, unique in the workspace. A date or counter ' +
+    'suffix is fine — "RELEASE24" and "SMOKE_01" are both valid. ' +
     'Optional: description, access level ("all", "group" with a group hash, or "none"), and ' +
     'settings. There is no update endpoint for a project: the title, code and access cannot be ' +
     'changed through the API afterwards, so choose them deliberately. Read an existing project ' +

@@ -28,7 +28,7 @@ The Qase MCP Server lets AI assistants (Claude, Cursor, Codex, and any other MCP
 
 **Features:**
 
-- **40 task-oriented tools** (41 total, including `qase_discover_tools`) — consolidated from 83 v1 tools for lower token usage and better LLM accuracy
+- **40 task-oriented tools** (42 total, with `qase_discover_tools` and `qase_tool_help`) — consolidated from 83 v1 tools for lower token usage and better LLM accuracy
 - **Composite tools** — multi-step workflows in a single call: CI reporting, defect triage, regression run setup
 - **QQL support** — Qase Query Language for advanced searches across cases, runs, results, defects, and plans
 - **Project context bootstrap** — one call returns full project structure (suites, milestones, environments, users, custom fields)
@@ -88,9 +88,13 @@ QASE_MCP_INTEGRATION=quality-supervisor/1.4.0   # <name>/<version>, version opti
 
 The name must be on the allowlist in [`src/utils/integration-marker.ts`](src/utils/integration-marker.ts) — add yours in a PR. Anything unlisted or malformed is ignored, and the API call still succeeds. HTTP transports also accept the marker per request (`X-Qase-Integration` header or `?integration=`). Details: **[docs/self-run.md](docs/self-run.md#integration-marker-for-integration-authors)**.
 
-## Upgrading from v1
+## Upgrading
 
-v2 consolidated 83 v1 tools into **29 task-oriented tools** (30 total, including a discovery tool), and has since grown to 36 (37 total). Tool names and response shapes have changed. See **[docs/migration.md](docs/migration.md)** for the complete tool mapping table, response format changes, and before/after examples.
+**From 2.x to 3.0.0:** no tool was renamed and no argument changed, so prompts and automation keep working. What changed is the protocol underneath — the server speaks MCP 2026-07-28, sessions are gone, every tool is listed from the first request, and deleting takes two round trips. Self-hosting more than one replica now requires `QASE_MCP_REQUEST_STATE_KEY`.
+
+**From v1 to v2:** v2 consolidated 83 v1 tools into **29 task-oriented tools** (30 total, including a discovery tool), and has since grown to 40 (42 total). Tool names and response shapes have changed.
+
+Both upgrades, with the complete v1 → v2 tool mapping table and before/after examples: **[docs/migration.md](docs/migration.md)**.
 
 ## Tools
 
@@ -113,7 +117,7 @@ Full tool-by-tool reference with parameters: **[docs/tools.md](docs/tools.md)**.
 - **[docs/self-run.md](docs/self-run.md)** — install and run the server yourself (config, clients, transports)
 - **[docs/tools.md](docs/tools.md)** — full tool reference, groups, and the discovery model
 - **[docs/troubleshooting.md](docs/troubleshooting.md)** — auth, OAuth/connector, and SSL issues
-- **[docs/migration.md](docs/migration.md)** — v1 → v2 tool mapping and migration guide
+- **[docs/migration.md](docs/migration.md)** — upgrade guides: 2.x → 3.0.0, and the v1 → v2 tool mapping
 
 ## Contributing
 

@@ -1,0 +1,24 @@
+docs/connect.md
+  s_46d00d3a43417a::t_0ec4be794c6802 18,20
+docs/troubleshooting.md
+  s_46d00d3a43417a::t_11a13b5f5674c2 36
+  s_46d00d3a43417a::t_a30d62fc3bfa61 22,24,26
+README.md
+  s_46d00d3a43417a::t_a504ca60b19e30 59
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "d4b019e53b7c90e39ae635bd853e68f223fc2ebd",
+  "prompts": {},
+  "sessions": {
+    "s_46d00d3a43417a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9199f95c-5b1f-42d0-bde6-fb34310d48f6",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Dmitrii Gridnev <dgridnev@qase.io>"
+    }
+  }
+}

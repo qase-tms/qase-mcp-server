@@ -64,7 +64,7 @@ const SELF_RUN_DOCS = 'https://github.com/qase-tms/qase-mcp-server/blob/main/doc
 
 /**
  * A 403 from Qase means one of two unrelated things: the workspace's plan does not
- * include the feature (the hosted connector requires Enterprise), or the user really
+ * include the feature (the hosted connector requires a paid plan), or the user really
  * lacks permission. Only the first is a plan problem, and describing it as a missing
  * permission sends people hunting for a role or license that is already correct.
  */
@@ -78,8 +78,8 @@ const PLAN_RESTRICTION_CODES = new Set(['plan_required']);
 
 function planRestrictionMessage(message: string): string {
   return (
-    `Plan restriction: ${message} The hosted Qase MCP connector is available on the ` +
-    `Enterprise plan only — this is a workspace plan limit, not an account or role ` +
+    `Plan restriction: ${message} The hosted Qase MCP connector is available on every ` +
+    `paid plan, not on Free — this is a workspace plan limit, not an account or role ` +
     `misconfiguration. Run the server yourself with your own QASE_API_TOKEN instead: ` +
     `Qase MCP works on every plan that way.`
   );

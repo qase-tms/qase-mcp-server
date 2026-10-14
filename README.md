@@ -56,7 +56,7 @@ See [Tools](#tools) and [docs/tools.md](docs/tools.md) for the full reference.
 
 No install, no API token — connect to the Qase-hosted server and sign in with your Qase account.
 
-> **Note:** The hosted Qase MCP requires the **Enterprise** plan. On another plan, or on a dedicated instance, [run the server yourself](#run-it-yourself) with your own API token — that works everywhere.
+> **Note:** The hosted Qase MCP is available on **every paid plan**. On the Free plan, or on a dedicated instance, [run the server yourself](#run-it-yourself) with your own API token — that works everywhere.
 
 > **Pick the URL for your region:** `https://mcp.qase.io/mcp` for the main cloud (`app.qase.io`), `https://mcp-eu.qase.io/mcp` for the EU cluster (`app-eu.qase.io`). The examples below use the main cloud; on the EU cluster substitute the EU URL and change nothing else.
 

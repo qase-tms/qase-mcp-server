@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.1]
+
+### Changed
+
+- **The hosted connector is open to every paid plan, not Enterprise only.** When a workspace on the Free plan calls a tool through `https://mcp.qase.io/mcp` or `https://mcp-eu.qase.io/mcp`, the plan refusal now tells the model the connector needs a paid plan, rather than claiming it is Enterprise-only — which after the rollout would send paying customers off to buy an upgrade they do not need. The README, the connect guide and the troubleshooting entry say the same. Running the server yourself with `QASE_API_TOKEN` still works on every plan, Free included.
+
 ## [3.0.0]
 
 ### Required deployment step

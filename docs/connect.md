@@ -15,9 +15,9 @@ Every example below uses the main-cloud URL. On the EU cluster, substitute `http
 
 A **dedicated instance** is not a region and has no hosted endpoint; [run the server yourself](self-run.md) and point it at your own domain.
 
-> **Availability:** The hosted Qase MCP requires the **Enterprise** plan, in either region. Two situations call for [running the server yourself](self-run.md) instead:
+> **Availability:** The hosted Qase MCP is available on **every paid plan**, in either region. Two situations call for [running the server yourself](self-run.md) instead:
 >
-> - **Any other plan** — you can sign in, but tool calls are rejected with a plan error.
+> - **The Free plan** — you can sign in, but tool calls are rejected with a plan error.
 > - **A dedicated instance** — the hosted servers talk to Qase's own clouds, so neither can reach a dedicated deployment whatever your plan. Self-run points at your own domain via `QASE_API_DOMAIN`.
 >
 > Running the server yourself works on every plan, in both regions, and on dedicated instances.

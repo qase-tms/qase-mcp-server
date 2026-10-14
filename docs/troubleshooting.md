@@ -19,11 +19,11 @@ This means the server is running locally (self-run) and rejected the token it wa
 
 These apply when connecting to a Qase-hosted server — `https://mcp.qase.io/mcp` on the main cloud, `https://mcp-eu.qase.io/mcp` on the EU cluster; see [Connect to the hosted Qase MCP](connect.md). There's no `QASE_API_TOKEN` here; authentication is a browser-based OAuth sign-in to your Qase account.
 
-### Access denied / Enterprise plan required
+### Access denied / paid plan required
 
-The hosted Qase MCP requires the **Enterprise** plan, in either region. If your workspace is on another plan, requests are rejected with an access/plan error — the connector may sign in but tool calls fail with a plan-related message.
+The hosted Qase MCP is available on **every paid plan**, in either region. If your workspace is on the Free plan, requests are rejected with a plan error — the connector may sign in but tool calls fail with a plan-related message.
 
-**Solution**: upgrade to the Enterprise plan, or [run the server yourself](self-run.md) with your own `QASE_API_TOKEN` (works on any plan).
+**Solution**: upgrade to any paid plan, or [run the server yourself](self-run.md) with your own `QASE_API_TOKEN` (works on any plan, Free included).
 
 ### Connected to the wrong region
 
@@ -33,7 +33,7 @@ Qase's cloud runs in two regions, each with its own hosted server: `https://mcp.
 
 ### Dedicated instance can't use the hosted connector
 
-The hosted servers serve Qase's own clouds only. If your workspace lives on a dedicated instance, neither connector can reach your data — an Enterprise plan does not change this, and the symptom is usually a sign-in that succeeds against the wrong place, or projects that simply aren't there.
+The hosted servers serve Qase's own clouds only. If your workspace lives on a dedicated instance, neither connector can reach your data — no plan changes this, and the symptom is usually a sign-in that succeeds against the wrong place, or projects that simply aren't there.
 
 **Solution**: [run the server yourself](self-run.md) and point it at your instance:
 

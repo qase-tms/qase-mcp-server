@@ -95,6 +95,21 @@ describe('Error Utilities', () => {
       expect(formatted).toMatch(/run the server yourself/i);
     });
 
+    it('should name paid plans, not Enterprise, as the hosted connector requirement', () => {
+      const error = {
+        response: {
+          status: 402,
+          data: { status: false, errorMessage: 'Upgrade required.' },
+        },
+        message: 'Request failed',
+        isAxiosError: true,
+      } as AxiosError;
+
+      const formatted = formatApiError(error);
+      expect(formatted).toContain('every paid plan');
+      expect(formatted).not.toMatch(/enterprise/i);
+    });
+
     it('should format a plan refusal sent as 402', () => {
       const error = {
         response: {

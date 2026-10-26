@@ -10,6 +10,7 @@
 
 import { AxiosError } from 'axios';
 import { ResultAsync } from 'neverthrow';
+import { hasRequestToken } from './auth-context.js';
 
 /**
  * Custom error class for Qase API errors
@@ -85,6 +86,28 @@ function planRestrictionMessage(message: string): string {
   );
 }
 
+/**
+ * A 401 means different things per token source: a per-request Bearer token was
+ * revoked or expired and only re-authorizing the connector helps, while for a
+ * self-run server the operator's QASE_API_TOKEN is wrong. The 401 message and its
+ * suggestion both come from here so they cannot disagree.
+ */
+function authFailureAdvice(): { message: string; suggestion: string } {
+  if (hasRequestToken()) {
+    return {
+      message:
+        'The access token was rejected: it has expired or was revoked. ' +
+        'Reconnect or re-authorize the Qase connector in your MCP client or gateway.',
+      suggestion:
+        'Reconnect or re-authorize the Qase connector in your MCP client or gateway, then retry.',
+    };
+  }
+  return {
+    message: 'Please check your QASE_API_TOKEN environment variable.',
+    suggestion: 'Check that QASE_API_TOKEN environment variable is set correctly.',
+  };
+}
+
 function isPlanRestriction(data: unknown, message: string): boolean {
   const body = data as { code?: unknown; errorCode?: unknown } | undefined;
   const code = body?.code ?? body?.errorCode;
@@ -111,7 +134,7 @@ export function formatApiError(error: unknown): string {
     // Format based on HTTP status code
     switch (status) {
       case 401:
-        return `Authentication failed: ${message}. Please check your QASE_API_TOKEN environment variable.`;
+        return `Authentication failed: ${message}. ${authFailureAdvice().message}`;
       case 402:
         return planRestrictionMessage(String(message ?? ''));
       case 403:
@@ -247,7 +270,7 @@ function getSuggestionForError(error: string, context?: string): string | undefi
 
   // Authentication errors
   if (lowerError.includes('authentication failed') || lowerError.includes('401')) {
-    return 'Check that QASE_API_TOKEN environment variable is set correctly.';
+    return authFailureAdvice().suggestion;
   }
 
   // Plan restrictions — a 403 no change of role or permission can fix

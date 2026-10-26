@@ -9,6 +9,14 @@ import { createHash } from 'node:crypto';
 export const requestTokenStorage = new AsyncLocalStorage<string>();
 
 /**
+ * True when the current request authenticates with its own Bearer token
+ * (hosted connector, gateway) rather than the shared QASE_API_TOKEN.
+ */
+export function hasRequestToken(): boolean {
+  return Boolean(requestTokenStorage.getStore());
+}
+
+/**
  * Read the effective token for the current async context: request-scoped
  * token first, then QASE_API_TOKEN env var.
  *

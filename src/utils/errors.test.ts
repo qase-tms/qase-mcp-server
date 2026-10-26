@@ -13,6 +13,7 @@ import {
   createToolError,
 } from './errors.js';
 import { AxiosError } from 'axios';
+import { requestTokenStorage } from './auth-context.js';
 
 describe('Error Utilities', () => {
   describe('formatApiError', () => {
@@ -29,6 +30,23 @@ describe('Error Utilities', () => {
       const formatted = formatApiError(error);
       expect(formatted).toContain('Authentication failed');
       expect(formatted).toContain('QASE_API_TOKEN');
+    });
+
+    it('should tell a per-request Bearer caller to reconnect, not to set QASE_API_TOKEN', () => {
+      const token = 'oauth-access-token-abc123';
+      const error = {
+        response: { status: 401, data: { message: 'Invalid token' } },
+        message: 'Request failed',
+        isAxiosError: true,
+      } as AxiosError;
+
+      const formatted = requestTokenStorage.run(token, () => formatApiError(error));
+      expect(formatted).toContain('Authentication failed');
+      expect(formatted).toMatch(/expired or was revoked/);
+      expect(formatted).toMatch(/re-authorize the Qase connector/);
+      expect(formatted).not.toContain('QASE_API_TOKEN');
+      expect(formatted).not.toContain(token);
+      expect(formatted).not.toContain(token.slice(0, 8));
     });
 
     it('should format forbidden error (403)', () => {
@@ -427,6 +445,14 @@ describe('Error Utilities', () => {
     it('should create error with authentication suggestion', () => {
       const error = createToolError('Authentication failed: Invalid token');
       expect(error.suggestion).toContain('QASE_API_TOKEN');
+    });
+
+    it('should suggest reconnecting for a 401 under a per-request Bearer token', () => {
+      const error = requestTokenStorage.run('oauth-access-token-abc123', () =>
+        createToolError('Authentication failed: Invalid token'),
+      );
+      expect(error.suggestion).toMatch(/re-authorize the Qase connector/);
+      expect(error.suggestion).not.toContain('QASE_API_TOKEN');
     });
 
     it('should create error with permission suggestion for 403', () => {

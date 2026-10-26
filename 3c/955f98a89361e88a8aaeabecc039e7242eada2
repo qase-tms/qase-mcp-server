@@ -1,0 +1,25 @@
+src/utils/auth-context.ts
+  s_5adbd35b67731c::t_766121d48eaa36 12-18
+  s_5adbd35b67731c::t_90464d2e8c8614 11
+src/utils/errors.test.ts
+  s_5adbd35b67731c::t_bfadb99ea43a81 16,35-51,450-456
+  s_5adbd35b67731c::t_7f9b3d7a229159 457
+src/utils/errors.ts
+  s_5adbd35b67731c::t_8c1e8e0d04404d 13,89-110,137,273
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "3c955f98a89361e88a8aaeabecc039e7242eada2",
+  "prompts": {},
+  "sessions": {
+    "s_5adbd35b67731c": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "e1059f05-314c-45ed-bc05-510a11a08fd2",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Dmitrii Gridnev <dgridnev@qase.io>"
+    }
+  }
+}

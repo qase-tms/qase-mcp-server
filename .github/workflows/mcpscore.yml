@@ -41,11 +41,11 @@ jobs:
         run: npm run build
 
       - name: Audit against the MCP specification
-        uses: mcp-box/mcpscore-action@282ceaab1b9d230a9069bf8fdb759ab339efcbdf # v1.2.0
+        uses: mcp-box/mcpscore-action@a6a529778792822d55947afeb052f87202174cef # v1.3.0
         with:
           # The action launches the built server itself and speaks stdio to it.
           target: ./build/index.js
-          # 98.5% at the time of writing (130/132). The floor leaves room for a
+          # 98.6% at the time of writing (142/144). The floor leaves room for a
           # rule or two to move without a red build, while still catching the
           # slow erosion a severity gate alone would miss. Raised from 90 with
           # the 1.22.2 bump: the rule set grew from 107 points to 132, so the
@@ -54,7 +54,7 @@ jobs:
           # Pinned: a new mcpscore release can add rules, and an audit tool that
           # fails the build on a day nobody touched the server teaches people to
           # ignore it. Bump deliberately, after a local run.
-          version: '1.22.2'
+          version: '1.29.1'
           # No QASE_API_TOKEN is set: the audit speaks protocol to the server
           # over stdio and never calls a tool, so nothing reaches the Qase API.
           # Adding --smoke here would change that and need a real token.

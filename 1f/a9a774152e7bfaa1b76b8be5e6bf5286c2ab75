@@ -1,0 +1,27 @@
+package-lock.json
+  s_56dd9ecf66eaff::t_c14b06b93ff313 12-14,29-30,1519-1521,1525,1538-1540,1550-1552,1555,1562,1566-1568,1571,1579-1581,1585
+  s_56dd9ecf66eaff::t_d44be0960c81fb 3,9
+server.json
+  s_56dd9ecf66eaff::t_2ed81762aeb2ea 11,16
+CHANGELOG.md
+  s_56dd9ecf66eaff::t_2ed81762aeb2ea 8-13
+package.json
+  s_56dd9ecf66eaff::t_2ed81762aeb2ea 3
+  s_56dd9ecf66eaff::t_24b941fa3df458 70-72,84-85
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "1fa9a774152e7bfaa1b76b8be5e6bf5286c2ab75",
+  "prompts": {},
+  "sessions": {
+    "s_56dd9ecf66eaff": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "96f123fd-0006-423b-a114-c835293e3539",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": null
+    }
+  }
+}

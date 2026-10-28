@@ -1,0 +1,19 @@
+.github/workflows/mcpscore.yml
+  s_e7449bee10bb34::t_9d9cb3ff938295 44,48,57
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "279ca1e2d1b351ab90f5e0fe245467bef537557d",
+  "prompts": {},
+  "sessions": {
+    "s_e7449bee10bb34": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "1b5ae8c2-9795-4e50-979c-ff3b804ae8c4",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Dmitrii Gridnev <dgridnev@qase.io>"
+    }
+  }
+}

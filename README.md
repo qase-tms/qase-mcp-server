@@ -14,7 +14,7 @@ Official [Model Context Protocol](https://modelcontextprotocol.io) (MCP) server 
   - [Use the hosted Qase MCP (recommended)](#use-the-hosted-qase-mcp-recommended)
   - [Run it yourself](#run-it-yourself)
 - [Building on top of this server](#building-on-top-of-this-server)
-- [Upgrading from v1](#upgrading-from-v1)
+- [Upgrading](#upgrading)
 - [Tools](#tools)
 - [Documentation](#documentation)
 - [Contributing](#contributing)

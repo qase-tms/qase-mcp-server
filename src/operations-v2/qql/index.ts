@@ -290,7 +290,17 @@ async function getQqlHelp(args: z.infer<typeof GetQqlHelpSchema>) {
         'startOfMonth("YYYY-MM-DD") - Start of specified month (also accepts an offset)',
       endOfMonth: 'endOfMonth("YYYY-MM-DD") - End of specified month (also accepts an offset)',
     },
-    examples: QqlExamples,
+    // QqlExamples holds builder functions, which JSON serialization drops —
+    // render them to query strings or the topic comes back as {}.
+    examples: {
+      recentFailures: QqlExamples.recentFailures('DEMO'),
+      blockerDefects: QqlExamples.blockerDefects('DEMO'),
+      flakyTests: QqlExamples.flakyTests('DEMO'),
+      notAutomated: QqlExamples.notAutomated('DEMO'),
+      byAuthor: QqlExamples.byAuthor('DEMO', 'Jane Doe'),
+      activeRuns: QqlExamples.activeRuns('DEMO'),
+      byMilestone: QqlExamples.byMilestone('DEMO', 'Release 1.0'),
+    },
   };
 
   // Handlers receive raw MCP arguments, so the schema's `required` is not

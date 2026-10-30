@@ -219,3 +219,37 @@ describe('qase_project_context — full pagination', () => {
     expect(mockGetUsers).toHaveBeenCalledWith(100, 0);
   });
 });
+
+describe('qase_project_context — custom fields', () => {
+  const fieldsResponse = (total: number, entities: unknown[]) => () =>
+    Promise.resolve({ data: { status: true, result: { total, entities } } });
+
+  it('keeps only fields that apply to the project', async () => {
+    // The endpoint lists the whole workspace; a field scoped to another project
+    // would invite the model to set it here and get rejected.
+    mockGetCustomFields.mockImplementation(
+      fieldsResponse(3, [
+        { id: 1, title: 'Everywhere', is_enabled_for_all_projects: true, projects_codes: [] },
+        { id: 2, title: 'Here', is_enabled_for_all_projects: false, projects_codes: ['DEMO'] },
+        { id: 3, title: 'Elsewhere', is_enabled_for_all_projects: false, projects_codes: ['WEB'] },
+      ]),
+    );
+
+    const result = structured(await invoke({ code: 'DEMO' }));
+
+    expect(result.custom_fields.entities.map((f: any) => f.id)).toEqual([1, 2]);
+    expect(result.coverage.custom_fields).toEqual({ total: 2, loaded: 2, truncated: false });
+  });
+
+  it('still reports truncation when the workspace list was cut short', async () => {
+    mockGetCustomFields.mockImplementation(
+      fieldsResponse(250, [
+        { id: 1, title: 'Here', is_enabled_for_all_projects: false, projects_codes: ['DEMO'] },
+      ]),
+    );
+
+    const result = structured(await invoke({ code: 'DEMO' }));
+
+    expect(result.coverage.custom_fields.truncated).toBe(true);
+  });
+});

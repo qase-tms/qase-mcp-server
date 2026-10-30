@@ -90,13 +90,34 @@ async function handler(args: z.infer<typeof Schema>) {
 
   const runId = (run as any).id;
 
+  // Qase expands plan_id into cases itself, so caseIds misses them; read the
+  // run back for the real count. The run already exists, so a failed read must
+  // not throw — a retry would create a duplicate.
+  let casesAdded = caseIds.length;
+  let casesConfirmed = true;
+  if (args.plan_id) {
+    const readRes = await toResultAsync(client.runs.getRun(code, runId, 'cases'));
+    readRes.match(
+      (r) => {
+        const cases = (r.data.result as any)?.cases;
+        if (Array.isArray(cases)) casesAdded = cases.length;
+        else casesConfirmed = false;
+      },
+      () => {
+        casesConfirmed = false;
+      },
+    );
+  }
+
   const lines = [
     `## Regression Run Created`,
     '',
     `- **Run ID:** ${runId}`,
     `- **Project:** ${code}`,
     `- **Title:** ${args.title}`,
-    `- **Cases:** ${caseIds.length}`,
+    casesConfirmed
+      ? `- **Cases:** ${casesAdded}`
+      : `- **Cases:** could not be read back — check with qase_get on run ${runId}`,
   ];
 
   if (suite_ids?.length) {
@@ -109,7 +130,7 @@ async function handler(args: z.infer<typeof Schema>) {
     lines.push(`- **Milestone:** ${args.milestone_id}`);
   }
 
-  const structured = { run_id: runId, cases_added: caseIds.length, run };
+  const structured = { run_id: runId, cases_added: casesAdded, run };
 
   return richResult([summaryBlock(lines.join('\n')), dataBlock(structured)], structured);
 }

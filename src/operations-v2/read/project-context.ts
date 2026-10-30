@@ -77,6 +77,21 @@ async function fetchAll(
   return { ...first, entities };
 }
 
+/**
+ * The custom-field endpoint lists the whole workspace and takes no project
+ * filter, so keep only the fields that apply to this project. When the
+ * workspace list was itself truncated the project's total is unknown, so the
+ * workspace total stays as the bound and coverage keeps reporting truncation.
+ */
+function scopeCustomFields(page: ListPage, code: string): ListPage {
+  if (!page?.entities) return page;
+  const entities = page.entities.filter((field: any) => {
+    return field?.is_enabled_for_all_projects === true || field?.projects_codes?.includes(code);
+  });
+  const complete = page.entities.length >= (page.total ?? page.entities.length);
+  return { total: complete ? entities.length : page.total, entities };
+}
+
 /** Per-collection coverage keyed by the name used in the summary. */
 type CoverageMap = Record<string, Coverage>;
 
@@ -213,8 +228,8 @@ async function handler(args: z.infer<typeof Schema>) {
     return full ? fetchAll(fetch) : fetch(PAGE_SIZE, 0);
   };
 
-  const [projectSettled, suites, milestones, environments, customFields, users] = await Promise.all(
-    [
+  const [projectSettled, suites, milestones, environments, workspaceFields, users] =
+    await Promise.all([
       Promise.allSettled([toResultAsync(client.projects.getProject(code))]).then(([s]) => s),
       collect((limit, offset) => client.suites.getSuites(code, undefined, limit, offset)),
       collect((limit, offset) => client.milestones.getMilestones(code, undefined, limit, offset)),
@@ -227,8 +242,8 @@ async function handler(args: z.infer<typeof Schema>) {
       // Previously called with no limit at all, so the API's own (smaller)
       // default silently applied.
       collect((limit, offset) => client.users.getUsers(limit, offset)),
-    ] as const,
-  );
+    ] as const);
+  const customFields = scopeCustomFields(workspaceFields, code);
 
   const coverage = {
     suites: coverageOf(suites),

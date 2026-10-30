@@ -348,3 +348,25 @@ describe('qql_search — query length', () => {
     expect(description).not.toContain('created >= now');
   });
 });
+
+describe('qql_help — serialization', () => {
+  it('survives the JSON round trip the client sees, for every topic', async () => {
+    // The handler returns live objects; functions inside one vanish only once
+    // the response is serialized, which is how `examples` shipped as {}.
+    for (const topic of HELP_TOPICS) {
+      const { content } = await help(topic);
+
+      expect(JSON.parse(JSON.stringify(content))).toEqual(content);
+      expect(Object.keys(content as object).length).toBeGreaterThan(0);
+    }
+  });
+
+  it('gives runnable queries under examples', async () => {
+    const queries = queryStringsIn((await help('examples')).content);
+
+    expect(queries.length).toBeGreaterThan(0);
+    for (const query of queries) {
+      expect(query).toContain('project = "DEMO"');
+    }
+  });
+});

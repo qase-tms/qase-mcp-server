@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.4]
+
+### Fixed
+
+- **`qql_help` with `topic: "examples"` returns the example queries.** The topic held query-builder functions, which JSON serialization drops, so it came back as an empty object. It now returns ready-made queries for recent failures, open blockers, flaky and not-automated cases, cases by author or milestone, and runs in progress.
+- **`qase_regression_run` reports the real case count for a run built from a plan.** Qase expands `plan_id` into cases itself, so `cases_added` counted only explicit and suite cases and read 0 for every plan-based run. The tool now reads the created run back for the count; if that read fails, the run is still returned and the summary says the count could not be confirmed.
+- **`qase_project_context` lists only the custom fields that apply to the project.** The API returns every custom field in the workspace, including fields scoped to other projects; those are now filtered out, and `coverage.custom_fields` counts the project's fields.
+
 ## [3.0.3]
 
 ### Changed

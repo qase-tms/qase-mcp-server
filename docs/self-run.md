@@ -1,395 +1,311 @@
-# Self-Run Guide (Local / stdio)
+# Run the Qase MCP server yourself
 
-Run the Qase MCP Server yourself, using your own `QASE_API_TOKEN`. This is the local/stdio path: you install the package (or build from source) and your MCP client launches it as a subprocess.
+Run the Qase MCP server on your own computer, with your own Qase API token. Your AI tool starts the server for you in the background, so there is nothing to keep running. Setup takes about five minutes and works on every Qase plan, in both regions, and on dedicated instances.
 
-Prefer zero-install? Connect to the Qase-hosted MCP server instead — no local setup, no API token. See [Connect to the hosted Qase MCP](connect.md).
+> **Prefer no setup at all?** On any paid plan you can connect to the hosted Qase MCP instead: no install and no token, just a Qase sign-in. See [Connect to the hosted Qase MCP](connect.md). Self-run is the way in on the Free plan and on dedicated instances, and for setups without a browser to sign in from.
 
-## Prerequisites
+**On this page**
 
-- Node.js 20+
-- Qase account with API token ([Get your token](https://app.qase.io/user/api/token))
+1. [Before you start](#before-you-start): check Node.js, create a token, note your region
+2. [Pick your tool](#pick-your-tool): steps for Claude Desktop, Claude Code, Cursor, Codex and OpenCode
+3. [Check it works](#check-it-works)
+4. [Troubleshooting](#troubleshooting)
 
-## Installation
+## Before you start
 
-### Option 1: Install from NPM (Recommended)
+Do these three things once, whichever tool you use.
 
-```bash
-npm install -g @qase/mcp-server
-```
+### 1. Check that Node.js 20 or newer is installed
 
-### Option 2: Install from Source (Development)
-
-```bash
-# Clone the repository
-git clone https://github.com/qase-tms/qase-mcp-server.git
-cd qase-mcp-server
-
-# Install dependencies
-npm install
-
-# Build the server
-npm run build
-```
-
-## Configuration
-
-### Environment Variables
-
-Create a `.env` file or set environment variables:
+The server runs on Node.js. Open a terminal (macOS: Terminal; Windows: PowerShell) and run:
 
 ```bash
-# Required: Your Qase API token
-QASE_API_TOKEN=your_api_token_here
-
-# Optional: Custom API domain for enterprise customers
-QASE_API_DOMAIN=api.qase.io
-
-# Optional: Scheme used to reach that domain — http or https (default: https)
-QASE_API_PROTOCOL=https
+node -v
 ```
 
-Get your API token from: https://app.qase.io/user/api/token
+If it prints `v20` or higher, you're set. If it prints an error or a lower version, install the LTS release from [nodejs.org](https://nodejs.org), then open a new terminal and check again.
 
-### Integration Marker (for integration authors)
+You do not need to install the Qase package itself. Every setup below uses `npx -y @qase/mcp-server`, which downloads the server the first time your tool starts it and reuses it afterwards.
 
-Skip this section if you are using the server directly — it changes nothing for you.
+### 2. Create a Qase API token
 
-If you are *building a product on top of* this server (a plugin, an agent, a wrapper CLI), you can have your integration identified in Qase analytics. Set `QASE_MCP_INTEGRATION` in the environment you launch the server with:
+Sign in to Qase and open the API token page for your region:
+
+- Main cloud: <https://app.qase.io/user/api/token>
+- EU cluster: <https://app-eu.qase.io/user/api/token>
+
+Create a token and keep it somewhere safe. Treat it like a password: don't paste it into chats or tickets, and don't commit it to Git.
+
+### 3. Note your Qase region
+
+Look at your browser's address bar while you're signed in to Qase:
+
+| You see | What to add to your setup |
+| --- | --- |
+| `app.qase.io` | Nothing. This is the default. |
+| `app-eu.qase.io` | `QASE_API_DOMAIN` set to `api-eu.qase.io` |
+| Your company's own Qase address (dedicated instance) | `QASE_API_DOMAIN` set to your API domain, for example `api-yourcompany.qase.io`. Ask your Qase admin if you're unsure. |
+
+You don't write this anywhere yet. Each tool's section below shows where the line goes, right next to your token. A token is only valid in the region that created it, so create the token in the same workspace you point `QASE_API_DOMAIN` at.
+
+## Pick your tool
+
+Jump to the section for the tool you'll use Qase from. Each one ends with a quick test.
+
+| Your tool | How you set it up |
+| --- | --- |
+| [Claude Desktop](#claude-desktop) | Paste a block into a settings file |
+| [Claude Code](#claude-code) | Run one terminal command |
+| [Cursor](#cursor) | Paste a block into a settings file |
+| [OpenAI Codex](#openai-codex) (CLI and IDE extension) | Run one terminal command |
+| [OpenCode](#opencode) | Paste a block into a settings file |
+| [Another MCP client](#other-mcp-clients) | Use the same three values |
+
+In every block, replace `your_api_token_here` with your token and keep the quotes around it.
+
+### Claude Desktop
+
+1. **Open the settings file.** In Claude Desktop, go to **Settings → Developer → Edit Config**. This opens `claude_desktop_config.json`, creating it if needed. Its location:
+   - macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
+   - Windows: `%APPDATA%\Claude\claude_desktop_config.json`
+2. **Paste the Qase setup.** If the file is empty or only contains `{}`, replace everything with:
+
+   ```json
+   {
+     "mcpServers": {
+       "qase": {
+         "command": "npx",
+         "args": ["-y", "@qase/mcp-server"],
+         "env": {
+           "QASE_API_TOKEN": "your_api_token_here"
+         }
+       }
+     }
+   }
+   ```
+
+   If the file already lists other servers, add only the `"qase": { ... }` entry inside the existing `mcpServers`, with a comma between it and the server before it.
+3. **Save the file and restart Claude Desktop completely.** On macOS press Cmd+Q; on Windows right-click the tray icon and choose **Quit**. Closing the window is not enough, because the file is only read at startup.
+
+**EU region or custom domain:** add a second line inside `env`, after a comma:
+
+```json
+"env": {
+  "QASE_API_TOKEN": "your_api_token_here",
+  "QASE_API_DOMAIN": "api-eu.qase.io"
+}
+```
+
+**Qase doesn't appear?** The most common cause is invalid JSON, usually a missing or extra comma. On macOS with Node.js installed through nvm, Claude Desktop may also not find `npx`: run `which npx` in Terminal and use that full path as `"command"`.
+
+### Claude Code
+
+Run one command, with your token in place of `your_api_token_here`:
 
 ```bash
-# <name>/<version> — the version is optional
-QASE_MCP_INTEGRATION=quality-supervisor/1.4.0
+claude mcp add qase --scope user --env QASE_API_TOKEN=your_api_token_here -- npx -y @qase/mcp-server
 ```
 
-The server forwards it to the Qase API as `X-MCP-Integration-Name` and `X-MCP-Integration-Version`. It is a separate identity from the server deployment (`User-Agent`) and from the connected AI host (`X-MCP-Client-*`), so the same integration is attributable across every host and both deployments.
-
-Rules:
-
-- Format is `<name>/<version>`; the version may be omitted. The name is lowercased.
-- A version must be made of word characters, dots, dashes or pluses, up to 32 characters — anything else is dropped and only the name is sent.
-- **The name must be on the allowlist** in [`src/utils/integration-marker.ts`](../src/utils/integration-marker.ts) (`ALLOWED_INTEGRATIONS`). This bounds the cardinality of the analytics dimension, so an unlisted name is ignored entirely and nothing is sent. To add your integration, open a PR adding it to that array.
-- A malformed or unlisted marker is dropped silently; the API call itself still succeeds.
-
-Over HTTP transports the marker can also travel per request instead of per process — send an `X-Qase-Integration: <name>/<version>` header, or add `?integration=<name>/<version>` to the MCP endpoint URL. The query parameter is the fallback for clients that do not pass custom headers through.
-
-On **Streamable HTTP**, the marker is read fresh on every single request: a marker on one call is never attributed to the next. Precedence: request header → query parameter → `QASE_MCP_INTEGRATION`.
-
-On the (deprecated) **SSE** transport, the marker is captured once, when the `/sse` stream opens, and reused for every message posted on that stream afterwards — a header sent on an individual `/messages` POST can still override it for that one call, but there is no per-request query-parameter fallback once the stream is open. Precedence there is: request header → the value captured when the stream opened → `QASE_MCP_INTEGRATION`.
-
-### Running more than one replica
-
-Two pieces of state used to live inside a single process. From 3.0.0 both can be shared, and on a
-multi-replica deployment both **must** be, because there are no sessions any more — consecutive
-requests from the same client land on whichever replica the load balancer picks.
+**EU region or custom domain:** add a second `--env`:
 
 ```bash
-# Required when running more than one replica: the HMAC key that signs a pending
-# destructive-action confirmation. At least 32 bytes, identical on every replica.
-QASE_MCP_REQUEST_STATE_KEY=<a shared random string of 32+ bytes>
-
-# Optional: share the L2 cache across replicas.
-QASE_MCP_REDIS_URL=redis://host:6379
+claude mcp add qase --scope user --env QASE_API_TOKEN=your_api_token_here --env QASE_API_DOMAIN=api-eu.qase.io -- npx -y @qase/mcp-server
 ```
 
-`QASE_MCP_REQUEST_STATE_KEY` is what makes a confirmation survive the trip through the client. The
-server asks, the client answers, and the answer comes back carrying server-minted state that is
-verified before anything is deleted. Without a shared key each replica generates its own at startup,
-so a confirmation minted by one replica fails verification on another and the deletion is refused —
-safe, but destructive tools stop working. A single replica needs nothing set.
+Then run `claude mcp list` and check that `qase` is listed as connected.
 
-`QASE_MCP_REDIS_URL` is optional: it shares the response cache between replicas so a repeated read is served from Valkey rather than from Qase again.
+The `--scope` flag decides where Qase is available:
 
-### Other Regions and Custom Domains
+| Scope | Where Qase is available | Use it when |
+| --- | --- | --- |
+| `--scope user` | Every project on your computer | You want Qase everywhere. Recommended. |
+| none (local) | Only the project you ran the command in | You want Qase in one project only. |
+| `--scope project` | Everyone who opens the project, via a `.mcp.json` file in its root | You want to share the setup with your team. See below. |
+
+**Sharing the setup through `.mcp.json`:** that file is meant to be committed, so never put a token in it. Reference an environment variable instead, and have each person set `QASE_API_TOKEN` in their own shell:
+
+```json
+{
+  "mcpServers": {
+    "qase": {
+      "command": "npx",
+      "args": ["-y", "@qase/mcp-server"],
+      "env": {
+        "QASE_API_TOKEN": "${QASE_API_TOKEN}"
+      }
+    }
+  }
+}
+```
+
+**Changing the token later:** run `claude mcp remove qase`, then run the add command again.
+
+### Cursor
+
+1. **Open Cursor's MCP settings file.** Use the global file, so Qase works in every project:
+   - macOS / Linux: `~/.cursor/mcp.json`
+   - Windows: `%USERPROFILE%\.cursor\mcp.json`
+
+   Create it if it doesn't exist. You can also reach it from **Cursor Settings → Tools & MCP**.
+2. **Paste the Qase setup.** If the file already lists other servers, add only the `"qase": { ... }` entry inside `mcpServers`.
+
+   ```json
+   {
+     "mcpServers": {
+       "qase": {
+         "command": "npx",
+         "args": ["-y", "@qase/mcp-server"],
+         "env": {
+           "QASE_API_TOKEN": "your_api_token_here"
+         }
+       }
+     }
+   }
+   ```
+3. **Save the file and restart Cursor.**
+
+**EU region or custom domain:** add `"QASE_API_DOMAIN": "api-eu.qase.io"` inside `env`, after the token line and a comma.
+
+Cursor also reads a project-level `.cursor/mcp.json`. Keep your token out of it if the project is committed to Git.
+
+### OpenAI Codex
+
+The Codex CLI and the Codex IDE extension share one configuration, so you set this up once for both. Run:
+
+```bash
+codex mcp add qase --env QASE_API_TOKEN=your_api_token_here -- npx -y @qase/mcp-server
+```
+
+**EU region or custom domain:** add a second `--env`:
+
+```bash
+codex mcp add qase --env QASE_API_TOKEN=your_api_token_here --env QASE_API_DOMAIN=api-eu.qase.io -- npx -y @qase/mcp-server
+```
+
+Then run `codex mcp list` and check that `qase` is listed. Inside Codex, `/mcp` shows the active servers.
+
+**Prefer editing the file?** Codex keeps its settings in `~/.codex/config.toml`. It is TOML, not JSON, so the format differs from the other tools:
+
+```toml
+[mcp_servers.qase]
+command = "npx"
+args = ["-y", "@qase/mcp-server"]
+
+[mcp_servers.qase.env]
+QASE_API_TOKEN = "your_api_token_here"
+# QASE_API_DOMAIN = "api-eu.qase.io"   # EU region or custom domain only
+```
+
+- The table name is `mcp_servers`, with an underscore. `mcpServers` is not read here.
+- TOML uses `=` rather than `:`, and has no trailing commas.
+- A trusted project can have its own `.codex/config.toml`. Keep your token out of it if the project is committed to Git.
+
+### OpenCode
+
+1. **Open OpenCode's config file.** Use the global file, so Qase works in every project: `~/.config/opencode/opencode.json`. Create it if it doesn't exist.
+2. **Paste the Qase setup.** If the file already has an `mcp` section, add only the `"qase": { ... }` entry inside it.
+
+   ```json
+   {
+     "mcp": {
+       "qase": {
+         "type": "local",
+         "command": ["npx", "-y", "@qase/mcp-server"],
+         "environment": {
+           "QASE_API_TOKEN": "your_api_token_here"
+         }
+       }
+     }
+   }
+   ```
+3. **Save the file and restart OpenCode.**
+
+**EU region or custom domain:** add `"QASE_API_DOMAIN": "api-eu.qase.io"` inside `environment`, after the token line and a comma.
+
+> **Note:** OpenCode uses a different format from other MCP clients. Servers sit under `mcp` (not `mcpServers`), the command and its arguments form one `command` array, and settings go under `environment` (not `env`). Copying another tool's block won't work here.
+
+OpenCode also reads an `opencode.json` in a project's root folder. Keep your token out of it if the project is committed to Git.
+
+### Other MCP clients
+
+Any client that can start a local (stdio) MCP server works. Give it:
+
+- **Command:** `npx`
+- **Arguments:** `-y`, `@qase/mcp-server`
+- **Environment variable:** `QASE_API_TOKEN` set to your token, plus `QASE_API_DOMAIN` if your region needs one
+
+Most clients accept the same JSON block as [Claude Desktop](#claude-desktop).
+
+## Advanced settings
+
+These are environment variables, set in the same place as your token.
+
+### Other regions and custom domains
 
 `QASE_API_DOMAIN` defaults to `api.qase.io`, which is Qase's main cloud. Point it elsewhere when your workspace is not there:
 
 ```bash
-# EU cluster — workspaces on app-eu.qase.io
+# EU cluster: workspaces on app-eu.qase.io
 QASE_API_DOMAIN=api-eu.qase.io
 
 # Enterprise dedicated instance
 QASE_API_DOMAIN=api-yourcompany.qase.io
 ```
 
-Issue the token from the workspace you are naming: a token is valid only in the region that minted it, and one from the main cloud will be rejected by the EU API. The EU token page is <https://app-eu.qase.io/user/api/token>.
+`QASE_API_DOMAIN` takes the domain only, with no scheme and no path. `https://api-eu.qase.io` and `api-eu.qase.io/v1` are rejected with an error. A non-default port does belong in it: `api-yourcompany.qase.io:8080`.
 
-`QASE_API_DOMAIN` takes the domain only — no scheme, no path. `https://api-eu.qase.io` or `api-eu.qase.io/v1` are rejected with an error.
+Both Qase clouds also offer a hosted connector, so self-run is a choice there rather than a requirement. See [Pick your endpoint](connect.md#pick-your-endpoint). On a **dedicated instance**, self-run is the only option: the hosted servers serve Qase's own clouds only, regardless of plan.
 
-Both Qase clouds also offer a hosted connector, so self-run is a choice there rather than a requirement — see [Pick your endpoint](connect.md#pick-your-endpoint). On a **dedicated instance** self-run is the only option: the hosted servers serve Qase's own clouds only, regardless of plan.
+### Self-hosted deployments over plain HTTP
 
-### Self-Hosted Deployments over Plain HTTP
-
-Requests go over HTTPS by default. If your self-hosted or on-premise Qase API is served over plain HTTP — typically a local or internal-network install without a certificate — set the scheme separately:
+Requests go over HTTPS by default. If your self-hosted or on-premise Qase API is served over plain HTTP (typically a local or internal-network install without a certificate), set the scheme separately:
 
 ```bash
 QASE_API_DOMAIN=api.qase.lo
 QASE_API_PROTOCOL=http
 ```
 
-Only `http` and `https` are recognised (case-insensitive, with or without a trailing `://`). Any other value falls back to `https`, so a typo cannot silently downgrade the connection. A non-default port belongs in `QASE_API_DOMAIN` — `api.qase.lo:8080`.
+Only `http` and `https` are recognised (case-insensitive, with or without a trailing `://`). Any other value falls back to `https`, so a typo cannot silently downgrade the connection.
 
 Use `http` only for deployments you control on a trusted network: the API token travels in a request header, unencrypted, on every call.
 
-## Security of network transports
+### Corporate networks that inspect traffic
 
-`stdio` has no network listener: the client starts the process and the token
-lives in the client's configuration. The `sse` and `streamable-http` transports
-listen on a port, and two things follow from that.
+If the server fails with `unable to get local issuer certificate`, your network replaces certificates on the way out. Point Node.js at your company's CA certificate with `NODE_EXTRA_CA_CERTS`, next to your token. See [SSL Certificate Errors](troubleshooting.md#ssl-certificate-errors).
 
-**The client supplies the token.** Every request must carry
-`Authorization: Bearer <token>`; the server does not fall back to its own
-`QASE_API_TOKEN` when a request arrives without one. Sharing a single operator
-token across a team is still fine — it just belongs in the client config:
+### Installing the package globally
 
-```json
-{
-  "mcpServers": {
-    "qase": {
-      "url": "http://your-host:3000/mcp",
-      "headers": { "Authorization": "Bearer YOUR_QASE_API_TOKEN" }
-    }
-  }
-}
-```
-
-**Bind deliberately.** `--host` defaults to `0.0.0.0`, which accepts connections
-from anywhere that can route to the machine. Pass `--host 127.0.0.1` unless the
-server is meant to be reachable from the network, and keep OAuth on
-(`QASE_OAUTH_ENABLED` defaults to enabled) unless you have a specific reason to
-turn it off.
-
-OAuth applies to `streamable-http` only: on `--transport sse` a token is
-required but not validated by the server — any non-empty value passes, and a
-bad one only fails later when the Qase API rejects it.
-
-## Client Setup (stdio)
-
-### Claude Desktop
-
-Add to your Claude Desktop configuration file:
-
-**macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
-**Windows**: `%APPDATA%/Claude/claude_desktop_config.json`
-
-```json
-{
-  "mcpServers": {
-    "qase": {
-      "command": "npx",
-      "args": ["-y", "@qase/mcp-server"],
-      "env": {
-        "QASE_API_TOKEN": "your_api_token_here"
-      }
-    }
-  }
-}
-```
-
-Or, if installed from source:
-
-```json
-{
-  "mcpServers": {
-    "qase": {
-      "command": "node",
-      "args": ["/absolute/path/to/qase-mcp-server/build/index.js"],
-      "env": {
-        "QASE_API_TOKEN": "your_api_token_here"
-      }
-    }
-  }
-}
-```
-
-### Cursor
-
-> Prefer no install and no API token? Connect Cursor to the hosted server instead — see [Connect to the hosted Qase MCP](connect.md).
-
-To run the server locally with your own token:
-
-1. Open Cursor Settings
-2. Navigate to MCP settings
-3. Add the Qase MCP server:
-
-```json
-{
-  "mcpServers": {
-    "qase": {
-      "command": "npx",
-      "args": ["-y", "@qase/mcp-server"],
-      "env": {
-        "QASE_API_TOKEN": "your_api_token_here"
-      }
-    }
-  }
-}
-```
-
-### Claude Code
-
-You can add the Qase MCP server to Claude Code using the CLI command:
+Not needed for any setup on this page. If you'd rather install once instead of letting `npx` fetch the package:
 
 ```bash
-claude mcp add qase -- npx -y @qase/mcp-server
+npm install -g @qase/mcp-server
 ```
 
-Set the required environment variable:
+Then use `qase-mcp-server` as the command in your client configuration, with no arguments, and update it with `npm update -g @qase/mcp-server`.
 
-```bash
-export QASE_API_TOKEN=your_api_token_here
-```
+## Check it works
 
-Alternatively, add a `.mcp.json` file to your project root for automatic project-scoped configuration:
+Start a new chat in your tool and ask:
 
-```json
-{
-  "mcpServers": {
-    "qase": {
-      "command": "npx",
-      "args": ["-y", "@qase/mcp-server"],
-      "env": {
-        "QASE_API_TOKEN": "your_api_token_here"
-      }
-    }
-  }
-}
-```
+> List my Qase projects.
 
-You can also use the `--scope` flag to choose where the configuration is stored:
-
-```bash
-# Project-scoped (saved in .mcp.json)
-claude mcp add --scope project qase -- npx -y @qase/mcp-server
-
-# User-scoped (available in all projects)
-claude mcp add --scope user qase -- npx -y @qase/mcp-server
-```
-
-### OpenAI Codex CLI
-
-Add a `.codex/config.json` file to your project root:
-
-```json
-{
-  "mcpServers": {
-    "qase": {
-      "command": "npx",
-      "args": ["-y", "@qase/mcp-server"],
-      "env": {
-        "QASE_API_TOKEN": "your_api_token_here"
-      }
-    }
-  }
-}
-```
-
-Set the required environment variable before running Codex:
-
-```bash
-export QASE_API_TOKEN=your_api_token_here
-```
-
-### OpenCode
-
-Add an `opencode.json` file to your project root (or `~/.config/opencode/opencode.json` for global configuration):
-
-```json
-{
-  "mcp": {
-    "qase": {
-      "type": "local",
-      "command": ["npx", "-y", "@qase/mcp-server"],
-      "environment": {
-        "QASE_API_TOKEN": "your_api_token_here"
-      }
-    }
-  }
-}
-```
-
-> **Note:** OpenCode uses a different format from other MCP clients — the command and args are combined into a single `command` array, env vars go under `environment`, and servers are nested under `mcp` (not `mcpServers`).
-
-## Transports
-
-The server supports multiple transport types for different use cases.
-
-### Stdio Transport (Default)
-
-Used by MCP clients like Claude Desktop and Cursor:
-
-```bash
-npm start
-# or
-npm run start:stdio
-```
-
-### SSE Transport
-
-> **Deprecated.** The SSE transport was deprecated in the MCP specification on
-> 2025-03-26 and will be removed in a future release. Use
-> `--transport streamable-http` instead.
-
-Server-Sent Events for web-based clients:
-
-```bash
-npm run start:sse
-# Server runs on http://localhost:3000/sse
-# Health check: http://localhost:3000/health
-# Metrics: http://localhost:3000/metrics
-```
-
-Clients must send a bearer token — see [Security of network transports](#security-of-network-transports).
-
-### Streamable HTTP Transport
-
-Full HTTP-based transport — there is no session; every request is served on its own:
-
-```bash
-npm run start:http
-# Server runs on http://localhost:3000/mcp
-# Health check: http://localhost:3000/health
-# Metrics: http://localhost:3000/metrics
-```
-
-Clients must send a bearer token — see [Security of network transports](#security-of-network-transports).
-
-**Deleting anything requires a modern client.** Destructive tools (`qase_case_delete` and the rest) are confirmed through a multi-round-trip exchange: the first call returns a request for input instead of deleting anything, and the client must retry with the answer. That round trip needs capabilities a client declares during `initialize`, which only a client that negotiates the **2026-07-28** revision of MCP provides. A client still on the 2025-11-25 revision — the common case on a stateless HTTP connection — cannot complete it, so its deletion is refused with an explanation naming the two ways out: use a client that negotiates 2026-07-28, or delete in the Qase UI. This is specific to the HTTP transports; stdio and SSE are long-lived connections where confirmation always works, though a stdio client that itself negotiates 2026-07-28 goes through the same round trip rather than the old single-call flow.
-
-### Custom Configuration
-
-```bash
-# Custom port and host
-node build/index.js --transport streamable-http --port 8080 --host 0.0.0.0
-
-# Available options:
-# --transport: stdio | sse | streamable-http (default: stdio)
-# --port: Port number (default: 3000)
-# --host: Host address (default: 0.0.0.0)
-```
-
-### Monitoring
-
-When using SSE or Streamable HTTP transport, a Prometheus-compatible `/metrics` endpoint is available:
-
-```bash
-curl http://localhost:3000/metrics
-```
-
-Metrics include:
-- `qase_mcp_cache_hits_total` / `qase_mcp_cache_misses_total` - Cache hit/miss rates by tier (l1/l2)
-- `qase_mcp_cache_errors_total` - Cache errors by tier
-- `qase_mcp_circuit_breaker_state` - Redis circuit breaker state (0=closed, 1=half_open, 2=open)
-- `qase_mcp_requests_total` - Requests served, labelled by `protocol` (the revision the client
-  negotiated, e.g. `2026-07-28`, or `legacy` for 2025-11-25) and `client` (the client's own name).
-  This is what tells you whether anyone still needs the older protocol revision before it is
-  dropped. A 2025-era client reaches a stateless HTTP request without ever identifying itself, so
-  it is counted as `client="unknown"`; on stdio and SSE the name comes from the connection's
-  `initialize`. The number of distinct client names is capped at 20 per process — the label comes
-  from the wire, and past the cap everything new is counted as `client="other"`.
-- `qase_mcp_tool_calls_total` - Tool calls by tool name
-
-> **Note:** This page covers running the server yourself with your own `QASE_API_TOKEN` (self-run). It does not cover operating the hosted OAuth proxy — that is internal operator documentation, not part of this guide.
+Your tool may ask permission to use a Qase tool the first time. If your projects come back, you're done.
 
 ## Troubleshooting
 
-Server not starting, authentication errors, or connection issues? See [Troubleshooting](troubleshooting.md).
+| What you see | What to do |
+| --- | --- |
+| Qase doesn't appear in your tool at all | Check the configuration for a missing comma, save, and fully restart the tool. Run `node -v` to confirm Node.js 20 or newer. |
+| `Authentication failed: Please check your QASE_API_TOKEN` | Copy the token again and remove any extra spaces or quotes. Make sure it was created in the same region as your `QASE_API_DOMAIN`. |
+| `Network error` or `ECONNREFUSED` | Check `QASE_API_DOMAIN`: domain only, no `https://`. On the main cloud, remove the line entirely. |
+| `unable to get local issuer certificate` | Your network inspects traffic. See [SSL Certificate Errors](troubleshooting.md#ssl-certificate-errors). |
+| `npx` not found (macOS, Node.js installed with nvm) | Run `which npx` in Terminal and use that full path as the command. |
+| `Unknown tool` | You may be on an older cached version. See [Tool Not Found](troubleshooting.md#tool-not-found). |
+
+More issues and fixes: [Troubleshooting](troubleshooting.md).
+
+## Going further
+
+- **Running one server for a team, behind a URL** (Streamable HTTP, several replicas, metrics): [Host a shared server](hosting.md)
+- **Building a plugin, agent or wrapper on top of the server:** [Building on top of the server](integrations.md)
+- **Changing the server's code or running it from source:** [CONTRIBUTING.md](../CONTRIBUTING.md)

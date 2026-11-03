@@ -69,14 +69,21 @@ Full per-client steps, other clients, and the active-workspace model: **[docs/co
 
 ### Run it yourself
 
-Install the package and provide your own API token:
+Works on every plan, including Free and dedicated instances. You need Node.js 20+ and a [Qase API token](https://app.qase.io/user/api/token); your MCP client starts the server for you. For example, in Claude Desktop's config:
 
-```bash
-npm install -g @qase/mcp-server
-export QASE_API_TOKEN=your_api_token_here
+```json
+{
+  "mcpServers": {
+    "qase": {
+      "command": "npx",
+      "args": ["-y", "@qase/mcp-server"],
+      "env": { "QASE_API_TOKEN": "your_api_token_here" }
+    }
+  }
+}
 ```
 
-Then point your MCP client's stdio config at the `@qase/mcp-server` binary. Full install options, client configs (Claude Desktop, Cursor, Claude Code, Codex, OpenCode), environment variables, and transports (stdio/SSE/streamable-HTTP): **[docs/self-run.md](docs/self-run.md)**.
+Step-by-step setup for Claude Desktop, Claude Code, Cursor, Codex and OpenCode, plus EU-region and custom-domain settings: **[docs/self-run.md](docs/self-run.md)**. Running one server for a team over HTTP: **[docs/hosting.md](docs/hosting.md)**.
 
 ## Building on top of this server
 
@@ -88,7 +95,7 @@ If your product drives this server (a plugin, an agent, a wrapper CLI), it can i
 QASE_MCP_INTEGRATION=quality-supervisor/1.4.0   # <name>/<version>, version optional
 ```
 
-The name must be on the allowlist in [`src/utils/integration-marker.ts`](src/utils/integration-marker.ts) — add yours in a PR. Anything unlisted or malformed is ignored, and the API call still succeeds. HTTP transports also accept the marker per request (`X-Qase-Integration` header or `?integration=`). Details: **[docs/self-run.md](docs/self-run.md#integration-marker-for-integration-authors)**.
+The name must be on the allowlist in [`src/utils/integration-marker.ts`](src/utils/integration-marker.ts) — add yours in a PR. Anything unlisted or malformed is ignored, and the API call still succeeds. HTTP transports also accept the marker per request (`X-Qase-Integration` header or `?integration=`). Details: **[docs/integrations.md](docs/integrations.md)**.
 
 ## Upgrading
 
@@ -116,7 +123,9 @@ Full tool-by-tool reference with parameters: **[docs/tools.md](docs/tools.md)**.
 ## Documentation
 
 - **[docs/connect.md](docs/connect.md)** — connect to the hosted Qase MCP (Claude, Cursor, Codex, other clients)
-- **[docs/self-run.md](docs/self-run.md)** — install and run the server yourself (config, clients, transports)
+- **[docs/self-run.md](docs/self-run.md)** — run the server yourself with your own API token, step by step per client
+- **[docs/hosting.md](docs/hosting.md)** — host a shared server: HTTP transports, security, multiple replicas, metrics
+- **[docs/integrations.md](docs/integrations.md)** — for integration authors: the integration marker
 - **[docs/tools.md](docs/tools.md)** — full tool reference, groups, and the discovery model
 - **[docs/troubleshooting.md](docs/troubleshooting.md)** — auth, OAuth/connector, and SSL issues
 - **[docs/migration.md](docs/migration.md)** — upgrade guides: 2.x → 3.0.0, and the v1 → v2 tool mapping

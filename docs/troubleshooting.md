@@ -212,7 +212,7 @@ Only `http` and `https` are recognised; any other value falls back to `https`, s
 
 1. Check that your client supports confirmation prompts (MCP elicitation) and that none of its settings suppress them. A client that never declares the capability gets a refusal saying so instead of a prompt
 2. If the prompt appears but times out, answer it sooner — a confirmation stays answerable for 10 minutes, and an unanswered one refuses the call
-3. Running more than one replica, self-hosted? Set `QASE_MCP_REQUEST_STATE_KEY` to the same value on all of them — see [self-run.md](self-run.md#environment-variables). Without it the answer is verified by a different replica than the one that asked, and the deletion is refused
+3. Running more than one replica, self-hosted? Set `QASE_MCP_REQUEST_STATE_KEY` to the same value on all of them — see [hosting.md](hosting.md#running-more-than-one-replica). Without it the answer is verified by a different replica than the one that asked, and the deletion is refused
 4. Either way nothing was deleted. Retry and answer the prompt, or delete it in the Qase UI
 
 ## Tool Not Found

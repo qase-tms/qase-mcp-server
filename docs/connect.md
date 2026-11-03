@@ -22,7 +22,7 @@ A **dedicated instance** is not a region and has no hosted endpoint; [run the se
 >
 > Running the server yourself works on every plan, in both regions, and on dedicated instances.
 
-Prefer to run the server yourself with your own `QASE_API_TOKEN`? See [Self-Run Guide (Local / stdio)](self-run.md).
+Prefer to run the server yourself with your own `QASE_API_TOKEN`? See [Run the Qase MCP server yourself](self-run.md).
 
 ## Claude
 

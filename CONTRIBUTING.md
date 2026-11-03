@@ -47,7 +47,7 @@ Enhancement suggestions are tracked as GitHub issues. When creating an enhanceme
 
 ### Prerequisites
 
-- Node.js 18 or higher
+- Node.js 20 or higher
 - NPM 9 or higher
 - Git
 - Qase account with API token
@@ -72,6 +72,47 @@ npm run build
 # Run tests
 npm test
 ```
+
+### Environment Variables
+
+For local development, set variables in `.env` (copied from `.env.example` above) or in your shell:
+
+```bash
+# Required: Your Qase API token
+QASE_API_TOKEN=your_api_token_here
+
+# Optional: Custom API domain for enterprise customers
+QASE_API_DOMAIN=api.qase.io
+
+# Optional: Scheme used to reach that domain — http or https (default: https)
+QASE_API_PROTOCOL=https
+```
+
+Get your API token from: https://app.qase.io/user/api/token
+
+What each one does: [Advanced settings in the self-run guide](docs/self-run.md#advanced-settings). Variables for network transports and multiple replicas: [docs/hosting.md](docs/hosting.md).
+
+### Running your local build in an MCP client
+
+To try your changes from a real client, point it at the build output instead of the published package. For Claude Desktop:
+
+```json
+{
+  "mcpServers": {
+    "qase": {
+      "command": "node",
+      "args": ["/absolute/path/to/qase-mcp-server/build/index.js"],
+      "env": {
+        "QASE_API_TOKEN": "your_api_token_here"
+      }
+    }
+  }
+}
+```
+
+Other clients take the same `node` command and path; see [docs/self-run.md](docs/self-run.md#pick-your-tool) for where each client keeps its configuration. Rebuild with `npm run build` (or keep `npm run watch` running) and restart the client to pick up changes.
+
+To run the server over HTTP instead (`npm run start:http`, `npm run start:sse`, custom `--port` and `--host`), see [docs/hosting.md](docs/hosting.md#transports).
 
 ### Development Workflow
 

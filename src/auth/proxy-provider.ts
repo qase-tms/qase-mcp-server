@@ -33,58 +33,62 @@ export function createRegistrationSanitizingFetch(
   underlyingFetch: FetchLike = globalThis.fetch,
 ): FetchLike {
   return async (url, init) => {
-    // Request side: rewrite unsupported token_endpoint_auth_method before forwarding.
-    let effectiveInit = init;
-    if (String(url) === registrationUrl && init?.body != null) {
-      try {
-        const reqBody = JSON.parse(String(init.body)) as Record<string, unknown>;
-        if (reqBody.token_endpoint_auth_method === 'client_secret_post') {
-          reqBody.token_endpoint_auth_method = 'none';
-          effectiveInit = { ...init, body: JSON.stringify(reqBody) };
-        }
-      } catch {
-        // Non-JSON body — forward unchanged.
-      }
-    }
-
-    const res = await underlyingFetch(url, effectiveInit);
     if (String(url) !== registrationUrl) {
-      return res;
-    }
-    if (res.status === 400) {
-      const error = await res
-        .clone()
-        .json()
-        .catch(() => null);
-      if (error && typeof error === 'object' && typeof error.error === 'string') {
-        const description =
-          typeof error.error_description === 'string' ? error.error_description : '';
-        throw new CustomOAuthError(error.error, description);
-      }
-    }
-    if (!res.ok) {
-      return res;
+      return underlyingFetch(url, init);
     }
 
-    // Response side: strip null client_secret so the SDK schema parses correctly.
-    const data = await res
-      .clone()
-      .json()
-      .catch(() => null);
-    if (
-      data &&
-      typeof data === 'object' &&
-      (data as Record<string, unknown>).client_secret === null
-    ) {
-      delete (data as Record<string, unknown>).client_secret;
-      return new Response(JSON.stringify(data), {
-        status: res.status,
-        statusText: res.statusText,
-        headers: { 'content-type': 'application/json' },
-      });
-    }
-    return res;
+    const res = await underlyingFetch(url, rewriteUnsupportedAuthMethod(init));
+    await throwUpstreamRegistrationError(res);
+    return res.ok ? stripNullClientSecret(res) : res;
   };
+}
+
+function rewriteUnsupportedAuthMethod(init: RequestInit | undefined): RequestInit | undefined {
+  if (init?.body == null) {
+    return init;
+  }
+  try {
+    const reqBody = JSON.parse(String(init.body)) as Record<string, unknown>;
+    if (reqBody.token_endpoint_auth_method === 'client_secret_post') {
+      reqBody.token_endpoint_auth_method = 'none';
+      return { ...init, body: JSON.stringify(reqBody) };
+    }
+  } catch {
+    // Non-JSON body — forward unchanged.
+  }
+  return init;
+}
+
+async function throwUpstreamRegistrationError(res: Response): Promise<void> {
+  if (res.status !== 400) {
+    return;
+  }
+  const error = await readJsonObject(res);
+  if (typeof error?.error === 'string') {
+    const description = typeof error.error_description === 'string' ? error.error_description : '';
+    throw new CustomOAuthError(error.error, description);
+  }
+}
+
+async function stripNullClientSecret(res: Response): Promise<Response> {
+  const data = await readJsonObject(res);
+  if (data?.client_secret !== null) {
+    return res;
+  }
+  delete data.client_secret;
+  return new Response(JSON.stringify(data), {
+    status: res.status,
+    statusText: res.statusText,
+    headers: { 'content-type': 'application/json' },
+  });
+}
+
+async function readJsonObject(res: Response): Promise<Record<string, unknown> | null> {
+  const data: unknown = await res
+    .clone()
+    .json()
+    .catch(() => null);
+  return data && typeof data === 'object' ? (data as Record<string, unknown>) : null;
 }
 
 /**

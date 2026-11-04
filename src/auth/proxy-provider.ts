@@ -1,6 +1,9 @@
 // src/auth/proxy-provider.ts
 import type { OAuthClientInformationFull, FetchLike } from '@modelcontextprotocol/server';
-import { ProxyOAuthServerProvider } from '@modelcontextprotocol/server-legacy/auth';
+import {
+  CustomOAuthError,
+  ProxyOAuthServerProvider,
+} from '@modelcontextprotocol/server-legacy/auth';
 
 import type { OAuthConfig } from './oauth-config.js';
 import type { JwksVerifier } from './jwks-verifier.js';
@@ -18,6 +21,10 @@ import { authorizeRedirectUriStorage } from './client-context.js';
  * Response side: the Qase AS returns `client_secret: null` for public clients, but the
  * SDK's OAuthClientInformationFullSchema expects a string or an omitted field. Strip the
  * null field (RFC 7591: client_secret is optional / omitted for public clients).
+ *
+ * Rejections: the SDK turns any non-ok registration response into an opaque
+ * `500 server_error`. A 400 with an RFC 7591 error body is rethrown as that same
+ * OAuth error, so proxied clients see e.g. `invalid_redirect_uri` like direct ones.
  *
  * Only the registration endpoint is touched; all other requests pass through unchanged.
  */
@@ -41,7 +48,21 @@ export function createRegistrationSanitizingFetch(
     }
 
     const res = await underlyingFetch(url, effectiveInit);
-    if (String(url) !== registrationUrl || !res.ok) {
+    if (String(url) !== registrationUrl) {
+      return res;
+    }
+    if (res.status === 400) {
+      const error = await res
+        .clone()
+        .json()
+        .catch(() => null);
+      if (error && typeof error === 'object' && typeof error.error === 'string') {
+        const description =
+          typeof error.error_description === 'string' ? error.error_description : '';
+        throw new CustomOAuthError(error.error, description);
+      }
+    }
+    if (!res.ok) {
       return res;
     }
 

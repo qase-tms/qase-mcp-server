@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.5]
+
+### Fixed
+
+- **The hosted server's `/register` relays the authorization server's rejection instead of a generic error.** When `auth.qase.io` refused a dynamic client registration (for example `invalid_redirect_uri`), clients registering through `mcp.qase.io/register` got `500 server_error` with "Client registration failed: 400". They now get the same `400` with the original `error` and `error_description` as clients that register with `auth.qase.io` directly ([#126](https://github.com/qase-tms/qase-mcp-server/issues/126)).
+
 ## [3.0.4]
 
 ### Fixed

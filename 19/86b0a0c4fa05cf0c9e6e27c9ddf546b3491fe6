@@ -1,0 +1,19 @@
+src/auth/proxy-provider.ts
+  s_45d088e9d41895::t_67845769605c95 37,40-54,56-75,77-91
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "1986b0a0c4fa05cf0c9e6e27c9ddf546b3491fe6",
+  "prompts": {},
+  "sessions": {
+    "s_45d088e9d41895": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "722ed43d-4fbc-4a72-8d56-fa66c7d9af8b",
+        "model": "unknown"
+      },
+      "human_author": "Dmitrii Gridnev <dgridnev@qase.io>"
+    }
+  }
+}

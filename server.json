@@ -4,16 +4,23 @@
   "title": "Qase Test Management",
   "description": "Official MCP server for Qase — manage test cases, runs, suites, defects via AI tools.",
   "websiteUrl": "https://qase.io",
+  "icons": [
+    {
+      "src": "https://raw.githubusercontent.com/qase-tms/qase-mcp-server/main/icon.png",
+      "mimeType": "image/png",
+      "sizes": ["512x512"]
+    }
+  ],
   "repository": {
     "url": "https://github.com/qase-tms/qase-mcp-server",
     "source": "github"
   },
-  "version": "3.0.5",
+  "version": "3.0.6",
   "packages": [
     {
       "registryType": "npm",
       "identifier": "@qase/mcp-server",
-      "version": "3.0.5",
+      "version": "3.0.6",
       "transport": {
         "type": "stdio"
       },

@@ -64,6 +64,7 @@ export function createServer(): Server {
         {
           src: 'https://raw.githubusercontent.com/qase-tms/qase-mcp-server/main/icon.png',
           mimeType: 'image/png',
+          sizes: ['512x512'],
         },
       ],
     },

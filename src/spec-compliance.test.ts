@@ -7,6 +7,7 @@
  * choosing arguments, and the error a bad pagination cursor must produce.
  */
 
+import { readFileSync } from 'node:fs';
 import { describe, it, expect, beforeAll, afterAll } from '@jest/globals';
 import { Client, InMemoryTransport } from "@modelcontextprotocol/client";
 import { setTestEnv } from './utils/test-helpers.js';
@@ -71,6 +72,15 @@ describe('server identity', () => {
     const icons = info.icons as Array<{ src: string }> | undefined;
     expect(icons?.length).toBeGreaterThan(0);
     expect(icons?.[0].src).toMatch(/^https:\/\//);
+  });
+
+  // Registry listings render server.json, connected clients render serverInfo.
+  it('matches the display metadata in the registry manifest', () => {
+    const info = client.getServerVersion() as Record<string, unknown>;
+    const manifest = JSON.parse(readFileSync('server.json', 'utf8')) as Record<string, unknown>;
+    expect(manifest.title).toBe(info.title);
+    expect(manifest.websiteUrl).toBe(info.websiteUrl);
+    expect(manifest.icons).toEqual(info.icons);
   });
 });
 

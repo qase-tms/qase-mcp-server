@@ -1,5 +1,6 @@
 // src/transports/streamableHttp.oauth.test.ts
-import { describe, it, expect, beforeAll } from '@jest/globals';
+import { describe, it, expect, beforeAll, jest } from '@jest/globals';
+import type http from 'node:http';
 import request from 'supertest';
 import { generateKeyPair, exportJWK, SignJWT, createLocalJWKSet } from 'jose';
 import { Server } from '@modelcontextprotocol/server';
@@ -136,6 +137,45 @@ describe('streamable-http OAuth wiring', () => {
     expect(loc.startsWith('https://auth.qase.io/oauth/authorize')).toBe(true);
     expect(loc).toContain('client_id=cli-1');
     expect(loc).toContain('redirect_uri=https%3A%2F%2Fclient.example%2Fcallback');
+  });
+
+  it('relays an upstream DCR rejection from /register as 400, not an opaque 500', async () => {
+    // The proxy captures globalThis.fetch when the app is built, so stub it first.
+    const fetchSpy = jest.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          error: 'invalid_redirect_uri',
+          error_description: 'The selected redirect_uris is invalid.',
+        }),
+        { status: 400, headers: { 'content-type': 'application/json' } },
+      ),
+    );
+    const config = getOAuthConfig();
+    const proxiedApp = setupStreamableHttpTransport(
+      makeServer,
+      { port: 0, host: '127.0.0.1', endpoint: '/mcp' },
+      { config, verifier: createJwksVerifier(config, createLocalJWKSet({ keys: [] })) },
+    );
+    try {
+      const res = await request(proxiedApp)
+        .post('/register')
+        .send({
+          client_name: 'windsurf',
+          redirect_uris: ['http://127.0.0.1:54321/oauth/callback'],
+          grant_types: ['authorization_code', 'refresh_token'],
+          response_types: ['code'],
+          token_endpoint_auth_method: 'none',
+        });
+      expect(res.status).toBe(400);
+      expect(res.body).toEqual({
+        error: 'invalid_redirect_uri',
+        error_description: 'The selected redirect_uris is invalid.',
+      });
+    } finally {
+      fetchSpy.mockRestore();
+      const httpServer = (proxiedApp as unknown as { _httpServer?: http.Server })._httpServer;
+      if (httpServer) await new Promise<void>((resolve) => httpServer.close(() => resolve()));
+    }
   });
 
   // The 404-for-an-unknown-session rule is gone with the sessions themselves:

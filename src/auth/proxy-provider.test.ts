@@ -1,6 +1,6 @@
 // src/auth/proxy-provider.test.ts
 import { OAuthClientInformationFullSchema } from "@modelcontextprotocol/core";
-import { ProxyOAuthServerProvider } from "@modelcontextprotocol/server-legacy/auth";
+import { OAuthError, ProxyOAuthServerProvider } from "@modelcontextprotocol/server-legacy/auth";
 import { describe, it, expect } from '@jest/globals';
 import { createProxyProvider, createRegistrationSanitizingFetch } from './proxy-provider.js';
 import type { JwksVerifier } from './jwks-verifier.js';
@@ -54,10 +54,36 @@ describe('createRegistrationSanitizingFetch', () => {
     expect(data.client_secret).toBeNull(); // untouched — only /register is sanitized
   });
 
-  it('passes through non-ok responses unchanged', async () => {
-    const fake = async () => jsonResponse({ error: 'bad' }, 400);
+  it('passes through non-400 error responses unchanged', async () => {
+    const fake = async () => jsonResponse({ error: 'server_error' }, 503);
     const f = createRegistrationSanitizingFetch(REG_URL, fake);
     const res = await f(REG_URL, {});
+    expect(res.status).toBe(503);
+  });
+
+  it('surfaces an upstream 400 registration rejection as the same OAuth error', async () => {
+    const fake = async () =>
+      jsonResponse({ error: 'invalid_redirect_uri', error_description: 'The selected redirect_uris is invalid.' }, 400);
+    const f = createRegistrationSanitizingFetch(REG_URL, fake);
+    const err = await f(REG_URL, {}).catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(OAuthError);
+    expect((err as OAuthError).toResponseObject()).toEqual({
+      error: 'invalid_redirect_uri',
+      error_description: 'The selected redirect_uris is invalid.',
+    });
+  });
+
+  it('passes through a 400 registration response without an OAuth error body', async () => {
+    const fake = async () => new Response('<html>Bad Request</html>', { status: 400 });
+    const f = createRegistrationSanitizingFetch(REG_URL, fake);
+    const res = await f(REG_URL, {});
+    expect(res.status).toBe(400);
+  });
+
+  it('does not convert 400 responses from other endpoints', async () => {
+    const fake = async () => jsonResponse({ error: 'invalid_grant' }, 400);
+    const f = createRegistrationSanitizingFetch(REG_URL, fake);
+    const res = await f('https://auth.qase.io/oauth/token', {});
     expect(res.status).toBe(400);
   });
 

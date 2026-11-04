@@ -1,6 +1,9 @@
 // src/auth/proxy-provider.ts
 import type { OAuthClientInformationFull, FetchLike } from '@modelcontextprotocol/server';
-import { ProxyOAuthServerProvider } from '@modelcontextprotocol/server-legacy/auth';
+import {
+  CustomOAuthError,
+  ProxyOAuthServerProvider,
+} from '@modelcontextprotocol/server-legacy/auth';
 
 import type { OAuthConfig } from './oauth-config.js';
 import type { JwksVerifier } from './jwks-verifier.js';
@@ -19,6 +22,10 @@ import { authorizeRedirectUriStorage } from './client-context.js';
  * SDK's OAuthClientInformationFullSchema expects a string or an omitted field. Strip the
  * null field (RFC 7591: client_secret is optional / omitted for public clients).
  *
+ * Rejections: the SDK turns any non-ok registration response into an opaque
+ * `500 server_error`. A 400 with an RFC 7591 error body is rethrown as that same
+ * OAuth error, so proxied clients see e.g. `invalid_redirect_uri` like direct ones.
+ *
  * Only the registration endpoint is touched; all other requests pass through unchanged.
  */
 export function createRegistrationSanitizingFetch(
@@ -26,44 +33,62 @@ export function createRegistrationSanitizingFetch(
   underlyingFetch: FetchLike = globalThis.fetch,
 ): FetchLike {
   return async (url, init) => {
-    // Request side: rewrite unsupported token_endpoint_auth_method before forwarding.
-    let effectiveInit = init;
-    if (String(url) === registrationUrl && init?.body != null) {
-      try {
-        const reqBody = JSON.parse(String(init.body)) as Record<string, unknown>;
-        if (reqBody.token_endpoint_auth_method === 'client_secret_post') {
-          reqBody.token_endpoint_auth_method = 'none';
-          effectiveInit = { ...init, body: JSON.stringify(reqBody) };
-        }
-      } catch {
-        // Non-JSON body — forward unchanged.
-      }
+    if (String(url) !== registrationUrl) {
+      return underlyingFetch(url, init);
     }
 
-    const res = await underlyingFetch(url, effectiveInit);
-    if (String(url) !== registrationUrl || !res.ok) {
-      return res;
-    }
-
-    // Response side: strip null client_secret so the SDK schema parses correctly.
-    const data = await res
-      .clone()
-      .json()
-      .catch(() => null);
-    if (
-      data &&
-      typeof data === 'object' &&
-      (data as Record<string, unknown>).client_secret === null
-    ) {
-      delete (data as Record<string, unknown>).client_secret;
-      return new Response(JSON.stringify(data), {
-        status: res.status,
-        statusText: res.statusText,
-        headers: { 'content-type': 'application/json' },
-      });
-    }
-    return res;
+    const res = await underlyingFetch(url, rewriteUnsupportedAuthMethod(init));
+    await throwUpstreamRegistrationError(res);
+    return res.ok ? stripNullClientSecret(res) : res;
   };
+}
+
+function rewriteUnsupportedAuthMethod(init: RequestInit | undefined): RequestInit | undefined {
+  if (init?.body == null) {
+    return init;
+  }
+  try {
+    const reqBody = JSON.parse(String(init.body)) as Record<string, unknown>;
+    if (reqBody.token_endpoint_auth_method === 'client_secret_post') {
+      reqBody.token_endpoint_auth_method = 'none';
+      return { ...init, body: JSON.stringify(reqBody) };
+    }
+  } catch {
+    // Non-JSON body — forward unchanged.
+  }
+  return init;
+}
+
+async function throwUpstreamRegistrationError(res: Response): Promise<void> {
+  if (res.status !== 400) {
+    return;
+  }
+  const error = await readJsonObject(res);
+  if (typeof error?.error === 'string') {
+    const description = typeof error.error_description === 'string' ? error.error_description : '';
+    throw new CustomOAuthError(error.error, description);
+  }
+}
+
+async function stripNullClientSecret(res: Response): Promise<Response> {
+  const data = await readJsonObject(res);
+  if (data?.client_secret !== null) {
+    return res;
+  }
+  delete data.client_secret;
+  return new Response(JSON.stringify(data), {
+    status: res.status,
+    statusText: res.statusText,
+    headers: { 'content-type': 'application/json' },
+  });
+}
+
+async function readJsonObject(res: Response): Promise<Record<string, unknown> | null> {
+  const data: unknown = await res
+    .clone()
+    .json()
+    .catch(() => null);
+  return data && typeof data === 'object' ? (data as Record<string, unknown>) : null;
 }
 
 /**

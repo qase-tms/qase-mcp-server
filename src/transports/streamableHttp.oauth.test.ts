@@ -139,6 +139,30 @@ describe('streamable-http OAuth wiring', () => {
     expect(loc).toContain('redirect_uri=https%3A%2F%2Fclient.example%2Fcallback');
   });
 
+  it('serves AS metadata whose issuer matches the upstream issuer exactly (no trailing slash)', async () => {
+    // Passport's RFC 9207 `iss` is its issuer without a slash; an SDK client that
+    // discovered the AS through this document compares the two byte for byte.
+    const res = await request(app).get('/.well-known/oauth-authorization-server');
+    expect(res.status).toBe(200);
+    expect(res.body.issuer).toBe('https://auth.qase.io');
+    expect(res.body.authorization_endpoint).toBe('https://mcp.qase.io/authorize');
+    expect(res.body.registration_endpoint).toBe('https://mcp.qase.io/register');
+    expect(res.body.authorization_response_iss_parameter_supported).toBe(false);
+  });
+
+  it('puts the unslashed issuer into iss on its own /authorize error redirects', async () => {
+    const res = await request(app).get('/authorize').query({
+      client_id: 'cli-1',
+      redirect_uri: 'https://client.example/callback',
+      response_type: 'code',
+    });
+    expect(res.status).toBe(302);
+    const loc = new URL(res.headers['location'] as string);
+    expect(loc.origin + loc.pathname).toBe('https://client.example/callback');
+    expect(loc.searchParams.get('error')).toBe('invalid_request');
+    expect(loc.searchParams.get('iss')).toBe('https://auth.qase.io');
+  });
+
   it('relays an upstream DCR rejection from /register as 400, not an opaque 500', async () => {
     // The proxy captures globalThis.fetch when the app is built, so stub it first.
     const fetchSpy = jest.spyOn(globalThis, 'fetch').mockResolvedValue(

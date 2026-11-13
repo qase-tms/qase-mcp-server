@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.7]
+
+### Fixed
+
+- **The hosted server's authorization-server metadata names the issuer exactly as the authorization server does.** `/.well-known/oauth-authorization-server` on `mcp.qase.io` advertised `https://auth.qase.io/` with a trailing slash, and the server's own `/authorize` error redirects carried the same value in `iss`. The authorization server's issuer has no slash, so once it starts returning `iss` in authorization responses (RFC 9207, needed for ChatGPT), clients that discovered it through this document would reject every sign-in as an issuer mismatch. Both now use the issuer unchanged.
+
 ## [3.0.6]
 
 ### Fixed

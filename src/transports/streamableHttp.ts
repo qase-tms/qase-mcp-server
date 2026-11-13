@@ -1,5 +1,9 @@
 import express, { Express } from 'express';
-import { mcpAuthRouter } from '@modelcontextprotocol/server-legacy/auth';
+import {
+  createOAuthMetadata,
+  mcpAuthRouter,
+  metadataHandler,
+} from '@modelcontextprotocol/server-legacy/auth';
 import { toNodeHandler } from '@modelcontextprotocol/node';
 import { createMcpHandler, Server } from '@modelcontextprotocol/server';
 import { requestTokenStorage } from '../utils/auth-context.js';
@@ -34,6 +38,28 @@ function readTrustProxy(raw: string | undefined): number | boolean | string {
   if (raw === 'false') return false;
   if (raw === 'true') return true;
   return raw;
+}
+
+function unslashIssOnRedirect(issuer: string): RequestHandler {
+  const slashed = new URL(issuer).href;
+  return (_req, res, next) => {
+    if (slashed === issuer) return next();
+    const redirect = res.redirect.bind(res) as (status: number, url: string) => void;
+    res.redirect = ((statusOrUrl: number | string, maybeUrl?: string) => {
+      const status = typeof statusOrUrl === 'number' ? statusOrUrl : 302;
+      const url = typeof statusOrUrl === 'number' ? (maybeUrl as string) : statusOrUrl;
+      let target: URL;
+      try {
+        target = new URL(url);
+      } catch {
+        return redirect(status, url);
+      }
+      if (target.searchParams.get('iss') !== slashed) return redirect(status, url);
+      target.searchParams.set('iss', issuer);
+      redirect(status, target.href);
+    }) as typeof res.redirect;
+    next();
+  };
 }
 
 export function setupStreamableHttpTransport(
@@ -146,19 +172,29 @@ export function setupStreamableHttpTransport(
       res.json(mcpResourceMetadata);
     });
 
+    const authRouterOptions = {
+      provider,
+      issuerUrl: new URL(oauthConfig.issuer),
+      // baseUrl = the public ORIGIN: the OAuth proxy endpoints (/authorize, /token,
+      // /register) and AS metadata mount here. MUST stay the origin — decoupled from
+      // resourceUrl — or the resource's `/mcp` path would leak into these paths.
+      baseUrl: new URL(oauthConfig.publicUrl),
+      // Still passed so the SDK generates its AS-metadata document; its own PRM mount is
+      // shadowed by the explicit routes above.
+      resourceServerUrl: new URL(oauthConfig.resourceUrl),
+    };
+
+    // The same trailing-slash problem hits the AS metadata legacy clients discover here,
+    // and the `iss` the SDK puts on its own /authorize error redirects. Passport sends
+    // `iss` as its unslashed issuer (RFC 9207), and SDK clients reject any mismatch with
+    // the metadata issuer even when the flag is not advertised.
     app.use(
-      mcpAuthRouter({
-        provider,
-        issuerUrl: new URL(oauthConfig.issuer),
-        // baseUrl = the public ORIGIN: the OAuth proxy endpoints (/authorize, /token,
-        // /register) and AS metadata mount here. MUST stay the origin — decoupled from
-        // resourceUrl — or the resource's `/mcp` path would leak into these paths.
-        baseUrl: new URL(oauthConfig.publicUrl),
-        // Still passed so the SDK generates its AS-metadata document; its own PRM mount is
-        // shadowed by the explicit routes above.
-        resourceServerUrl: new URL(oauthConfig.resourceUrl),
-      }),
+      '/.well-known/oauth-authorization-server',
+      metadataHandler({ ...createOAuthMetadata(authRouterOptions), issuer: oauthConfig.issuer }),
     );
+    app.use('/authorize', unslashIssOnRedirect(oauthConfig.issuer));
+
+    app.use(mcpAuthRouter(authRouterOptions));
 
     mcpGuard = createMcpGuard(verifier, oauthConfig);
     console.error('[StreamableHTTP] OAuth proxy enabled');

@@ -4,7 +4,13 @@ import { toolRegistry, CreateAnnotation, DeleteAnnotation } from '../../utils/re
 import { toResultAsync, createToolError } from '../../utils/errors.js';
 import { ProjectCodeSchema, IdSchema } from '../../utils/validation.js';
 import { normalizeCaseEnums } from '../../utils/case-enums.js';
-import { CaseFieldsSchema, applyAutomationMapping, resolveSharedStepRefs } from './case-fields.js';
+import {
+  CaseFieldsSchema,
+  PARAMETERS_HELP,
+  applyAutomationMapping,
+  normalizeParameters,
+  resolveSharedStepRefs,
+} from './case-fields.js';
 
 const UpsertSchema = z.object({
   code: ProjectCodeSchema,
@@ -26,6 +32,9 @@ async function upsert(args: z.infer<typeof UpsertSchema>) {
 
   if (normalized.steps !== undefined) {
     normalized.steps = resolveSharedStepRefs(normalized.steps);
+  }
+  if (normalized.parameters !== undefined) {
+    normalized.parameters = normalizeParameters(normalized.parameters);
   }
 
   const result = await toResultAsync(
@@ -63,7 +72,8 @@ toolRegistry.register({
     'a new one. Enum fields (priority, severity, type, layer, behavior, automation, is_flaky) ' +
     'accept either a label such as "high" or "blocker" or the project\'s numeric ID — the server ' +
     'normalizes both. Steps can be classic action/expected pairs or Gherkin, and may reference ' +
-    'shared steps by hash. Writing more than one case? Use qase_case_bulk_create instead: it takes ' +
+    `shared steps by hash. ${PARAMETERS_HELP} ` +
+    'Writing more than one case? Use qase_case_bulk_create instead: it takes ' +
     'a list and sends one request. If the project has "Test case review" enabled, direct writes ' +
     'may need to go through a review — run qase_discover_tools with "review" for those tools. ' +
     'Cost: one API call, about 0.6s to create and 0.4s to update. Ten sequential calls measured ' +

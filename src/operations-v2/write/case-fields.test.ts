@@ -10,6 +10,7 @@
 import { describe, it, expect } from '@jest/globals';
 import { toolRegistry } from '../../utils/registry.js';
 import '../index.js';
+import { normalizeParameters } from './case-fields.js';
 
 type Schema = Record<string, any>;
 
@@ -65,5 +66,59 @@ describe('the shared case schema', () => {
         });
       }
     }
+  });
+});
+
+describe('case parameters', () => {
+  it('is declared on every tool that writes a case body', () => {
+    for (const tool of TOOLS_WITH_STEPS) {
+      expect(JSON.stringify(schemaOf(tool))).toContain('"parameters"');
+    }
+  });
+
+  it('states that sending the list replaces it', () => {
+    const description = schemaOf('qase_case_upsert').properties.parameters.description;
+    expect(description).toMatch(/Replaces the whole list/);
+  });
+});
+
+describe('normalizeParameters', () => {
+  const single = { title: 'browser', values: ['chrome', 'firefox'] };
+  const group = {
+    items: [
+      { title: 'os', values: ['mac'] },
+      { title: 'arch', values: ['arm'] },
+    ],
+  };
+
+  it('leaves the shapes the API accepts as they are', () => {
+    expect(normalizeParameters([single, group, { shared_id: 'sp-1' }])).toEqual([
+      single,
+      group,
+      { shared_id: 'sp-1' },
+    ]);
+  });
+
+  it('unwraps a single parameter copied from a case read', () => {
+    // Sent as read, the API rejects it with a bare "Data is invalid.".
+    expect(normalizeParameters([{ type: 'single', item: single }])).toEqual([single]);
+  });
+
+  it('drops the read-side type from a group', () => {
+    expect(normalizeParameters([{ type: 'group', ...group }])).toEqual([group]);
+  });
+
+  it('writes a shared parameter read back with its contents as the reference only', () => {
+    expect(normalizeParameters([{ shared_id: 'sp-1', type: 'single', item: single }])).toEqual([
+      { shared_id: 'sp-1' },
+    ]);
+  });
+
+  it('keeps an empty list, which clears the parameters', () => {
+    expect(normalizeParameters([])).toEqual([]);
+  });
+
+  it('passes anything that is not a list through for the API to reject', () => {
+    expect(normalizeParameters('oops')).toBe('oops');
   });
 });

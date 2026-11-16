@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.1.0]
+
+### Added
+
+- **Test case parameters in `qase_case_upsert`, `qase_case_bulk_create`, `qase_review_create` and `qase_review_update`.** The `parameters` field takes a single parameter `{title, values}`, a group `{items: [...]}` of at least two parameters whose values go together, or a shared parameter `{shared_id}`. Before this the field was missing from the tool schemas, so clients never sent it in a form the API accepts, and parameters could not be set or proposed in a review at all. The descriptions state that sending `parameters` replaces the case's whole list, `[]` clears it, and leaving it out keeps it, as verified against the API.
+- Parameters copied from a case read (`{type: "single", item: {...}}`, or a shared parameter with its contents inlined) are rewritten into the shape the API writes, which it otherwise rejects with a bare "Data is invalid.".
+
+### Fixed
+
+- **A rejected review proposal no longer blames the project setting.** The API's "Data is invalid." answer to a malformed proposal got the hint to enable "Test case review" in the project settings, which sent people checking a setting that was already on.
+
 ## [3.0.7]
 
 ### Fixed

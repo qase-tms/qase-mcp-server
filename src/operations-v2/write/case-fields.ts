@@ -69,6 +69,30 @@ export const TestStepSchema: z.ZodType<TestStep> = z.object({
 // `__schema0`, which is what the model would read in `$defs`.
 z.globalRegistry.add(TestStepSchema, { id: 'step' });
 
+const ParameterSchema = z.object({
+  title: z.string().min(1).describe('Parameter name, e.g. "browser"'),
+  values: z.array(z.string()).min(1).describe('Its values, e.g. ["chrome", "firefox"]'),
+});
+
+// Used by both the single and the group form; registered so it is emitted once.
+z.globalRegistry.add(ParameterSchema, { id: 'parameter' });
+
+const CaseParameterSchema = z.union([
+  ParameterSchema,
+  z.object({
+    items: z
+      .array(ParameterSchema)
+      .min(2)
+      .describe('Parameters whose values go together; the API needs at least two'),
+  }),
+  z.object({
+    shared_id: z
+      .string()
+      .min(1)
+      .describe('ID of a shared parameter (qase_api GET /v1/shared_parameter)'),
+  }),
+]);
+
 export const CaseFieldsSchema = z.object({
   title: z.string().min(1).max(255).describe('Test case title'),
   description: z.string().optional().describe('Free-form description of what the case covers'),
@@ -114,7 +138,54 @@ export const CaseFieldsSchema = z.object({
     .record(z.string(), z.any())
     .optional()
     .describe('Custom fields by ID, e.g. { "12": "value" }'),
+  // Normalised before validation too, so qase_case_bulk_create, which parses its
+  // arguments, accepts parameters copied from a case read like the other tools do.
+  parameters: z.preprocess(
+    normalizeParameters,
+    z
+      .array(CaseParameterSchema)
+      .optional()
+      .describe(
+        'Test case parameters: {title, values}, a group {items: [...]}, or {shared_id}. ' +
+          'Replaces the whole list: send every parameter to keep, [] to clear, omit to leave as is.',
+      ),
+  ),
 });
+
+/** Shared by the help text of every tool that writes case fields. */
+export const PARAMETERS_HELP =
+  '`parameters` takes three kinds of item: {title, values} for one parameter; {items: ' +
+  '[{title, values}, ...]} for a group of at least two whose values go together; {shared_id} ' +
+  'for a shared parameter (list them with qase_api GET /v1/shared_parameter). Sending ' +
+  "`parameters` REPLACES the case's whole list, so to add one, send the existing ones too; " +
+  '[] removes them all, and leaving the field out keeps them.';
+
+/**
+ * Rewrite parameters read back from a case into the shape the API accepts.
+ *
+ * A case reports a single parameter as {type, item: {title, values}}, and the
+ * API rejects that very shape on write with a bare "Data is invalid." — so
+ * copying parameters from qase_get into a write would fail for no visible
+ * reason. A shared parameter reads back with its contents inlined; only the
+ * reference is written.
+ */
+export function normalizeParameters(parameters: unknown): unknown {
+  if (!Array.isArray(parameters)) return parameters;
+
+  return parameters.map((parameter) => {
+    if (typeof parameter !== 'object' || parameter === null) return parameter;
+
+    const p = parameter as Record<string, unknown>;
+    if (typeof p.shared_id === 'string' && p.shared_id !== '') return { shared_id: p.shared_id };
+    if (Array.isArray(p.items)) return { items: p.items };
+    if (typeof p.item === 'object' && p.item !== null) {
+      const { title, values } = p.item as Record<string, unknown>;
+      return { title, values };
+    }
+    if (p.title !== undefined) return { title: p.title, values: p.values };
+    return parameter;
+  });
+}
 
 /**
  * Rewrite `shared_step_hash` to `shared` throughout a step tree.

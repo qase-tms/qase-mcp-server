@@ -4,7 +4,13 @@ import { toolRegistry, CreateAnnotation } from '../../utils/registry.js';
 import { toResultAsync, createToolError } from '../../utils/errors.js';
 import { ProjectCodeSchema } from '../../utils/validation.js';
 import { normalizeCaseEnums } from '../../utils/case-enums.js';
-import { CaseFieldsSchema, applyAutomationMapping, resolveSharedStepRefs } from './case-fields.js';
+import {
+  CaseFieldsSchema,
+  PARAMETERS_HELP,
+  applyAutomationMapping,
+  normalizeParameters,
+  resolveSharedStepRefs,
+} from './case-fields.js';
 
 const CONTEXT = 'bulk case creation';
 
@@ -40,6 +46,9 @@ async function handler(rawArgs: unknown) {
       if (mapped.steps !== undefined) {
         mapped.steps = resolveSharedStepRefs(mapped.steps);
       }
+      if (mapped.parameters !== undefined) {
+        mapped.parameters = normalizeParameters(mapped.parameters);
+      }
       return mapped;
     }),
   );
@@ -67,7 +76,8 @@ toolRegistry.register({
     `Create up to ${MAX_CASES} test cases in one request — the batch form of qase_case_upsert, ` +
     'and the right tool whenever more than one case is being written. Takes a list of cases ' +
     'with the same fields and the same enum handling as qase_case_upsert: labels ("high", ' +
-    '"blocker") or numeric IDs both work, steps classic or Gherkin. The batch is validated as ' +
+    `"blocker") or numeric IDs both work, steps classic or Gherkin. ${PARAMETERS_HELP} ` +
+    'The batch is validated as ' +
     'a whole, so an invalid item means nothing is created, and each item is then reported ' +
     'individually. Returns the IDs in the order submitted. This creates only; to change an ' +
     'existing case use qase_case_upsert with its `id`. Cost: one API call regardless of batch ' +

@@ -54,7 +54,7 @@ jobs:
           # Pinned: a new mcpscore release can add rules, and an audit tool that
           # fails the build on a day nobody touched the server teaches people to
           # ignore it. Bump deliberately, after a local run.
-          version: '1.29.1'
+          version: '1.33.0'
           # No QASE_API_TOKEN is set: the audit speaks protocol to the server
           # over stdio and never calls a tool, so nothing reaches the Qase API.
           # Adding --smoke here would change that and need a real token.

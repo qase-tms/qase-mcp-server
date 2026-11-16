@@ -191,3 +191,31 @@ describe('qase_case_upsert — is_flaky', () => {
     expect(mockCreateCase.mock.calls[0][1]).not.toHaveProperty('is_flaky');
   });
 });
+
+describe('qase_case_upsert — parameters', () => {
+  it('sends parameters in the shape the API writes, also when copied from a read', async () => {
+    await invoke({
+      code: 'DEMO',
+      title: 'Case',
+      parameters: [
+        { type: 'single', item: { title: 'browser', values: ['chrome'] } },
+        { shared_id: 'sp-1' },
+      ],
+    });
+
+    expect(mockCreateCase.mock.calls[0][1].parameters).toEqual([
+      { title: 'browser', values: ['chrome'] },
+      { shared_id: 'sp-1' },
+    ]);
+  });
+
+  it('sends an empty list on update, which clears them', async () => {
+    await invoke({ code: 'DEMO', id: 5, title: 'Case', parameters: [] });
+    expect(mockUpdateCase.mock.calls[0][2].parameters).toEqual([]);
+  });
+
+  it('leaves the field out when it is not given, so an update keeps them', async () => {
+    await invoke({ code: 'DEMO', id: 5, title: 'Case' });
+    expect(mockUpdateCase.mock.calls[0][2]).not.toHaveProperty('parameters');
+  });
+});

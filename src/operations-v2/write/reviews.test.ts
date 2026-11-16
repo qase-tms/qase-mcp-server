@@ -177,6 +177,33 @@ describe('qase_review_create — proposed case payload', () => {
   });
 });
 
+describe('review tools — parameters', () => {
+  it('proposes parameters on a create review', async () => {
+    await invoke('qase_review_create', {
+      code: 'DEMO',
+      title: 'x',
+      parameters: [{ title: 'locale', values: ['en', 'fr'] }],
+    });
+
+    expect(sentPayload(mockCreateReview).proposed_case.parameters).toEqual([
+      { title: 'locale', values: ['en', 'fr'] },
+    ]);
+  });
+
+  it('treats parameters alone as a proposal change on update, in the write shape', async () => {
+    const result = await invoke('qase_review_update', {
+      code: 'DEMO',
+      id: 7,
+      parameters: [{ shared_id: 'sp-1', type: 'single', item: { title: 'env', values: ['a'] } }],
+    });
+
+    expect(sentPayload(mockUpdateReview, 2).proposed_case.parameters).toEqual([
+      { shared_id: 'sp-1' },
+    ]);
+    expect(result).toMatchObject({ approvals_reset: true });
+  });
+});
+
 describe('review tools — reviewers', () => {
   it('passes author UUIDs through untouched', async () => {
     const uuid = 'f81d4fae-7dec-11d0-a765-00a0c91e6bf6';
@@ -428,6 +455,14 @@ describe('review tools — error guidance', () => {
 
     const text = await suggestionOf(invoke('qase_review_create', { code: 'DEMO', title: 'x' }));
     // A bare "review" match used to attach the feature-disabled hint here.
+    expect(text).not.toMatch(/Project settings/);
+  });
+
+  it('does not blame the project setting for a rejected proposal payload', async () => {
+    // What the API answers for a malformed parameter; the setting is not the cause.
+    rejectWith(mockCreateReview, 400, 'Data is invalid.');
+
+    const text = await suggestionOf(invoke('qase_review_create', { code: 'DEMO', title: 'x' }));
     expect(text).not.toMatch(/Project settings/);
   });
 

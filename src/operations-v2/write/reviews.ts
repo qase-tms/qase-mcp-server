@@ -24,7 +24,12 @@ import {
 import { toResultAsync, createToolError, ToolExecutionError } from '../../utils/errors.js';
 import { ProjectCodeSchema, IdSchema } from '../../utils/validation.js';
 import { normalizeCaseEnums } from '../../utils/case-enums.js';
-import { CaseFieldsSchema, resolveSharedStepRefs } from './case-fields.js';
+import {
+  CaseFieldsSchema,
+  PARAMETERS_HELP,
+  normalizeParameters,
+  resolveSharedStepRefs,
+} from './case-fields.js';
 import { richResult, summaryBlock, dataBlock, markdownTable } from '../../utils/rich-response.js';
 import {
   ReviewCreateOutput,
@@ -95,6 +100,9 @@ async function buildProposedCase(
   if (normalized.steps !== undefined) {
     normalized.steps = resolveSharedStepRefs(normalized.steps);
   }
+  if (normalized.parameters !== undefined) {
+    normalized.parameters = normalizeParameters(normalized.parameters);
+  }
 
   return normalized;
 }
@@ -164,10 +172,11 @@ function reviewError(error: string, operation: string): never {
 
   // Match the feature-disabled case narrowly: a plain 400/403 with nothing more
   // specific to say. Testing for "review" anywhere in the text would attach this
-  // hint to unrelated validation errors that merely mention reviews.
+  // hint to unrelated validation errors that merely mention reviews, and the API's
+  // payload rejection ("Data is invalid.") is about the proposal, not the setting.
   const looksLikeFeatureOff =
     (error.startsWith('Invalid request:') || error.startsWith('Access forbidden:')) &&
-    !/reviewer|title|proposed_case|not found/i.test(error);
+    !/reviewer|title|proposed_case|not found|data is invalid|validation/i.test(error);
 
   if (looksLikeFeatureOff || /review.{0,20}(disabled|not enabled|turned off)/i.test(error)) {
     throw new ToolExecutionError(
@@ -438,7 +447,7 @@ toolRegistry.register({
     'changes to an existing case (an "edit" review; send only the fields that change), or omit ' +
     'it to propose a brand-new case (a "create" review, where `title` is required). Case fields ' +
     'are named and normalised exactly as in qase_case_upsert, enum labels included. ' +
-    `${REVIEW_MUST_BE_ENABLED} Opening several reviews at once? Use qase_review_bulk_create — ` +
+    `${PARAMETERS_HELP} ${REVIEW_MUST_BE_ENABLED} Opening several reviews at once? Use qase_review_bulk_create — ` +
     'one request instead of one per review. ' +
     `${NO_WORKFLOW_ACTIONS} Cost: one API call, about 0.5s.`,
   schema: CreateSchema,
@@ -455,7 +464,8 @@ toolRegistry.register({
   help:
     'Update an open review: change the proposed case fields, reassign reviewers, or both. ' +
     'Addressed by review ID; case fields follow the same naming and enum handling as ' +
-    'qase_case_upsert. IMPORTANT: changing the proposal RESETS every approval already given, ' +
+    `qase_case_upsert. ${PARAMETERS_HELP} ` +
+    'IMPORTANT: changing the proposal RESETS every approval already given, ' +
     'so a review that was ready to merge goes back to square one; updating only `reviewers` ' +
     `keeps the approvals. ${NO_WORKFLOW_ACTIONS} Cost: one API call, about 0.5s.`,
   schema: UpdateSchema,

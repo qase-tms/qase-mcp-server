@@ -249,3 +249,18 @@ describe('qase_case_bulk_create — is_flaky', () => {
     expect(sentCases().map((c) => c.is_flaky)).toEqual([1, 0]);
   });
 });
+
+describe('qase_case_bulk_create — parameters', () => {
+  it('normalises parameters on every case in the batch', async () => {
+    await invoke({
+      code: 'DEMO',
+      cases: [
+        { title: 'A', parameters: [{ type: 'single', item: { title: 'os', values: ['mac'] } }] },
+        { title: 'B' },
+      ],
+    });
+
+    expect(sentCases()[0].parameters).toEqual([{ title: 'os', values: ['mac'] }]);
+    expect(sentCases()[1]).not.toHaveProperty('parameters');
+  });
+});

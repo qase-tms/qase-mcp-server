@@ -100,10 +100,22 @@ const SPEC_DEFAULT_HINTS: Readonly<Record<string, boolean>> = {
 };
 
 /**
+ * Hints sent even when they equal the default. The OpenAI plugin directory
+ * rejects a tool that does not state these three as explicit booleans, so
+ * the bytes saved by leaving them out cost the listing.
+ */
+const ALWAYS_SENT_HINTS: ReadonlySet<string> = new Set([
+  'readOnlyHint',
+  'destructiveHint',
+  'openWorldHint',
+]);
+
+/**
  * The shape a tool takes on the wire, as opposed to the one the registry
  * stores. Every byte of `tools/list` is sent to the model on every request:
  *
- *  - hints equal to the spec defaults are dropped (see SPEC_DEFAULT_HINTS);
+ *  - hints equal to the spec defaults are dropped (see SPEC_DEFAULT_HINTS),
+ *    except the ones a directory requires stated (see ALWAYS_SENT_HINTS);
  *  - `outputSchema` is dropped: no client validates results against it, and
  *    its one job here — deciding whether to attach `structuredContent` — is
  *    now done for every object result (see server.ts).
@@ -114,7 +126,9 @@ function toWire(tool: Tool): Tool {
   const { outputSchema: _omitted, annotations, ...rest } = tool;
   if (!annotations) return rest;
   const kept = Object.fromEntries(
-    Object.entries(annotations).filter(([k, v]) => SPEC_DEFAULT_HINTS[k] !== v),
+    Object.entries(annotations).filter(
+      ([k, v]) => ALWAYS_SENT_HINTS.has(k) || SPEC_DEFAULT_HINTS[k] !== v,
+    ),
   );
   return Object.keys(kept).length ? { ...rest, annotations: kept } : rest;
 }
@@ -213,8 +227,9 @@ export class ToolRegistry {
    *
    * This is what code INSIDE the server reads — search, the category filter,
    * the help index. `getTools()` is for the wire and drops annotation hints
-   * that match the spec's own defaults, and one of those defaults is
-   * `destructiveHint: true`. Reading the wire shape internally therefore said
+   * that match the spec's own defaults; before the directory-required hints
+   * were kept, that included `destructiveHint: true`, and reading the wire
+   * shape internally therefore said
    * no tool was destructive: `qase_discover_tools` answered `category:
    * "delete"` with nothing and reported `destructive: false` for every
    * deletion it listed. The two shapes are kept apart by name so that cannot
@@ -308,32 +323,33 @@ export const toolRegistry = new ToolRegistry();
 
 /**
  * Reusable tool annotation presets
- * Used by operation modules to annotate tools with behavior hints
+ * Used by operation modules to annotate tools with behavior hints.
+ * openWorldHint is false: these tools act only inside the caller's Qase workspace.
  */
 export const ReadAnnotation: ToolAnnotations = {
   readOnlyHint: true,
   destructiveHint: false,
   idempotentHint: true,
-  openWorldHint: true,
+  openWorldHint: false,
 };
 
 export const CreateAnnotation: ToolAnnotations = {
   readOnlyHint: false,
   destructiveHint: false,
   idempotentHint: false,
-  openWorldHint: true,
+  openWorldHint: false,
 };
 
 export const UpdateAnnotation: ToolAnnotations = {
   readOnlyHint: false,
   destructiveHint: false,
   idempotentHint: true,
-  openWorldHint: true,
+  openWorldHint: false,
 };
 
 export const DeleteAnnotation: ToolAnnotations = {
   readOnlyHint: false,
   destructiveHint: true,
   idempotentHint: true,
-  openWorldHint: true,
+  openWorldHint: false,
 };

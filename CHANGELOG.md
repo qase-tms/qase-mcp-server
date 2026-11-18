@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.2.0]
+
+### Added
+
+- **The hosted server can pass the OpenAI plugin directory's domain check.** With `OPENAI_APPS_CHALLENGE_TOKEN` set, `GET /.well-known/openai-apps-challenge` returns that token as plain text, which is how the directory confirms the server's domain. Without the variable the route does not exist.
+
+### Changed
+
+- **Every tool states `readOnlyHint`, `destructiveHint` and `openWorldHint` explicitly in `tools/list`.** Hints equal to the MCP defaults used to be left out to save bytes, so delete tools carried none of the three. The meaning for clients is unchanged, but the OpenAI plugin directory rejects tools that do not state them. `idempotentHint` is still left out when it equals the default. `tools/list` grows by about 2 KB.
+- **`openWorldHint` is `false` for every tool except `qase_api`.** The tools act only inside the caller's Qase workspace, which the spec calls a closed domain. `qase_api` can reach any endpoint and stays `true`.
+
 ## [3.1.0]
 
 ### Added

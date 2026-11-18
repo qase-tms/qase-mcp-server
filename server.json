@@ -15,12 +15,12 @@
     "url": "https://github.com/qase-tms/qase-mcp-server",
     "source": "github"
   },
-  "version": "3.1.0",
+  "version": "3.2.0",
   "packages": [
     {
       "registryType": "npm",
       "identifier": "@qase/mcp-server",
-      "version": "3.1.0",
+      "version": "3.2.0",
       "transport": {
         "type": "stdio"
       },

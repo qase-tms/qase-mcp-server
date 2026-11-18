@@ -248,6 +248,15 @@ export function setupStreamableHttpTransport(
     res.json({ status: 'ok', transport: 'streamable-http' });
   });
 
+  // Domain verification for the OpenAI plugin directory: it expects the token
+  // from its portal back verbatim, as plain text. Unset means no route.
+  const openaiChallenge = process.env.OPENAI_APPS_CHALLENGE_TOKEN?.trim();
+  if (openaiChallenge) {
+    app.get('/.well-known/openai-apps-challenge', (_req, res) => {
+      res.type('text/plain').send(openaiChallenge);
+    });
+  }
+
   // Prometheus metrics endpoint
   app.get('/metrics', (_req, res) => {
     res.set('Content-Type', 'text/plain; version=0.0.4');

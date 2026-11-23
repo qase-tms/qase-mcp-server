@@ -68,8 +68,9 @@ toolRegistry.register({
   description:
     'Search the tool catalogue by what you are trying to do — "delete", "milestone", "review", "custom field" — and get back the matching tools with their descriptions. Every tool is already listed and callable; use this when you do not know which one fits, rather than re-reading the whole list. Cost: no API call, matching happens in memory, about 3ms.',
   help:
-    "Searches tool names and descriptions. Every word in the query must appear in a tool's name " +
-    'or description, so prefer two or three words over a sentence. `category` narrows the result ' +
+    'Searches tool names and descriptions. Tools containing every word of the query come first; ' +
+    'when none does, the closest partial matches come back instead, the most words first, so two ' +
+    'or three words still beat a sentence. `category` narrows the result ' +
     'to read, write, delete or composite tools. Since 3.0.0 nothing is hidden: the full catalogue ' +
     'is in your tool list from the first request, so a match here is callable at once — there is ' +
     'no activation step and no notification to wait for. Read qase_tool_help for the full ' +

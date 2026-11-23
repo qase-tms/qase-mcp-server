@@ -285,9 +285,28 @@ describe('ToolRegistry', () => {
       expect(results.map((t) => t.name)).toEqual(['qase_run_delete']);
     });
 
-    it('requires every word to match, so unrelated words narrow the result', () => {
+    it('returns only the tools matching every word when there are any', () => {
       expect(registry.searchTools('delete case').map((t) => t.name)).toEqual(['qase_case_delete']);
-      expect(registry.searchTools('delete unicorn')).toEqual([]);
+    });
+
+    // A client that defers part of the tool list leaves the agent describing
+    // the job in a sentence, and no single tool contains every word of it.
+    it('falls back to partial matches, most words first, when no tool matches every word', () => {
+      expect(registry.searchTools('delete unicorn').map((t) => t.name)).toEqual([
+        'qase_case_delete',
+        'qase_run_delete',
+      ]);
+      expect(registry.searchTools('qql search for a test run').map((t) => t.name)[0]).toBe(
+        'qql_search',
+      );
+    });
+
+    it('ranks a word found in the name above one found only in the description', () => {
+      // "test" is in three descriptions, "upsert" only in one name.
+      expect(registry.searchTools('upsert test unicorn').map((t) => t.name)[0]).toBe(
+        'qase_case_upsert',
+      );
+      expect(registry.searchTools('qql test unicorn').map((t) => t.name)[0]).toBe('qql_search');
     });
 
     it('matches words across the name and the description together', () => {

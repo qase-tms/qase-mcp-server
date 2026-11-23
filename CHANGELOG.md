@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.2.1]
+
+### Fixed
+
+- **`qase_discover_tools` answers a sentence, not only two or three exact words.** A query used to match only tools containing every one of its words, so a request phrased as a sentence ("tool help QQL search project context") found nothing, and the agent decided the tool did not exist. When no tool contains every word, the closest partial matches now come back, the most words first, at most eight. Queries that did match keep their result.
+- **The server instructions cover clients that defer part of the tool list.** ChatGPT showed the model 27 of the 42 tools and kept the rest, `qql_search` and `qase_triage_defect` among them, behind its own tool search. The instructions now tell the agent to look a named tool up with that search before concluding it is unavailable.
+
 ## [3.2.0]
 
 ### Added

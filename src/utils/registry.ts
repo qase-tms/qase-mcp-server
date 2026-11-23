@@ -58,6 +58,9 @@ function byName(a: { name: string }, b: { name: string }): number {
   return a.name > b.name ? 1 : 0;
 }
 
+/** How many partial matches a search returns when no tool matches every word. */
+const PARTIAL_MATCH_LIMIT = 8;
+
 /** JSON Schema object type for outputSchema */
 export interface OutputSchema {
   type: 'object';
@@ -240,8 +243,11 @@ export class ToolRegistry {
   }
 
   /**
-   * Search tools by name or description (case-insensitive substring match).
-   * Searches the full catalog including inactive tools.
+   * Search tools by name or description, case-insensitively, word by word.
+   *
+   * Tools that contain every word come back in name order. When none does,
+   * the tools that contain some of the words come back instead, the most
+   * words first.
    */
   searchTools(query: string): Tool[] {
     // Match on words rather than on the whole string: a caller asking for
@@ -251,10 +257,24 @@ export class ToolRegistry {
     const words = query.toLowerCase().split(/\s+/).filter(Boolean);
     if (words.length === 0) return [];
 
-    return this.getDefinitions().filter((t) => {
-      const haystack = `${t.name} ${t.description ?? ''}`.toLowerCase();
-      return words.every((word) => haystack.includes(word));
+    const scored = this.getDefinitions().map((tool) => {
+      const name = tool.name.toLowerCase();
+      const haystack = `${name} ${tool.description ?? ''}`.toLowerCase();
+      const hits = words.filter((word) => haystack.includes(word));
+      return { tool, hits: hits.length, nameHits: hits.filter((w) => name.includes(w)).length };
     });
+
+    const complete = scored.filter((s) => s.hits === words.length);
+    if (complete.length) return complete.map((s) => s.tool);
+
+    // An agent that cannot see a tool describes the job in a sentence, and a
+    // sentence rarely shares every word with one tool. Requiring all of them
+    // answered "found 0" and the agent concluded the tool did not exist.
+    return scored
+      .filter((s) => s.hits > 0)
+      .sort((a, b) => b.hits - a.hits || b.nameHits - a.nameHits)
+      .slice(0, PARTIAL_MATCH_LIMIT)
+      .map((s) => s.tool);
   }
 
   /**

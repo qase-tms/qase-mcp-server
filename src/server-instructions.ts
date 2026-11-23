@@ -15,6 +15,6 @@ Writing follows one pattern throughout: qase_case_upsert, qase_run_upsert, qase_
 
 Test plans, milestones, environments, shared steps, projects and workspace-wide custom fields are managed here too — search qase_discover_tools with "plan", "milestone", "environment", "shared step", "project" or "custom field" if you do not know the tool's name. A project has no update endpoint, and a custom field's entity and type are fixed once it is created.
 
-Every tool is listed from the first request — deletes, test plans, milestones, environments, shared steps, external issue links, case reviews, and project and custom-field management included. Nothing has to be activated, and the list does not change while the server runs. If you do not know which tool fits, search with qase_discover_tools rather than concluding a capability is absent.
+Every tool is listed from the first request — deletes, test plans, milestones, environments, shared steps, external issue links, case reviews, and project and custom-field management included. Nothing has to be activated, and the list does not change while the server runs. If you do not know which tool fits, search with qase_discover_tools rather than concluding a capability is absent. Some clients load only part of a long tool list up front and keep the rest behind their own tool search; if a tool named here is not among the tools you can call, find it with that search before concluding it is unavailable.
 
 Enum fields (priority, severity, status, type, automation) accept a label or the project's numeric ID, either works.`;
